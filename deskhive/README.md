@@ -1,20 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is the DeskHive Phase 1 MVP — a Next.js 16 application bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app) and extended with the data, auth, and primitive layers per the project architecture document at `../_bmad-output/planning-artifacts/architecture.md`.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local
+# edit .env.local with real values (see "Database setup" below)
 pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Database setup
+
+DeskHive uses **PostgreSQL 16** via [Drizzle ORM](https://orm.drizzle.team).
+
+Local development is currently scaffolded against [Neon](https://neon.tech) free serverless Postgres (Docker is intentionally not used — see project memory for rationale). Setup:
+
+1. Create a free Neon project at https://neon.tech and copy the connection string.
+2. Paste it as `DATABASE_URL` in `.env.local` (which is gitignored).
+3. Generate a 32-byte secret for `BETTER_AUTH_SECRET`:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+4. Apply the schema and seed the Super Admin (deferred until US-1.1's prep step):
+   ```bash
+   pnpm db:migrate
+   pnpm db:seed
+   ```
+
+### Seeded Super Admin credentials
+
+After running `pnpm db:seed`, a Super Admin account is created with:
+
+- **Email:** `admin@deskhive.local`
+- **Password:** `SuperAdmin1!`
+
+These credentials are for development only. Rotate before any deployment.
+
+## Scripts
+
+| Script | Purpose |
+|---|---|
+| `pnpm dev` | Start the Next.js dev server (Turbopack) |
+| `pnpm build` | Production build |
+| `pnpm start` | Start the production server |
+| `pnpm lint` | Run ESLint |
+| `pnpm typecheck` | Run TypeScript type-checking (no emit) |
+| `pnpm test` | Run Vitest unit and integration tests |
+| `pnpm test:watch` | Vitest watch mode |
+| `pnpm db:generate` | Generate a Drizzle migration from the schema |
+| `pnpm db:migrate` | Apply pending Drizzle migrations |
+| `pnpm db:push` | Dev-only: push schema directly without migration |
+| `pnpm db:seed` | Seed the Super Admin user |
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
