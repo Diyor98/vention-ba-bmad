@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from '@better-auth/drizzle-adapter';
 import * as argon2 from 'argon2';
@@ -21,6 +22,15 @@ export const auth = betterAuth({
   }),
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
+  // Our `users.id` column is UUID per Doc B §6.1 (`uuid PRIMARY KEY DEFAULT gen_random_uuid()`).
+  // Better Auth's default generateId produces short non-UUID strings, which Postgres rejects
+  // with `invalid input syntax for type uuid`. Override with a v4 UUID generator from Node's
+  // built-in crypto module (no new deps). Schema stays PRD-faithful.
+  advanced: {
+    database: {
+      generateId: () => randomUUID(),
+    },
+  },
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
