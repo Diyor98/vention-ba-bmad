@@ -1,4 +1,7 @@
-import 'dotenv/config';
+import { config } from 'dotenv';
+config({ path: '.env.local' });
+config({ path: '.env' });
+
 import { eq } from 'drizzle-orm';
 import { auth } from '@/lib/auth/config';
 import { db } from '@/db/client';
@@ -22,14 +25,13 @@ async function main() {
   }
 
   // Use Better Auth's signUp so the password hash is produced by the configured argon2id hasher.
-  // `fullName` is required because additionalFields.fullName has no `input: false` (real users
-  // supply it on registration per Doc B §7.6 — Full name required, non-empty).
+  // Only `name` is needed — Better Auth's `user.fields.name` config maps it to our `fullName`
+  // property (DB column `full_name`).
   const result = await auth.api.signUpEmail({
     body: {
       email: SEED_EMAIL,
       password: SEED_PASSWORD,
       name: SEED_FULL_NAME,
-      fullName: SEED_FULL_NAME,
     },
   });
 

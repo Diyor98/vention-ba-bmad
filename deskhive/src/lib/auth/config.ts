@@ -32,12 +32,20 @@ export const auth = betterAuth({
     },
   },
   user: {
+    // Better Auth's core "name" field lives in our `fullName` property
+    // (DB column `full_name` per Doc B §6.1). The Drizzle adapter resolves
+    // the value via the schema property name; the column aliasing handles
+    // the snake_case mapping at SQL level.
+    fields: {
+      name: 'fullName',
+    },
     additionalFields: {
+      // Defaulted to GUEST and input:false so clients cannot self-promote.
       role: { type: 'string', defaultValue: 'GUEST', input: false },
-      fullName: { type: 'string', fieldName: 'full_name' },
+      // Retained per Doc B §6.1 letter-of-spec (BA Decision B.1) but unused
+      // by Better Auth — credential hash lives in account.password.
       hashedPassword: {
         type: 'string',
-        fieldName: 'hashed_password',
         input: false,
         returned: false,
       },
