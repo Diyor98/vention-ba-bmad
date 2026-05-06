@@ -48,4 +48,14 @@ test.describe('admin spaces — unauthenticated', () => {
     const body = await res.json();
     expect(body.code).toBe('UNAUTHORIZED');
   });
+
+  test('POST /api/admin/spaces/:id/desks returns 401 without a session cookie', async ({ request }) => {
+    const res = await request.post(
+      '/api/admin/spaces/00000000-0000-0000-0000-000000000000/desks',
+      { data: { label: 'Desk-1', dailyPriceCents: '2500' } },
+    );
+    expect(res.status()).toBe(401);
+    const body = await res.json();
+    expect(body.code).toBe('UNAUTHORIZED');
+  });
 });
