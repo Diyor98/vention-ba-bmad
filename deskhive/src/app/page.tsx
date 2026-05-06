@@ -1,65 +1,83 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { listPublishedSpaces } from '@/db/queries/spaces';
+import { DataView, type DataViewStatus } from '@/components/data-view';
+import { logger } from '@/lib/logger';
+import type { Space } from '@/db/schema';
 
-export default function Home() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ city?: string }>;
+}) {
+  const { city } = await searchParams;
+  const cityFilter = city?.trim() ? city.trim() : undefined;
+
+  let spaces: Space[] = [];
+  let status: DataViewStatus = 'loaded';
+  try {
+    spaces = await listPublishedSpaces({ city: cityFilter });
+    if (spaces.length === 0) status = 'empty';
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error('home_page_list_failed', { error: msg });
+    status = 'error';
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="mx-auto max-w-6xl p-8">
+      <h1 className="mb-6 text-2xl font-semibold">Spaces</h1>
+
+      <form action="/" method="GET" className="mb-6 flex items-end gap-2">
+        <div className="flex-1">
+          <label htmlFor="city" className="mb-1 block text-sm font-medium">
+            Filter by city
+          </label>
+          <input
+            id="city"
+            name="city"
+            type="text"
+            defaultValue={cityFilter ?? ''}
+            placeholder="e.g. Berlin"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <button
+          type="submit"
+          className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white"
+        >
+          Search
+        </button>
+        {cityFilter && (
+          <Link
+            href="/"
+            className="self-end px-2 py-2 text-sm text-gray-700 hover:underline"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            Clear filter
+          </Link>
+        )}
+      </form>
+
+      <DataView status={status} emptyMessage="No spaces available yet.">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {spaces.map((s) => (
+            <li
+              key={s.id}
+              className="overflow-hidden rounded border border-gray-200"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={s.primaryImageUrl}
+                alt={s.name}
+                className="aspect-video w-full object-cover"
+              />
+              <div className="p-3">
+                <h2 className="font-semibold">{s.name}</h2>
+                <p className="text-sm text-gray-600">{s.city}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </DataView>
+    </main>
   );
 }

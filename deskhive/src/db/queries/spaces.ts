@@ -1,10 +1,30 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, ilike, and, desc } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { spacesTable, type Space } from '@/db/schema';
 import type { CreateSpaceInput } from '@/lib/validation/space';
 
 export async function listAllSpaces(): Promise<Space[]> {
   return db.select().from(spacesTable).orderBy(desc(spacesTable.createdAt));
+}
+
+// Public-facing query: only PUBLISHED rows are visible to unauthenticated
+// visitors and Guests. SUSPENDED rows still exist in the table (admin-only
+// state) and remain visible via listAllSpaces. Optional `city` filter uses
+// `ilike` for case-insensitive equality (no wildcards — exact match by spec).
+export async function listPublishedSpaces(opts?: {
+  city?: string;
+}): Promise<Space[]> {
+  const where = opts?.city
+    ? and(
+        eq(spacesTable.status, 'PUBLISHED'),
+        ilike(spacesTable.city, opts.city),
+      )
+    : eq(spacesTable.status, 'PUBLISHED');
+  return db
+    .select()
+    .from(spacesTable)
+    .where(where)
+    .orderBy(desc(spacesTable.createdAt));
 }
 
 export async function getSpaceById(id: string): Promise<Space | undefined> {
