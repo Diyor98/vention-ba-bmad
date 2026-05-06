@@ -6,6 +6,7 @@ import { computeDeskAvailability } from '@/lib/availability';
 import { parseDateParam, formatCents, todayIso } from '@/lib/format';
 import { DataView, type DataViewStatus } from '@/components/data-view';
 import { logger } from '@/lib/logger';
+import { BookDeskButton } from './book-desk-button';
 import type { Booking, Desk } from '@/db/schema';
 
 export default async function SpaceDetailPage({
@@ -116,13 +117,12 @@ export default async function SpaceDetailPage({
                     {isAvailable ? 'Available' : 'Unavailable'}
                   </span>
                 )}
-                <button
-                  type="button"
-                  disabled={!enable}
-                  className="rounded bg-gray-900 px-3 py-1 text-sm font-medium text-white disabled:opacity-50"
-                >
-                  Book this desk
-                </button>
+                <BookDeskButton
+                  spaceId={space.id}
+                  deskId={d.id}
+                  bookingDate={dateResult.valid ? dateResult.iso : undefined}
+                  enabled={enable}
+                />
               </li>
             );
           })}

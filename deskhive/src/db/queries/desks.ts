@@ -33,6 +33,21 @@ export async function getDeskById(id: string): Promise<Desk | undefined> {
   return row;
 }
 
+// Public-facing: collapses "missing" and "inactive" into the same undefined
+// return. Booking action treats both as DESK_NOT_FOUND — the user just needs
+// to know the desk isn't bookable; the distinction (deleted vs deactivated)
+// is admin-only context.
+export async function getActiveDeskById(
+  id: string,
+): Promise<Desk | undefined> {
+  const [row] = await db
+    .select()
+    .from(desksTable)
+    .where(and(eq(desksTable.id, id), eq(desksTable.isActive, true)))
+    .limit(1);
+  return row;
+}
+
 // Lets the unique-violation error bubble; the action layer maps it to
 // DUPLICATE_LABEL with the verbatim PRD message.
 export async function createDesk(

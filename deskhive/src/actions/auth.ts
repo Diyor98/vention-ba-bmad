@@ -132,7 +132,21 @@ export async function loginAction(
   }
 
   if (result) return result;
-  redirect('/');
+
+  // Honor a same-origin callbackUrl for the post-login redirect (US-3.3
+  // AC-2 — return the user to the page they came from). Defense:
+  //   - must be a string
+  //   - must start with `/` AND NOT `//` (rejects protocol-relative URLs
+  //     that would point off-origin)
+  // Anything else falls back to `/`.
+  const callbackUrl = formData.get('callbackUrl');
+  const safeCallback =
+    typeof callbackUrl === 'string' &&
+    callbackUrl.startsWith('/') &&
+    !callbackUrl.startsWith('//')
+      ? callbackUrl
+      : '/';
+  redirect(safeCallback);
 }
 
 // Logout is best-effort and always-succeeds from the user's perspective

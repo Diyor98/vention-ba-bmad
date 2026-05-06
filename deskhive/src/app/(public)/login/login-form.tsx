@@ -6,7 +6,7 @@ import { loginAction, type LoginActionState } from '@/actions/auth';
 
 const initialState: LoginActionState = { status: 'idle' };
 
-export function LoginForm() {
+export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const [state, formAction] = useActionState(loginAction, initialState);
 
   const fieldError = (name: string) =>
@@ -19,6 +19,7 @@ export function LoginForm() {
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
+      <input type="hidden" name="callbackUrl" value={callbackUrl ?? ''} />
       <div>
         <label htmlFor="email" className="block text-sm font-medium mb-1">
           Email
