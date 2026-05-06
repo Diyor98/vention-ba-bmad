@@ -16,6 +16,11 @@ export async function Header() {
         {user ? (
           <>
             <span className="text-gray-700">{user.email}</span>
+            {(user as { role?: string }).role === 'SUPER_ADMIN' && (
+              <Link href="/admin/spaces" className="text-gray-700 hover:underline">
+                Admin
+              </Link>
+            )}
             <LogoutButton />
           </>
         ) : (
