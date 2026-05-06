@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { registerSchema } from './auth';
+import { registerSchema, loginSchema } from './auth';
 
 describe('registerSchema', () => {
   const validInput = {
@@ -68,6 +68,52 @@ describe('registerSchema', () => {
       expect(fields.has('email')).toBe(true);
       expect(fields.has('password')).toBe(true);
       expect(fields.has('fullName')).toBe(true);
+    }
+  });
+});
+
+describe('loginSchema', () => {
+  const validInput = {
+    email: 'ada@example.com',
+    password: 'Sup3rSecret!',
+  };
+
+  it('accepts valid input', () => {
+    const result = loginSchema.safeParse(validInput);
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects malformed email', () => {
+    const result = loginSchema.safeParse({ ...validInput, email: 'not-an-email' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const emailError = result.error.issues.find((i) => i.path[0] === 'email');
+      expect(emailError?.message).toBe('Must be a valid email address');
+    }
+  });
+
+  it('rejects empty/whitespace-only email', () => {
+    expect(loginSchema.safeParse({ ...validInput, email: '' }).success).toBe(false);
+    expect(loginSchema.safeParse({ ...validInput, email: '   ' }).success).toBe(false);
+  });
+
+  it('rejects empty/whitespace-only password', () => {
+    expect(loginSchema.safeParse({ ...validInput, password: '' }).success).toBe(false);
+  });
+
+  it('accepts a single-character password (no minLength on login)', () => {
+    // Intentional contrast with registerSchema's 8-char minimum.
+    const result = loginSchema.safeParse({ ...validInput, password: 'x' });
+    expect(result.success).toBe(true);
+  });
+
+  it('reports both fields when both are empty', () => {
+    const result = loginSchema.safeParse({ email: '', password: '' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const fields = new Set(result.error.issues.map((i) => i.path[0]));
+      expect(fields.has('email')).toBe(true);
+      expect(fields.has('password')).toBe(true);
     }
   });
 });
