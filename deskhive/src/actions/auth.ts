@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { auth } from '@/lib/auth/config';
 import { registerSchema, loginSchema } from '@/lib/validation/auth';
 import { logger } from '@/lib/logger';
@@ -131,5 +132,19 @@ export async function loginAction(
   }
 
   if (result) return result;
+  redirect('/');
+}
+
+// Logout is best-effort and always-succeeds from the user's perspective
+// (AC-8). Any signOut error is logged for debuggability but never surfaced;
+// we redirect to / regardless. No useActionState / no return shape — the
+// page navigates and the form never sees a "result".
+export async function logoutAction(): Promise<void> {
+  try {
+    await auth.api.signOut({ headers: await headers() });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error('logout_action_failed', { error: msg });
+  }
   redirect('/');
 }
