@@ -25,4 +25,27 @@ test.describe('admin spaces — unauthenticated', () => {
     const body = await res.json();
     expect(body.code).toBe('UNAUTHORIZED');
   });
+
+  test('GET /admin/spaces/:id redirects to /login', async ({ page }) => {
+    await page.goto('/admin/spaces/00000000-0000-0000-0000-000000000000');
+    await expect(page).toHaveURL(/\/login$/);
+  });
+
+  test('PUT /api/admin/spaces/:id returns 401 without a session cookie', async ({ request }) => {
+    const res = await request.put(
+      '/api/admin/spaces/00000000-0000-0000-0000-000000000000',
+      {
+        data: {
+          name: 'Hive Central',
+          city: 'Berlin',
+          addressLine: 'Friedrichstr 1',
+          description: 'Updated description',
+          primaryImageUrl: 'https://example.com/x.jpg',
+        },
+      },
+    );
+    expect(res.status()).toBe(401);
+    const body = await res.json();
+    expect(body.code).toBe('UNAUTHORIZED');
+  });
 });
