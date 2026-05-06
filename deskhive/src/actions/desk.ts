@@ -7,6 +7,20 @@ import { createDesk } from '@/db/queries/desks';
 import { getSpaceById } from '@/db/queries/spaces';
 import { logger } from '@/lib/logger';
 
+function matchUniqueViolation(err: unknown, depth = 3): boolean {
+  if (depth === 0 || !err || typeof err !== 'object') return false;
+  const code = (err as { code?: string }).code;
+  const msg = (err as { message?: string }).message ?? '';
+  if (
+    code === '23505' ||
+    msg.includes('uniq_desk_label_per_space') ||
+    msg.includes('duplicate key value violates unique constraint')
+  ) {
+    return true;
+  }
+  return matchUniqueViolation((err as { cause?: unknown }).cause, depth - 1);
+}
+
 export type CreateDeskActionState =
   | { status: 'idle' }
   | { status: 'error'; code: 'UNAUTHORIZED'; message: string }
@@ -68,13 +82,12 @@ export async function createDeskAction(
     await createDesk(spaceId, parsed.data);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    const code = (err as { code?: string }).code;
-    // Defensive matcher across pg driver versions: SQLSTATE 23505 + the
-    // constraint name + the generic violation text.
-    const isUniqueViolation =
-      code === '23505' ||
-      msg.includes('uniq_desk_label_per_space') ||
-      msg.includes('duplicate key value violates unique constraint');
+    // Drizzle 0.45 wraps pg errors in DrizzleQueryError; the SQLSTATE and the
+    // real "duplicate key …" message live on `err.cause`. Walk the cause chain
+    // (depth-limited for safety) so the matcher hits whether or not the driver
+    // wraps. SQLSTATE 23505 + the constraint name + the generic violation text
+    // give us defense-in-depth across pg/Drizzle version drift.
+    const isUniqueViolation = matchUniqueViolation(err);
     if (isUniqueViolation) {
       result = {
         status: 'error',

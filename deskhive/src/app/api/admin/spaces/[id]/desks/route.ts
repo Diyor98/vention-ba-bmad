@@ -5,6 +5,23 @@ import { getSpaceById } from '@/db/queries/spaces';
 import { apiError, apiValidationError, apiNotFound } from '@/lib/http';
 import { logger } from '@/lib/logger';
 
+// See action's note: Drizzle 0.45 wraps pg errors; walk `err.cause` to find
+// the SQLSTATE and the real violation text. Kept identical to the action's
+// matcher so behaviour is symmetric across the two callers.
+function matchUniqueViolation(err: unknown, depth = 3): boolean {
+  if (depth === 0 || !err || typeof err !== 'object') return false;
+  const code = (err as { code?: string }).code;
+  const msg = (err as { message?: string }).message ?? '';
+  if (
+    code === '23505' ||
+    msg.includes('uniq_desk_label_per_space') ||
+    msg.includes('duplicate key value violates unique constraint')
+  ) {
+    return true;
+  }
+  return matchUniqueViolation((err as { cause?: unknown }).cause, depth - 1);
+}
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -45,12 +62,7 @@ export async function POST(
     return Response.json(row, { status: 201 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    const code = (err as { code?: string }).code;
-    const isUniqueViolation =
-      code === '23505' ||
-      msg.includes('uniq_desk_label_per_space') ||
-      msg.includes('duplicate key value violates unique constraint');
-    if (isUniqueViolation) {
+    if (matchUniqueViolation(err)) {
       return apiError(
         'DUPLICATE_LABEL',
         'A desk with that label already exists in this space',
