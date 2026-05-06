@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation';
 import { getSpaceById } from '@/db/queries/spaces';
 import { listDesksForSpace } from '@/db/queries/desks';
 import { DataView } from '@/components/data-view';
-import { formatCents } from '@/lib/format';
 import { EditSpaceForm } from './edit-space-form';
+import { EditDeskForm } from './edit-desk-form';
 import { AddDeskForm } from './add-desk-form';
 
 // Guarded by src/app/admin/layout.tsx — Super Admin only.
@@ -39,20 +39,11 @@ export default async function EditSpacePage({
         status={desks.length === 0 ? 'empty' : 'loaded'}
         emptyMessage="No desks in this space yet."
       >
-        <ul className="mb-6">
+        <div className="mb-6">
           {desks.map((d) => (
-            <li
-              key={d.id}
-              className="flex items-center justify-between border-b border-gray-200 py-3 text-sm"
-            >
-              <span className="font-medium">{d.label}</span>
-              <span className="text-gray-700">{formatCents(d.dailyPriceCents)}</span>
-              <span className={d.isActive ? 'text-green-700' : 'text-gray-500'}>
-                {d.isActive ? 'Active' : 'Inactive'}
-              </span>
-            </li>
+            <EditDeskForm key={d.id} desk={d} />
           ))}
-        </ul>
+        </div>
       </DataView>
 
       <h3 className="mb-2 text-base font-semibold">Add desk</h3>

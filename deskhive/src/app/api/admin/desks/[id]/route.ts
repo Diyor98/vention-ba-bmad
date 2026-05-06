@@ -1,28 +1,27 @@
 import { requireSession, requireRole, AuthError } from '@/lib/auth/guards';
-import { createDeskSchema } from '@/lib/validation/desk';
-import { createDesk } from '@/db/queries/desks';
-import { getSpaceById } from '@/db/queries/spaces';
+import { editDeskSchema } from '@/lib/validation/desk';
+import { getDeskById, updateDesk } from '@/db/queries/desks';
 import { isPgUniqueViolation } from '@/lib/db-errors';
 import { apiError, apiValidationError, apiNotFound } from '@/lib/http';
 import { logger } from '@/lib/logger';
 
-export async function POST(
+export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
-  const { id: spaceId } = await params;
+  const { id: deskId } = await params;
 
   try {
     const session = await requireSession();
     requireRole(session, 'SUPER_ADMIN');
   } catch (err) {
     if (err instanceof AuthError) return err.response;
-    logger.error('create_desk_route_auth_failed', { error: String(err) });
+    logger.error('edit_desk_route_auth_failed', { error: String(err) });
     return apiError('INTERNAL_ERROR', 'Something went wrong', 500);
   }
 
-  const space = await getSpaceById(spaceId);
-  if (!space) return apiNotFound('Space not found');
+  const existing = await getDeskById(deskId);
+  if (!existing) return apiNotFound('Desk not found');
 
   let body: unknown;
   try {
@@ -31,7 +30,9 @@ export async function POST(
     return apiError('INVALID_JSON', 'Request body must be valid JSON', 400);
   }
 
-  const parsed = createDeskSchema.safeParse(body);
+  // REST clients send JSON, so isActive arrives as a real boolean — no
+  // FormData conversion needed in this code path.
+  const parsed = editDeskSchema.safeParse(body);
   if (!parsed.success) {
     const fields: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
@@ -42,8 +43,9 @@ export async function POST(
   }
 
   try {
-    const row = await createDesk(spaceId, parsed.data);
-    return Response.json(row, { status: 201 });
+    const updated = await updateDesk(deskId, parsed.data);
+    if (!updated) return apiNotFound('Desk not found');
+    return Response.json(updated, { status: 200 });
   } catch (err) {
     if (isPgUniqueViolation(err, 'uniq_desk_label_per_space')) {
       return apiError(
@@ -53,7 +55,7 @@ export async function POST(
       );
     }
     const msg = err instanceof Error ? err.message : String(err);
-    logger.error('create_desk_route_db_failed', { error: msg });
+    logger.error('edit_desk_route_db_failed', { error: msg });
     return apiError('INTERNAL_ERROR', 'Something went wrong', 500);
   }
 }

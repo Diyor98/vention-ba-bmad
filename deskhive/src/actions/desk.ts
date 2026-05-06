@@ -2,24 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireSession, requireRole, AuthError } from '@/lib/auth/guards';
-import { createDeskSchema } from '@/lib/validation/desk';
-import { createDesk } from '@/db/queries/desks';
+import { createDeskSchema, editDeskSchema } from '@/lib/validation/desk';
+import { createDesk, getDeskById, updateDesk } from '@/db/queries/desks';
 import { getSpaceById } from '@/db/queries/spaces';
+import { isPgUniqueViolation } from '@/lib/db-errors';
 import { logger } from '@/lib/logger';
-
-function matchUniqueViolation(err: unknown, depth = 3): boolean {
-  if (depth === 0 || !err || typeof err !== 'object') return false;
-  const code = (err as { code?: string }).code;
-  const msg = (err as { message?: string }).message ?? '';
-  if (
-    code === '23505' ||
-    msg.includes('uniq_desk_label_per_space') ||
-    msg.includes('duplicate key value violates unique constraint')
-  ) {
-    return true;
-  }
-  return matchUniqueViolation((err as { cause?: unknown }).cause, depth - 1);
-}
 
 export type CreateDeskActionState =
   | { status: 'idle' }
@@ -30,15 +17,13 @@ export type CreateDeskActionState =
   | { status: 'error'; code: 'DUPLICATE_LABEL'; message: string }
   | { status: 'error'; code: 'INTERNAL_ERROR'; message: string };
 
-const initialIdle: CreateDeskActionState = { status: 'idle' };
+const createIdle: CreateDeskActionState = { status: 'idle' };
 
 export async function createDeskAction(
   spaceId: string,
   _prevState: CreateDeskActionState,
   formData: FormData,
 ): Promise<CreateDeskActionState> {
-  // Layout already runs the guard for the page render, but the Server Action
-  // is hit independently by the form post — re-check at this boundary.
   try {
     const session = await requireSession();
     requireRole(session, 'SUPER_ADMIN');
@@ -56,8 +41,6 @@ export async function createDeskAction(
     return { status: 'error', code: 'INTERNAL_ERROR', message: 'Something went wrong.' };
   }
 
-  // Pre-existence check defends against a stale bound id (e.g. parent space
-  // deleted via a future Phase 2 admin tool).
   const space = await getSpaceById(spaceId);
   if (!space) {
     return { status: 'error', code: 'NOT_FOUND', message: 'Space not found.' };
@@ -81,14 +64,7 @@ export async function createDeskAction(
   try {
     await createDesk(spaceId, parsed.data);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    // Drizzle 0.45 wraps pg errors in DrizzleQueryError; the SQLSTATE and the
-    // real "duplicate key …" message live on `err.cause`. Walk the cause chain
-    // (depth-limited for safety) so the matcher hits whether or not the driver
-    // wraps. SQLSTATE 23505 + the constraint name + the generic violation text
-    // give us defense-in-depth across pg/Drizzle version drift.
-    const isUniqueViolation = matchUniqueViolation(err);
-    if (isUniqueViolation) {
+    if (isPgUniqueViolation(err, 'uniq_desk_label_per_space')) {
       result = {
         status: 'error',
         code: 'DUPLICATE_LABEL',
@@ -96,6 +72,7 @@ export async function createDeskAction(
         message: 'A desk with that label already exists in this space',
       };
     } else {
+      const msg = err instanceof Error ? err.message : String(err);
       logger.error('create_desk_action_db_failed', { error: msg });
       result = {
         status: 'error',
@@ -107,8 +84,94 @@ export async function createDeskAction(
 
   if (result) return result;
 
-  // No redirect — user stays on the edit screen; revalidation re-renders the
-  // desks list with the new desk and resets the form to idle.
   revalidatePath(`/admin/spaces/${spaceId}`);
-  return initialIdle;
+  return createIdle;
+}
+
+export type EditDeskActionState =
+  | { status: 'idle' }
+  | { status: 'error'; code: 'UNAUTHORIZED'; message: string }
+  | { status: 'error'; code: 'FORBIDDEN'; message: string }
+  | { status: 'error'; code: 'NOT_FOUND'; message: string }
+  | { status: 'error'; code: 'VALIDATION_ERROR'; fields: Record<string, string> }
+  | { status: 'error'; code: 'DUPLICATE_LABEL'; message: string }
+  | { status: 'error'; code: 'INTERNAL_ERROR'; message: string };
+
+const editIdle: EditDeskActionState = { status: 'idle' };
+
+export async function editDeskAction(
+  deskId: string,
+  _prevState: EditDeskActionState,
+  formData: FormData,
+): Promise<EditDeskActionState> {
+  try {
+    const session = await requireSession();
+    requireRole(session, 'SUPER_ADMIN');
+  } catch (err) {
+    if (err instanceof AuthError) {
+      const status = err.response.status;
+      if (status === 401) {
+        return { status: 'error', code: 'UNAUTHORIZED', message: 'Please log in.' };
+      }
+      if (status === 403) {
+        return { status: 'error', code: 'FORBIDDEN', message: 'Forbidden.' };
+      }
+    }
+    logger.error('edit_desk_action_auth_failed', { error: String(err) });
+    return { status: 'error', code: 'INTERNAL_ERROR', message: 'Something went wrong.' };
+  }
+
+  // Pre-existence check + spaceId lookup. We need spaceId for revalidatePath
+  // and the row's existence check guards against stale ids in concurrent-
+  // delete edge cases.
+  const desk = await getDeskById(deskId);
+  if (!desk) {
+    return { status: 'error', code: 'NOT_FOUND', message: 'Desk not found.' };
+  }
+
+  // HTML checkboxes submit 'on' when checked, nothing when unchecked. Convert
+  // to a real boolean before Zod sees it; z.coerce.boolean would treat the
+  // string 'false' as truthy, which is not what we want.
+  const parsed = editDeskSchema.safeParse({
+    label: formData.get('label'),
+    dailyPriceCents: formData.get('dailyPriceCents'),
+    isActive: formData.get('isActive') === 'on',
+  });
+
+  if (!parsed.success) {
+    const fields: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      const key = String(issue.path[0] ?? '');
+      if (key && !fields[key]) fields[key] = issue.message;
+    }
+    return { status: 'error', code: 'VALIDATION_ERROR', fields };
+  }
+
+  let result: EditDeskActionState | null = null;
+  try {
+    await updateDesk(deskId, parsed.data);
+  } catch (err) {
+    if (isPgUniqueViolation(err, 'uniq_desk_label_per_space')) {
+      result = {
+        status: 'error',
+        code: 'DUPLICATE_LABEL',
+        message: 'A desk with that label already exists in this space',
+      };
+    } else {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error('edit_desk_action_db_failed', { error: msg });
+      result = {
+        status: 'error',
+        code: 'INTERNAL_ERROR',
+        message: 'Something went wrong. Please try again.',
+      };
+    }
+  }
+
+  if (result) return result;
+
+  // spaceId comes from the desk row we already fetched; the form doesn't
+  // submit it, and editing never moves a desk between spaces in Phase 1.
+  revalidatePath(`/admin/spaces/${desk.spaceId}`);
+  return editIdle;
 }
