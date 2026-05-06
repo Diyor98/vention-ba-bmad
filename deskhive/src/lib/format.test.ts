@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatCents, todayIso, isPastDate } from './format';
+import { formatCents, todayIso, isPastDate, parseDateParam } from './format';
 
 describe('formatCents', () => {
   it('formats $25.00', () => {
@@ -59,5 +59,35 @@ describe('isPastDate', () => {
     expect(() => isPastDate('2026/05/06')).toThrow();
     expect(() => isPastDate('not-a-date')).toThrow();
     expect(() => isPastDate('')).toThrow();
+  });
+});
+
+describe('parseDateParam', () => {
+  it('returns valid for today', () => {
+    const result = parseDateParam(todayIso());
+    expect(result.valid).toBe(true);
+    if (result.valid) expect(result.iso).toBe(todayIso());
+  });
+
+  it('returns valid for a clearly future date', () => {
+    const result = parseDateParam('2099-12-31');
+    expect(result.valid).toBe(true);
+  });
+
+  it('returns missing for undefined / null / empty / whitespace', () => {
+    expect(parseDateParam(undefined)).toEqual({ valid: false, reason: 'missing' });
+    expect(parseDateParam(null)).toEqual({ valid: false, reason: 'missing' });
+    expect(parseDateParam('')).toEqual({ valid: false, reason: 'missing' });
+    expect(parseDateParam('   ')).toEqual({ valid: false, reason: 'missing' });
+  });
+
+  it('returns malformed for non-ISO strings', () => {
+    expect(parseDateParam('not-a-date')).toEqual({ valid: false, reason: 'malformed' });
+    expect(parseDateParam('2026/05/06')).toEqual({ valid: false, reason: 'malformed' });
+    expect(parseDateParam('2026-5-6')).toEqual({ valid: false, reason: 'malformed' });
+  });
+
+  it('returns past for clearly past dates', () => {
+    expect(parseDateParam('2020-01-01')).toEqual({ valid: false, reason: 'past' });
   });
 });

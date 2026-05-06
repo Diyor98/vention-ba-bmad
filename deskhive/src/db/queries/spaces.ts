@@ -36,6 +36,20 @@ export async function getSpaceById(id: string): Promise<Space | undefined> {
   return row;
 }
 
+// Public-facing variant: only returns the row when status='PUBLISHED'.
+// Admin uses getSpaceById (no status filter) so SUSPENDED spaces remain
+// editable from the admin UI.
+export async function getPublishedSpaceById(
+  id: string,
+): Promise<Space | undefined> {
+  const [row] = await db
+    .select()
+    .from(spacesTable)
+    .where(and(eq(spacesTable.id, id), eq(spacesTable.status, 'PUBLISHED')))
+    .limit(1);
+  return row;
+}
+
 export async function createSpace(input: CreateSpaceInput): Promise<Space> {
   const [row] = await db
     .insert(spacesTable)

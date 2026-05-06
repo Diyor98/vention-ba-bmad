@@ -64,16 +64,21 @@ export default async function HomePage({
               key={s.id}
               className="overflow-hidden rounded border border-gray-200"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={s.primaryImageUrl}
-                alt={s.name}
-                className="aspect-video w-full object-cover"
-              />
-              <div className="p-3">
-                <h2 className="font-semibold">{s.name}</h2>
-                <p className="text-sm text-gray-600">{s.city}</p>
-              </div>
+              <Link
+                href={`/spaces/${s.id}`}
+                className="block transition-colors hover:bg-gray-50"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={s.primaryImageUrl}
+                  alt={s.name}
+                  className="aspect-video w-full object-cover"
+                />
+                <div className="p-3">
+                  <h2 className="font-semibold">{s.name}</h2>
+                  <p className="text-sm text-gray-600">{s.city}</p>
+                </div>
+              </Link>
             </li>
           ))}
         </ul>

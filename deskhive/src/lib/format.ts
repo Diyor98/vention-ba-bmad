@@ -29,3 +29,25 @@ export function isPastDate(iso: string): boolean {
   }
   return iso < todayIso();
 }
+
+export type DateParamResult =
+  | { valid: true; iso: string }
+  | { valid: false; reason: 'missing' | 'malformed' | 'past' };
+
+/**
+ * Validates a YYYY-MM-DD date param from URL query strings. Single source of
+ * truth for the page's date picker and the availability REST endpoint so the
+ * two stay in lockstep on missing/malformed/past semantics.
+ *
+ * Today (UTC) is valid. Strictly-past dates are rejected.
+ */
+export function parseDateParam(s: string | undefined | null): DateParamResult {
+  if (s === undefined || s === null) return { valid: false, reason: 'missing' };
+  const trimmed = s.trim();
+  if (trimmed === '') return { valid: false, reason: 'missing' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return { valid: false, reason: 'malformed' };
+  }
+  if (isPastDate(trimmed)) return { valid: false, reason: 'past' };
+  return { valid: true, iso: trimmed };
+}

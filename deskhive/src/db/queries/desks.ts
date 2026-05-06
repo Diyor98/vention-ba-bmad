@@ -1,4 +1,4 @@
-import { eq, asc } from 'drizzle-orm';
+import { eq, and, asc } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { desksTable, type Desk } from '@/db/schema';
 import type { CreateDeskInput, EditDeskInput } from '@/lib/validation/desk';
@@ -8,6 +8,19 @@ export async function listDesksForSpace(spaceId: string): Promise<Desk[]> {
     .select()
     .from(desksTable)
     .where(eq(desksTable.spaceId, spaceId))
+    .orderBy(asc(desksTable.createdAt));
+}
+
+// Public-facing variant: filters out is_active=false desks. Admin uses
+// listDesksForSpace (above) so inactive desks remain visible/editable in
+// the admin UI per US-2.4 deactivation flow.
+export async function listActiveDesksForSpace(
+  spaceId: string,
+): Promise<Desk[]> {
+  return db
+    .select()
+    .from(desksTable)
+    .where(and(eq(desksTable.spaceId, spaceId), eq(desksTable.isActive, true)))
     .orderBy(asc(desksTable.createdAt));
 }
 
