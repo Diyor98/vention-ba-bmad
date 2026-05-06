@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from '@better-auth/drizzle-adapter';
+import { nextCookies } from 'better-auth/next-js';
 import * as argon2 from 'argon2';
 import { db } from '@/db/client';
 import {
@@ -61,6 +62,14 @@ export const auth = betterAuth({
       },
     },
   },
+  // The `nextCookies` plugin forwards Set-Cookie headers from `auth.api.*`
+  // calls (used by our Server Actions) into Next.js's `cookies()` API. Without
+  // it, signInEmail/signUpEmail/signOut compute Set-Cookie headers on an
+  // internal response context that the browser never sees — login appears to
+  // succeed (Server Action returns, redirect runs) but no session cookie is
+  // actually set. Discovered during US-2.1 manual verification (latent
+  // US-1.2/US-1.1 bug; seed run only verified DB state, not browser cookies).
+  plugins: [nextCookies()],
 });
 
 export type AuthSession = typeof auth.$Infer.Session;
