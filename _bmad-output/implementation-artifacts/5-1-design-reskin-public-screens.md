@@ -747,4 +747,5 @@ Story 5.1 is the **first non-functional commit**. Subject: `feat: design reskin 
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-07 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| 2026-05-07 | Story implemented; reskin landed. Single commit per AC-15. | (filled by a small follow-up commit after push, once the hash is stable) |
+| 2026-05-07 | Story implemented; reskin landed. Single commit per AC-15. | `adabba7` |
+| 2026-05-07 | Browser-verified by BA against AC-14 10-point checklist; greenlit. Admin Confirm button accepted as `.btn-primary` (brand indigo) — design system evolution from US-4.3's gray-900; Story 5-2 may revisit. | (this follow-up) |
