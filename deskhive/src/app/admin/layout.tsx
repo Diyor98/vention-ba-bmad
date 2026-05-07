@@ -34,12 +34,25 @@ export default async function AdminLayout({
 
   return (
     <>
-      <nav className="border-b border-gray-200">
-        <div className="mx-auto flex max-w-5xl gap-4 px-6 py-2 text-sm">
-          <Link href="/admin/spaces" className="text-gray-700 hover:underline">
+      <nav
+        style={{
+          borderBottom: '1px solid var(--color-border)',
+          background: 'var(--color-neutral-0)',
+        }}
+      >
+        <div
+          className="container-content"
+          style={{
+            display: 'flex',
+            gap: '0.25rem',
+            paddingTop: '0.5rem',
+            paddingBottom: '0.5rem',
+          }}
+        >
+          <Link href="/admin/spaces" className="nav-link">
             Spaces
           </Link>
-          <Link href="/admin/bookings" className="text-gray-700 hover:underline">
+          <Link href="/admin/bookings" className="nav-link">
             Bookings
           </Link>
         </div>

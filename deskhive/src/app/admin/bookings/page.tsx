@@ -28,22 +28,30 @@ export default async function AdminBookingsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
-      <h1 className="mb-6 text-2xl font-semibold">Bookings</h1>
+    <main
+      className="container-content"
+      style={{ paddingTop: '2.5rem', paddingBottom: '4rem' }}
+    >
+      <h1 className="page-h1 mb-6">Bookings</h1>
       <DataView status={dataStatus} emptyMessage="No bookings yet.">
         <ul>
           {rows.map(({ booking, desk, space, guest }) => (
             <li
               key={booking.id}
-              className="flex items-center justify-between gap-3 border-b border-gray-200 py-3 text-sm"
+              className="flex items-center justify-between gap-3"
+              style={{
+                borderBottom: '1px solid var(--color-border)',
+                padding: '0.75rem 0',
+                fontSize: '14px',
+              }}
             >
               <div className="flex-1">
                 <div className="font-medium">{guest.fullName}</div>
-                <div className="text-gray-700">
+                <div className="muted" style={{ fontSize: '13px' }}>
                   {space.name} · {desk.label} · {booking.bookingDate}
                 </div>
               </div>
-              <span className="text-gray-700">
+              <span className="muted-strong tnum" style={{ fontSize: '13px' }}>
                 {formatCents(booking.totalPriceCents)}
               </span>
               {/* status is `text` in the DB; CHECK constraint guarantees the enum at runtime. */}

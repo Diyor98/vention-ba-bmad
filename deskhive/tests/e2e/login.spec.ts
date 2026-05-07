@@ -1,30 +1,35 @@
 import { test, expect } from '@playwright/test';
 
+// Story 5-1 reskin: page heading changed from "Log in" to "Welcome back"
+// (per design Section heading + subtitle pattern). The submit button still
+// reads "Log in", so the button-name regex is unchanged. Inline-error class
+// changed from `.text-red-700` to `.field-error`.
+
 test.describe('/login page', () => {
   test('renders the form with all required fields', async ({ page }) => {
     await page.goto('/login');
 
-    // Heading
-    await expect(page.getByRole('heading', { name: /log in/i })).toBeVisible();
+    // Heading is now "Welcome back"
+    await expect(
+      page.getByRole('heading', { name: /welcome back/i }),
+    ).toBeVisible();
 
-    // Two labeled inputs (matching the autoComplete attributes for stability)
+    // Two labeled inputs
     await expect(page.getByLabel('Email')).toBeVisible();
     await expect(page.getByLabel('Password')).toBeVisible();
 
-    // Submit button
+    // Submit button still reads "Log in"
     await expect(page.getByRole('button', { name: /log in/i })).toBeVisible();
   });
 
   test('submitting empty form surfaces validation errors', async ({ page }) => {
     await page.goto('/login');
 
-    // Submit the form without filling anything. The HTML `required` and `noValidate`
-    // settings let the request through to the Server Action, which returns
-    // VALIDATION_ERROR with field-level messages.
     await page.getByRole('button', { name: /log in/i }).click();
 
-    // At least one inline error in red should appear (text-red-700 class).
-    // Wait briefly for the Server Action to round-trip.
-    await expect(page.locator('.text-red-700').first()).toBeVisible({ timeout: 5000 });
+    // Inline errors now use the `.field-error` class (was `.text-red-700`).
+    await expect(page.locator('.field-error').first()).toBeVisible({
+      timeout: 5000,
+    });
   });
 });

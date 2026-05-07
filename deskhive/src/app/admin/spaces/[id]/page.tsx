@@ -20,21 +20,21 @@ export default async function EditSpacePage({
   const desks = await listDesksForSpace(id);
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
+    <main
+      className="container-narrow"
+      style={{ paddingTop: '2.5rem', paddingBottom: '4rem' }}
+    >
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Edit Space</h1>
-        <Link
-          href="/admin/spaces"
-          className="text-sm text-gray-700 hover:underline"
-        >
+        <h1 className="page-h1">Edit Space</h1>
+        <Link href="/admin/spaces" className="nav-link">
           Back to spaces
         </Link>
       </div>
       <EditSpaceForm space={space} />
 
-      <hr className="my-8 border-gray-200" />
+      <hr className="rule" style={{ margin: '2rem 0' }} />
 
-      <h2 className="mb-4 text-xl font-semibold">Desks</h2>
+      <h2 className="h2 mb-4">Desks</h2>
       <DataView
         status={desks.length === 0 ? 'empty' : 'loaded'}
         emptyMessage="No desks in this space yet."
@@ -46,7 +46,12 @@ export default async function EditSpacePage({
         </div>
       </DataView>
 
-      <h3 className="mb-2 text-base font-semibold">Add desk</h3>
+      <h3
+        className="mb-2"
+        style={{ fontSize: '14px', fontWeight: 600 }}
+      >
+        Add desk
+      </h3>
       <AddDeskForm spaceId={space.id} />
     </main>
   );

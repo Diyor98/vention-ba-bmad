@@ -20,7 +20,7 @@ export function ConfirmBookingButton({ bookingId }: { bookingId: string }) {
         <SubmitButton />
       </form>
       {errorMessage && (
-        <p className="text-xs text-red-700" role="alert">
+        <p className="field-error" role="alert">
           {errorMessage}
         </p>
       )}
@@ -34,7 +34,8 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded bg-gray-900 px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
+      aria-disabled={pending || undefined}
+      className="btn btn-primary btn-sm"
     >
       {pending ? 'Confirming…' : 'Confirm'}
     </button>

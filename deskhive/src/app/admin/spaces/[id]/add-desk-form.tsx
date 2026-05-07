@@ -27,7 +27,7 @@ export function AddDeskForm({ spaceId }: { spaceId: string }) {
   return (
     <form action={formAction} className="space-y-4" noValidate>
       <div>
-        <label htmlFor="label" className="mb-1 block text-sm font-medium">
+        <label htmlFor="label" className="field-label">
           Label
         </label>
         <input
@@ -35,15 +35,14 @@ export function AddDeskForm({ spaceId }: { spaceId: string }) {
           name="label"
           type="text"
           required
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="input"
+          aria-invalid={fieldError('label') ? true : undefined}
         />
-        {fieldError('label') && (
-          <p className="mt-1 text-sm text-red-700">{fieldError('label')}</p>
-        )}
+        {fieldError('label') && <p className="field-error">{fieldError('label')}</p>}
       </div>
 
       <div>
-        <label htmlFor="dailyPriceCents" className="mb-1 block text-sm font-medium">
+        <label htmlFor="dailyPriceCents" className="field-label">
           Daily price (cents)
         </label>
         <input
@@ -53,15 +52,16 @@ export function AddDeskForm({ spaceId }: { spaceId: string }) {
           step="1"
           min="0"
           required
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="input tnum"
+          aria-invalid={fieldError('dailyPriceCents') ? true : undefined}
         />
         {fieldError('dailyPriceCents') && (
-          <p className="mt-1 text-sm text-red-700">{fieldError('dailyPriceCents')}</p>
+          <p className="field-error">{fieldError('dailyPriceCents')}</p>
         )}
       </div>
 
       {topLevelError && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="field-error" role="alert">
           {topLevelError}
         </p>
       )}
@@ -77,7 +77,8 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      aria-disabled={pending || undefined}
+      className="btn btn-primary"
     >
       {pending ? 'Adding…' : 'Add desk'}
     </button>

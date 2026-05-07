@@ -8,8 +8,6 @@ import type { Space } from '@/db/schema';
 const initialState: EditSpaceActionState = { status: 'idle' };
 
 export function EditSpaceForm({ space }: { space: Space }) {
-  // .bind(null, space.id) curries the id into the action; the bound function
-  // has the (prevState, formData) shape useActionState expects.
   const [state, formAction] = useActionState(
     editSpaceAction.bind(null, space.id),
     initialState,
@@ -26,7 +24,7 @@ export function EditSpaceForm({ space }: { space: Space }) {
   return (
     <form action={formAction} className="space-y-4" noValidate>
       <div>
-        <label htmlFor="name" className="mb-1 block text-sm font-medium">
+        <label htmlFor="name" className="field-label">
           Name
         </label>
         <input
@@ -35,15 +33,14 @@ export function EditSpaceForm({ space }: { space: Space }) {
           type="text"
           required
           defaultValue={space.name}
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="input"
+          aria-invalid={fieldError('name') ? true : undefined}
         />
-        {fieldError('name') && (
-          <p className="mt-1 text-sm text-red-700">{fieldError('name')}</p>
-        )}
+        {fieldError('name') && <p className="field-error">{fieldError('name')}</p>}
       </div>
 
       <div>
-        <label htmlFor="city" className="mb-1 block text-sm font-medium">
+        <label htmlFor="city" className="field-label">
           City
         </label>
         <input
@@ -52,15 +49,14 @@ export function EditSpaceForm({ space }: { space: Space }) {
           type="text"
           required
           defaultValue={space.city}
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="input"
+          aria-invalid={fieldError('city') ? true : undefined}
         />
-        {fieldError('city') && (
-          <p className="mt-1 text-sm text-red-700">{fieldError('city')}</p>
-        )}
+        {fieldError('city') && <p className="field-error">{fieldError('city')}</p>}
       </div>
 
       <div>
-        <label htmlFor="addressLine" className="mb-1 block text-sm font-medium">
+        <label htmlFor="addressLine" className="field-label">
           Address
         </label>
         <input
@@ -69,15 +65,16 @@ export function EditSpaceForm({ space }: { space: Space }) {
           type="text"
           required
           defaultValue={space.addressLine}
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="input"
+          aria-invalid={fieldError('addressLine') ? true : undefined}
         />
         {fieldError('addressLine') && (
-          <p className="mt-1 text-sm text-red-700">{fieldError('addressLine')}</p>
+          <p className="field-error">{fieldError('addressLine')}</p>
         )}
       </div>
 
       <div>
-        <label htmlFor="description" className="mb-1 block text-sm font-medium">
+        <label htmlFor="description" className="field-label">
           Description
         </label>
         <textarea
@@ -86,15 +83,16 @@ export function EditSpaceForm({ space }: { space: Space }) {
           rows={4}
           required
           defaultValue={space.description}
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="input"
+          aria-invalid={fieldError('description') ? true : undefined}
         />
         {fieldError('description') && (
-          <p className="mt-1 text-sm text-red-700">{fieldError('description')}</p>
+          <p className="field-error">{fieldError('description')}</p>
         )}
       </div>
 
       <div>
-        <label htmlFor="primaryImageUrl" className="mb-1 block text-sm font-medium">
+        <label htmlFor="primaryImageUrl" className="field-label">
           Image URL
         </label>
         <input
@@ -103,15 +101,16 @@ export function EditSpaceForm({ space }: { space: Space }) {
           type="url"
           required
           defaultValue={space.primaryImageUrl}
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="input"
+          aria-invalid={fieldError('primaryImageUrl') ? true : undefined}
         />
         {fieldError('primaryImageUrl') && (
-          <p className="mt-1 text-sm text-red-700">{fieldError('primaryImageUrl')}</p>
+          <p className="field-error">{fieldError('primaryImageUrl')}</p>
         )}
       </div>
 
       {topLevelError && state.status === 'error' && state.code !== 'VALIDATION_ERROR' && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="field-error" role="alert">
           {topLevelError}
         </p>
       )}
@@ -127,7 +126,9 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      aria-disabled={pending || undefined}
+      className="btn btn-primary"
+      style={{ width: '100%' }}
     >
       {pending ? 'Saving…' : 'Save'}
     </button>

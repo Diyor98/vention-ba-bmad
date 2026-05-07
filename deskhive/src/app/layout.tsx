@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import { Header } from "@/components/header";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Inter via next/font/google. The `--font-inter` CSS variable is referenced
+// by globals.css's `--font-sans` token (Story 5-1, BA Decisions В§2). Demo
+// HTML uses the Google Fonts CDN <link>; production must NOT — next/font
+// handles preloading + subsetting + zero-CLS rendering.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -24,13 +24,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <Header />
         <div className="flex-1">{children}</div>
+        <footer className="site-footer">
+          <div className="site-footer-inner">
+            <span>В© {new Date().getFullYear()} DeskHive</span>
+            <span
+              className="font-mono"
+              style={{
+                fontSize: "11px",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                color: "var(--color-neutral-400)",
+              }}
+            >
+              MVP · v0.1
+            </span>
+          </div>
+        </footer>
       </body>
     </html>
   );

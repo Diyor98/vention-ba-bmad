@@ -18,44 +18,49 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
     state.status === 'error' && 'message' in state ? state.message : undefined;
 
   return (
-    <form action={formAction} className="space-y-4" noValidate>
+    <form action={formAction} noValidate>
       <input type="hidden" name="callbackUrl" value={callbackUrl ?? ''} />
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium mb-1">
+
+      <div className="mb-4">
+        <label htmlFor="login-email" className="field-label">
           Email
         </label>
         <input
-          id="email"
+          id="login-email"
           name="email"
           type="email"
           autoComplete="email"
           required
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="input"
+          placeholder="you@company.com"
+          aria-invalid={fieldError('email') ? true : undefined}
         />
         {fieldError('email') && (
-          <p className="mt-1 text-sm text-red-700">{fieldError('email')}</p>
+          <p className="field-error">{fieldError('email')}</p>
         )}
       </div>
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium mb-1">
+      <div className="mb-6">
+        <label htmlFor="login-password" className="field-label">
           Password
         </label>
         <input
-          id="password"
+          id="login-password"
           name="password"
           type="password"
           autoComplete="current-password"
           required
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="input"
+          placeholder="Your password"
+          aria-invalid={fieldError('password') ? true : undefined}
         />
         {fieldError('password') && (
-          <p className="mt-1 text-sm text-red-700">{fieldError('password')}</p>
+          <p className="field-error">{fieldError('password')}</p>
         )}
       </div>
 
       {topLevelError && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="field-error mb-4" role="alert">
           {topLevelError}
         </p>
       )}
@@ -71,7 +76,9 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      aria-disabled={pending || undefined}
+      className="btn btn-primary"
+      style={{ width: '100%' }}
     >
       {pending ? 'Signing in…' : 'Log in'}
     </button>

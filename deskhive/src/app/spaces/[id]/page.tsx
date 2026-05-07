@@ -1,12 +1,14 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPublishedSpaceById } from '@/db/queries/spaces';
 import { listActiveDesksForSpace } from '@/db/queries/desks';
 import { listActiveBookingsForSpaceOnDate } from '@/db/queries/bookings';
 import { computeDeskAvailability } from '@/lib/availability';
-import { parseDateParam, formatCents, todayIso } from '@/lib/format';
+import { parseDateParam, formatCents } from '@/lib/format';
 import { DataView, type DataViewStatus } from '@/components/data-view';
 import { logger } from '@/lib/logger';
 import { BookDeskButton } from './book-desk-button';
+import { DatePickerForm } from './date-picker-form';
 import type { Booking, Desk } from '@/db/schema';
 
 export default async function SpaceDetailPage({
@@ -44,90 +46,195 @@ export default async function SpaceDetailPage({
     dateResult.valid && dataStatus === 'loaded'
       ? computeDeskAvailability(desks, bookings)
       : null;
+  const datePicked = dateResult.valid;
 
   return (
-    <main className="mx-auto max-w-4xl p-8">
-      <h1 className="mb-2 text-2xl font-semibold">{space.name}</h1>
-      <p className="mb-4 text-sm text-gray-600">{space.city}</p>
+    <main
+      className="container-content"
+      style={{ paddingTop: '2rem', paddingBottom: '4rem' }}
+    >
+      <nav
+        className="breadcrumb tnum mb-6"
+        aria-label="Breadcrumb"
+        style={{ fontSize: '13px' }}
+      >
+        <Link href="/">Browse spaces</Link>
+        <span
+          className="mx-1.5"
+          style={{ color: 'var(--color-neutral-300)' }}
+        >
+          /
+        </span>
+        <span style={{ color: 'var(--color-neutral-700)' }}>{space.name}</span>
+      </nav>
+
+      <header className="mb-6">
+        <h1 className="page-h1">{space.name}</h1>
+        <p
+          className="mt-1.5 muted-strong"
+          style={{ fontSize: '14px' }}
+        >
+          {space.city} · {space.addressLine}
+        </p>
+      </header>
+
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={space.primaryImageUrl}
         alt={space.name}
-        className="mb-4 aspect-video w-full rounded object-cover"
+        className="hero-img mb-10"
       />
-      <p className="mb-6 text-sm leading-6 text-gray-700">{space.description}</p>
 
-      <form
-        action={`/spaces/${space.id}`}
-        method="GET"
-        className="mb-2 flex items-end gap-2"
+      <div
+        className="layout-detail"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) 22rem',
+          gap: '3rem',
+          alignItems: 'start',
+        }}
       >
-        <div>
-          <label htmlFor="date" className="mb-1 block text-sm font-medium">
-            Pick a date
-          </label>
-          <input
-            id="date"
-            name="date"
-            type="date"
-            min={todayIso()}
-            defaultValue={dateResult.valid ? dateResult.iso : ''}
-            className="rounded border border-gray-300 px-3 py-2 text-sm"
-          />
-        </div>
-        <button
-          type="submit"
-          className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white"
+        <section>
+          <h2 className="h2 mb-3">About this space</h2>
+          <div
+            style={{ color: 'var(--color-neutral-700)', maxWidth: '60ch' }}
+          >
+            {space.description.split('\n').map((p, i) => (
+              <p key={i} className={i === 0 ? '' : 'mt-4'}>
+                {p}
+              </p>
+            ))}
+          </div>
+        </section>
+
+        <aside
+          style={{
+            position: 'sticky',
+            top: 'calc(var(--layout-header-h) + 1.5rem)',
+          }}
         >
-          Show availability
-        </button>
-      </form>
-      {!dateResult.valid && dateResult.reason === 'missing' && (
-        <p className="mb-4 text-sm text-gray-600">
-          Select a date to see availability.
+          <div className={`date-callout${datePicked ? '' : ' is-empty'}`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="step-pill" aria-hidden="true">
+                1
+              </span>
+              <span
+                className="font-mono"
+                style={{
+                  fontSize: '11px',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-neutral-600)',
+                }}
+              >
+                Pick a date
+              </span>
+            </div>
+            <p
+              className="muted"
+              style={{ fontSize: '13px', marginBottom: '0.75rem' }}
+            >
+              Availability and prices update for the day you choose.
+            </p>
+            <DatePickerForm
+              spaceId={space.id}
+              initialDate={datePicked ? dateResult.iso : ''}
+            />
+            {!dateResult.valid &&
+              (dateResult.reason === 'malformed' ||
+                dateResult.reason === 'past') && (
+                <p
+                  className="field-error"
+                  style={{ marginTop: '0.5rem' }}
+                  role="alert"
+                >
+                  Please pick today or a future date.
+                </p>
+              )}
+          </div>
+          <p
+            className="mt-3 muted"
+            style={{ fontSize: '12px', lineHeight: 1.5 }}
+          >
+            Bookings are reviewed by the space and confirmed within a few hours.
+            You won&apos;t be charged until your booking is confirmed.
+          </p>
+        </aside>
+      </div>
+
+      <section className="mt-12">
+        <div className="flex items-baseline justify-between gap-4 mb-1">
+          <h2 className="h2 flex items-center gap-2">
+            <span
+              className={`step-pill${datePicked ? '' : ' step-pill-muted'}`}
+              aria-hidden="true"
+            >
+              2
+            </span>
+            Desks
+          </h2>
+          <span className="muted tnum" style={{ fontSize: '13px' }}>
+            {desks.length} {desks.length === 1 ? 'desk' : 'desks'}
+          </span>
+        </div>
+        <p className="muted mb-5" style={{ fontSize: '13px' }}>
+          Pick a date above to check availability for that day.
         </p>
-      )}
-      {!dateResult.valid &&
-        (dateResult.reason === 'malformed' || dateResult.reason === 'past') && (
-          <p className="mb-4 text-sm text-red-700">
-            Please pick today or a future date.
+
+        <DataView
+          status={dataStatus}
+          emptyMessage="No desks available in this space yet."
+        >
+          <ul className="space-y-3">
+            {desks.map((d) => {
+              const isAvailable = availability
+                ? availability.get(d.id) ?? false
+                : false;
+              const enable = !!availability && isAvailable;
+              return (
+                <li key={d.id} className="desk-row">
+                  <div className="desk-meta">
+                    <p
+                      className="font-medium"
+                      style={{ color: 'var(--color-neutral-900)' }}
+                    >
+                      {d.label}
+                    </p>
+                  </div>
+                  <span
+                    className={`avail ${
+                      datePicked ? (isAvailable ? 'avail-yes' : 'avail-no') : 'avail-yes'
+                    }`}
+                    style={datePicked ? undefined : { opacity: 0.45 }}
+                  >
+                    <span className="dot" aria-hidden="true" />
+                    {datePicked ? (isAvailable ? 'Available' : 'Unavailable') : '—'}
+                  </span>
+                  <span className="price tnum">
+                    <strong>{formatCents(d.dailyPriceCents)}</strong>
+                    &nbsp;/ day
+                  </span>
+                  <div className="desk-cta">
+                    <BookDeskButton
+                      spaceId={space.id}
+                      deskId={d.id}
+                      bookingDate={datePicked ? dateResult.iso : undefined}
+                      enabled={enable}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </DataView>
+
+        {!datePicked && desks.length > 0 && (
+          <p className="mt-5 desk-list-hint">
+            Pick a date above to see which desks are available and unlock
+            booking.
           </p>
         )}
-
-      <h2 className="mb-3 text-xl font-semibold">Desks</h2>
-      <DataView
-        status={dataStatus}
-        emptyMessage="No desks available in this space yet."
-      >
-        <ul>
-          {desks.map((d) => {
-            const isAvailable = availability ? availability.get(d.id) ?? false : false;
-            const enable = !!availability && isAvailable;
-            return (
-              <li
-                key={d.id}
-                className="flex items-center justify-between border-b border-gray-200 py-3 text-sm"
-              >
-                <span className="font-medium">{d.label}</span>
-                <span className="text-gray-700">{formatCents(d.dailyPriceCents)}</span>
-                {availability && (
-                  <span
-                    className={isAvailable ? 'text-green-700' : 'text-red-700'}
-                  >
-                    {isAvailable ? 'Available' : 'Unavailable'}
-                  </span>
-                )}
-                <BookDeskButton
-                  spaceId={space.id}
-                  deskId={d.id}
-                  bookingDate={dateResult.valid ? dateResult.iso : undefined}
-                  enabled={enable}
-                />
-              </li>
-            );
-          })}
-        </ul>
-      </DataView>
+      </section>
     </main>
   );
 }

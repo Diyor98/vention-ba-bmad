@@ -4,8 +4,10 @@ test.describe('public browse spaces', () => {
   test('home page renders the Spaces heading and city filter form', async ({ page }) => {
     await page.goto('/');
 
+    // Heading text changed in Story 5-1 reskin from "Spaces" to "Browse spaces"
+    // (matches the public site nav label). Same h1, same page.
     await expect(
-      page.getByRole('heading', { name: /^spaces$/i, level: 1 }),
+      page.getByRole('heading', { name: /^browse spaces$/i, level: 1 }),
     ).toBeVisible();
 
     // City filter form

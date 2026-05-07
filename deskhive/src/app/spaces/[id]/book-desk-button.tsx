@@ -38,7 +38,7 @@ export function BookDeskButton({
         <SubmitButton disabled={!enabled} />
       </form>
       {errorMessage && (
-        <p className="mt-1 text-sm text-red-700" role="alert">
+        <p className="field-error" role="alert">
           {errorMessage}
         </p>
       )}
@@ -48,11 +48,13 @@ export function BookDeskButton({
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
+  const isDisabled = disabled || pending;
   return (
     <button
       type="submit"
-      disabled={disabled || pending}
-      className="rounded bg-gray-900 px-3 py-1 text-sm font-medium text-white disabled:opacity-50"
+      disabled={isDisabled}
+      aria-disabled={isDisabled || undefined}
+      className="btn btn-primary"
     >
       {pending ? 'Booking…' : 'Book this desk'}
     </button>

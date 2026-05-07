@@ -26,7 +26,14 @@ export function EditDeskForm({ desk }: { desk: Desk }) {
       : undefined;
 
   return (
-    <form action={formAction} className="border-b border-gray-200 py-3" noValidate>
+    <form
+      action={formAction}
+      noValidate
+      style={{
+        borderBottom: '1px solid var(--color-border)',
+        padding: '0.75rem 0',
+      }}
+    >
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <input
           name="label"
@@ -34,7 +41,9 @@ export function EditDeskForm({ desk }: { desk: Desk }) {
           defaultValue={desk.label}
           required
           aria-label="Label"
-          className="flex-1 min-w-[8rem] rounded border border-gray-300 px-2 py-1"
+          aria-invalid={fieldError('label') ? true : undefined}
+          className="input"
+          style={{ flex: 1, minWidth: '8rem', height: '2.25rem' }}
         />
         <input
           name="dailyPriceCents"
@@ -44,9 +53,11 @@ export function EditDeskForm({ desk }: { desk: Desk }) {
           defaultValue={desk.dailyPriceCents}
           required
           aria-label="Daily price (cents)"
-          className="w-32 rounded border border-gray-300 px-2 py-1"
+          aria-invalid={fieldError('dailyPriceCents') ? true : undefined}
+          className="input tnum"
+          style={{ width: '8rem', height: '2.25rem' }}
         />
-        <label className="flex items-center gap-1">
+        <label className="flex items-center gap-1" style={{ fontSize: '13px' }}>
           <input
             name="isActive"
             type="checkbox"
@@ -62,19 +73,19 @@ export function EditDeskForm({ desk }: { desk: Desk }) {
         fieldError('isActive')) && (
         <div className="mt-2 space-y-1">
           {fieldError('label') && (
-            <p className="text-sm text-red-700">{fieldError('label')}</p>
+            <p className="field-error">{fieldError('label')}</p>
           )}
           {fieldError('dailyPriceCents') && (
-            <p className="text-sm text-red-700">{fieldError('dailyPriceCents')}</p>
+            <p className="field-error">{fieldError('dailyPriceCents')}</p>
           )}
           {fieldError('isActive') && (
-            <p className="text-sm text-red-700">{fieldError('isActive')}</p>
+            <p className="field-error">{fieldError('isActive')}</p>
           )}
         </div>
       )}
 
       {topLevelError && (
-        <p className="mt-2 text-sm text-red-700" role="alert">
+        <p className="field-error mt-2" role="alert">
           {topLevelError}
         </p>
       )}
@@ -88,7 +99,8 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded bg-gray-900 px-3 py-1 text-sm font-medium text-white disabled:opacity-50"
+      aria-disabled={pending || undefined}
+      className="btn btn-secondary btn-sm"
     >
       {pending ? 'Saving…' : 'Save'}
     </button>

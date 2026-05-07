@@ -1,25 +1,33 @@
-import type { BookingStatus } from '@/db/schema';
+﻿import type { BookingStatus } from '@/db/schema';
 
-const STATUS_CLASSES: Record<BookingStatus, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  CONFIRMED: 'bg-green-100 text-green-800',
-  REJECTED: 'bg-red-100 text-red-800',
-  CANCELLED: 'bg-gray-100 text-gray-800',
+const STATUS_CLASS: Record<BookingStatus, string> = {
+  PENDING: 'badge-pending',
+  CONFIRMED: 'badge-confirmed',
+  REJECTED: 'badge-rejected',
+  CANCELLED: 'badge-cancelled',
 };
 
-const STATUS_LABELS: Record<BookingStatus, string> = {
+const STATUS_LABEL: Record<BookingStatus, string> = {
   PENDING: 'Pending',
   CONFIRMED: 'Confirmed',
   REJECTED: 'Rejected',
   CANCELLED: 'Cancelled',
 };
 
-export function StatusBadge({ status }: { status: BookingStatus }) {
+export function StatusBadge({
+  status,
+  size = 'sm',
+}: {
+  status: BookingStatus;
+  // 'lg' renders the prominent confirmed-card variant + larger dot per
+  // Doc B В§7.4 / Story 5-1's `.badge-lg` design.
+  size?: 'sm' | 'lg';
+}) {
+  const sizeClass = size === 'lg' ? ' badge-lg' : '';
   return (
-    <span
-      className={`inline-block rounded px-2 py-1 text-xs font-medium ${STATUS_CLASSES[status]}`}
-    >
-      {STATUS_LABELS[status]}
+    <span className={`badge ${STATUS_CLASS[status]}${sizeClass}`}>
+      <span className="dot" aria-hidden="true" />
+      {STATUS_LABEL[status]}
     </span>
   );
 }

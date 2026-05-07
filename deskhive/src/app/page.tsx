@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import { listPublishedSpaces } from '@/db/queries/spaces';
 import { DataView, type DataViewStatus } from '@/components/data-view';
 import { logger } from '@/lib/logger';
@@ -24,12 +24,27 @@ export default async function HomePage({
   }
 
   return (
-    <main className="mx-auto max-w-6xl p-8">
-      <h1 className="mb-6 text-2xl font-semibold">Spaces</h1>
+    <main
+      className="container-content"
+      style={{ paddingTop: '2.5rem', paddingBottom: '4rem' }}
+    >
+      <header className="mb-8">
+        <h1 className="page-h1">Browse spaces</h1>
+        <p
+          className="mt-1.5 muted-strong"
+          style={{ fontSize: '14px' }}
+        >
+          Find a desk, book a day, get to work.
+        </p>
+      </header>
 
-      <form action="/" method="GET" className="mb-6 flex items-end gap-2">
+      <form
+        action="/"
+        method="GET"
+        className="mb-8 flex items-end gap-3"
+      >
         <div className="flex-1">
-          <label htmlFor="city" className="mb-1 block text-sm font-medium">
+          <label htmlFor="city" className="field-label">
             Filter by city
           </label>
           <input
@@ -38,19 +53,17 @@ export default async function HomePage({
             type="text"
             defaultValue={cityFilter ?? ''}
             placeholder="e.g. Berlin"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className="input"
           />
         </div>
-        <button
-          type="submit"
-          className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white"
-        >
+        <button type="submit" className="btn btn-primary">
           Search
         </button>
         {cityFilter && (
           <Link
             href="/"
-            className="self-end px-2 py-2 text-sm text-gray-700 hover:underline"
+            className="btn-ghost"
+            style={{ textDecoration: 'none' }}
           >
             Clear filter
           </Link>
@@ -60,24 +73,34 @@ export default async function HomePage({
       <DataView status={status} emptyMessage="No spaces available yet.">
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {spaces.map((s) => (
-            <li
-              key={s.id}
-              className="overflow-hidden rounded border border-gray-200"
-            >
-              <Link
-                href={`/spaces/${s.id}`}
-                className="block transition-colors hover:bg-gray-50"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={s.primaryImageUrl}
-                  alt={s.name}
-                  className="aspect-video w-full object-cover"
-                />
-                <div className="p-3">
-                  <h2 className="font-semibold">{s.name}</h2>
-                  <p className="text-sm text-gray-600">{s.city}</p>
-                </div>
+            <li key={s.id}>
+              <Link href={`/spaces/${s.id}`} className="card-link">
+                <article className="card">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={s.primaryImageUrl}
+                    alt={s.name}
+                    className="aspect-video w-full object-cover"
+                  />
+                  <div className="p-4">
+                    <h2
+                      className="font-semibold"
+                      style={{
+                        color: 'var(--color-neutral-900)',
+                        fontSize: '15px',
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {s.name}
+                    </h2>
+                    <p
+                      className="mt-1 muted"
+                      style={{ fontSize: '13px' }}
+                    >
+                      {s.city}
+                    </p>
+                  </div>
+                </article>
               </Link>
             </li>
           ))}

@@ -18,61 +18,75 @@ export function RegisterForm() {
     state.status === 'error' && 'message' in state ? state.message : undefined;
 
   return (
-    <form action={formAction} className="space-y-4" noValidate>
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium mb-1">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-        />
-        {fieldError('email') && (
-          <p className="mt-1 text-sm text-red-700">{fieldError('email')}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="fullName" className="block text-sm font-medium mb-1">
+    <form action={formAction} noValidate>
+      <div className="mb-4">
+        <label htmlFor="reg-name" className="field-label">
           Full name
         </label>
         <input
-          id="fullName"
+          id="reg-name"
           name="fullName"
           type="text"
           autoComplete="name"
           required
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="input"
+          placeholder="Ada Lovelace"
+          aria-invalid={fieldError('fullName') ? true : undefined}
         />
         {fieldError('fullName') && (
-          <p className="mt-1 text-sm text-red-700">{fieldError('fullName')}</p>
+          <p className="field-error">{fieldError('fullName')}</p>
         )}
       </div>
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium mb-1">
+      <div className="mb-4">
+        <label htmlFor="reg-email" className="field-label">
+          Email
+        </label>
+        <input
+          id="reg-email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          className="input"
+          placeholder="you@company.com"
+          aria-describedby="reg-email-help"
+          aria-invalid={fieldError('email') ? true : undefined}
+        />
+        <p id="reg-email-help" className="field-help">
+          We&apos;ll only email you about your bookings.
+        </p>
+        {fieldError('email') && (
+          <p className="field-error">{fieldError('email')}</p>
+        )}
+      </div>
+
+      <div className="mb-6">
+        <label htmlFor="reg-password" className="field-label">
           Password
         </label>
         <input
-          id="password"
+          id="reg-password"
           name="password"
           type="password"
           autoComplete="new-password"
           minLength={8}
           required
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+          className="input"
+          placeholder="At least 8 characters"
+          aria-describedby="reg-password-help"
+          aria-invalid={fieldError('password') ? true : undefined}
         />
+        <p id="reg-password-help" className="field-help">
+          8+ characters. No other rules — keep it strong.
+        </p>
         {fieldError('password') && (
-          <p className="mt-1 text-sm text-red-700">{fieldError('password')}</p>
+          <p className="field-error">{fieldError('password')}</p>
         )}
       </div>
 
       {topLevelError && (
-        <p className="text-sm text-red-700" role="alert">
+        <p className="field-error mb-4" role="alert">
           {topLevelError}
         </p>
       )}
@@ -88,7 +102,9 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      aria-disabled={pending || undefined}
+      className="btn btn-primary"
+      style={{ width: '100%' }}
     >
       {pending ? 'Creating account…' : 'Create account'}
     </button>
