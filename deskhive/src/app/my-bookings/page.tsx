@@ -5,6 +5,7 @@ import { DataView, type DataViewStatus } from '@/components/data-view';
 import { StatusBadge } from '@/components/status-badge';
 import { formatCents } from '@/lib/format';
 import { logger } from '@/lib/logger';
+import { CancelBookingButton } from './cancel-booking-button';
 import type { Booking, BookingStatus, Desk, Space } from '@/db/schema';
 
 export default async function MyBookingsPage() {
@@ -52,6 +53,9 @@ export default async function MyBookingsPage() {
                 {formatCents(booking.totalPriceCents)}
               </span>
               {/* status is `text` in the DB; CHECK constraint guarantees the enum at runtime. */}
+              {(booking.status as BookingStatus) === 'PENDING' && (
+                <CancelBookingButton bookingId={booking.id} />
+              )}
               <StatusBadge status={booking.status as BookingStatus} />
             </li>
           ))}

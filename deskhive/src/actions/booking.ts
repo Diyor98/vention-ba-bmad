@@ -2,13 +2,22 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { requireSession, requireRole, AuthError } from '@/lib/auth/guards';
+import {
+  requireSession,
+  requireRole,
+  requireOwnership,
+  AuthError,
+} from '@/lib/auth/guards';
 import { isPgUniqueViolation } from '@/lib/db-errors';
 import { isPastDate } from '@/lib/format';
 import { createBookingSchema } from '@/lib/validation/booking';
 import { getActiveDeskById } from '@/db/queries/desks';
 import { getPublishedSpaceById } from '@/db/queries/spaces';
-import { createBooking } from '@/db/queries/bookings';
+import {
+  createBooking,
+  getBookingById,
+  cancelBooking,
+} from '@/db/queries/bookings';
 import { logger } from '@/lib/logger';
 
 export type CreateBookingActionState =
@@ -133,4 +142,111 @@ export async function createBookingAction(
   revalidatePath(`/spaces/${desk.spaceId}`);
   revalidatePath('/my-bookings');
   redirect('/my-bookings');
+}
+
+export type CancelBookingActionState =
+  | { status: 'idle' }
+  | { status: 'error'; code: 'FORBIDDEN'; message: string }
+  | { status: 'error'; code: 'NOT_FOUND'; message: string }
+  | { status: 'error'; code: 'CANNOT_CANCEL'; message: string }
+  | { status: 'error'; code: 'INTERNAL_ERROR'; message: string };
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function cancelBookingAction(
+  _prevState: CancelBookingActionState,
+  formData: FormData,
+): Promise<CancelBookingActionState> {
+  const bookingId = String(formData.get('bookingId') ?? '');
+  if (!UUID_RE.test(bookingId)) {
+    return { status: 'error', code: 'NOT_FOUND', message: 'Booking not found.' };
+  }
+
+  // Auth: 401 → redirect to /login with callback; 403 (Super Admin) → state.
+  let session;
+  try {
+    session = await requireSession();
+    requireRole(session, 'GUEST');
+  } catch (err) {
+    if (err instanceof AuthError) {
+      const status = err.response.status;
+      if (status === 401) {
+        redirect('/login?callbackUrl=/my-bookings');
+      }
+      if (status === 403) {
+        return {
+          status: 'error',
+          code: 'FORBIDDEN',
+          message: 'Only guests can cancel bookings.',
+        };
+      }
+    }
+    logger.error('cancel_booking_action_auth_failed', { error: String(err) });
+    return {
+      status: 'error',
+      code: 'INTERNAL_ERROR',
+      message: 'Something went wrong.',
+    };
+  }
+
+  // Pre-checks classify errors (404 / 403 / 409). The conditional UPDATE
+  // below is the actual race-safety net.
+  const booking = await getBookingById(bookingId);
+  if (!booking) {
+    return { status: 'error', code: 'NOT_FOUND', message: 'Booking not found.' };
+  }
+
+  try {
+    requireOwnership(booking.guestUserId, String(session.user.id));
+  } catch (err) {
+    if (err instanceof AuthError) {
+      // Verbatim PRD message — do not paraphrase (US-3.5 AC-3).
+      return {
+        status: 'error',
+        code: 'FORBIDDEN',
+        message: 'You can only cancel your own bookings.',
+      };
+    }
+    return {
+      status: 'error',
+      code: 'INTERNAL_ERROR',
+      message: 'Something went wrong.',
+    };
+  }
+
+  if (booking.status !== 'PENDING') {
+    // Verbatim PRD message — do not paraphrase (US-3.5 AC-2).
+    return {
+      status: 'error',
+      code: 'CANNOT_CANCEL',
+      message: 'Only pending bookings can be cancelled.',
+    };
+  }
+
+  // Conditional UPDATE: race-safe against concurrent Super Admin Confirm.
+  let result: CancelBookingActionState | null = null;
+  try {
+    const updated = await cancelBooking(bookingId, String(session.user.id));
+    if (!updated) {
+      result = {
+        status: 'error',
+        code: 'CANNOT_CANCEL',
+        message: 'Only pending bookings can be cancelled.',
+      };
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error('cancel_booking_action_db_failed', { error: msg });
+    result = {
+      status: 'error',
+      code: 'INTERNAL_ERROR',
+      message: 'Something went wrong. Please try again.',
+    };
+  }
+  if (result) return result;
+
+  revalidatePath('/my-bookings');
+  revalidatePath(`/spaces/${booking.spaceId}`);
+  return { status: 'idle' };
 }

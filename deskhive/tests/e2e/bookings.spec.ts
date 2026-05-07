@@ -36,4 +36,11 @@ test.describe('booking creation — unauthenticated', () => {
     const body = await res.json();
     expect(body.code).toBe('UNAUTHORIZED');
   });
+
+  test('POST /api/bookings/:id/cancel returns 401 without a session cookie', async ({ request }) => {
+    const res = await request.post(`/api/bookings/${BOGUS_UUID}/cancel`);
+    expect(res.status()).toBe(401);
+    const body = await res.json();
+    expect(body.code).toBe('UNAUTHORIZED');
+  });
 });

@@ -48,6 +48,46 @@ export async function createBooking(input: {
   return row;
 }
 
+export async function getBookingById(
+  id: string,
+): Promise<Booking | undefined> {
+  const [row] = await db
+    .select()
+    .from(bookingsTable)
+    .where(eq(bookingsTable.id, id))
+    .limit(1);
+  return row;
+}
+
+/**
+ * Conditional UPDATE: cancels a PENDING booking owned by `guestUserId`.
+ * Returns the updated row on success; `undefined` if the row's status was
+ * no longer PENDING by the time the UPDATE ran (race), if the row doesn't
+ * exist, or if `guestUserId` doesn't match the row's owner.
+ *
+ * Architecture §"Booking state-machine race safety": every transition's
+ * UPDATE includes the source state in WHERE — no unconditional UPDATEs.
+ * The owner clause is defense-in-depth alongside `requireOwnership` at the
+ * action layer.
+ */
+export async function cancelBooking(
+  id: string,
+  guestUserId: string,
+): Promise<Booking | undefined> {
+  const [row] = await db
+    .update(bookingsTable)
+    .set({ status: 'CANCELLED', updatedAt: new Date() })
+    .where(
+      and(
+        eq(bookingsTable.id, id),
+        eq(bookingsTable.status, 'PENDING'),
+        eq(bookingsTable.guestUserId, guestUserId),
+      ),
+    )
+    .returning();
+  return row;
+}
+
 // Enriches the booking row with desk + space (single round-trip via JOIN).
 // `/my-bookings` consumes this directly; admin views (US-4.x) will add a
 // sibling helper that doesn't filter on guest_user_id.
