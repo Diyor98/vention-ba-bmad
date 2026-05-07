@@ -51,6 +51,9 @@ export async function createBooking(input: {
 // Enriches the booking row with desk + space (single round-trip via JOIN).
 // `/my-bookings` consumes this directly; admin views (US-4.x) will add a
 // sibling helper that doesn't filter on guest_user_id.
+//
+// Order: booking_date DESC primary, created_at DESC tiebreaker (US-3.4 AC-8).
+// Same-date bookings fall back to insertion recency.
 export async function listBookingsForGuest(
   guestUserId: string,
 ): Promise<Array<{ booking: Booking; desk: Desk; space: Space }>> {
@@ -64,5 +67,5 @@ export async function listBookingsForGuest(
     .innerJoin(desksTable, eq(bookingsTable.deskId, desksTable.id))
     .innerJoin(spacesTable, eq(bookingsTable.spaceId, spacesTable.id))
     .where(eq(bookingsTable.guestUserId, guestUserId))
-    .orderBy(desc(bookingsTable.createdAt));
+    .orderBy(desc(bookingsTable.bookingDate), desc(bookingsTable.createdAt));
 }

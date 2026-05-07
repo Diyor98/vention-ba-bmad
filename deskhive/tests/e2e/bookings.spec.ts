@@ -29,4 +29,11 @@ test.describe('booking creation — unauthenticated', () => {
     // Auth runs first per our layered guards, so we expect 401.
     expect([400, 401]).toContain(res.status());
   });
+
+  test('GET /api/bookings/me returns 401 without a session cookie', async ({ request }) => {
+    const res = await request.get('/api/bookings/me');
+    expect(res.status()).toBe(401);
+    const body = await res.json();
+    expect(body.code).toBe('UNAUTHORIZED');
+  });
 });
