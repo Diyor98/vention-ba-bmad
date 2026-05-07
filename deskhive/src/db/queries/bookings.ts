@@ -4,6 +4,7 @@ import {
   bookingsTable,
   desksTable,
   spacesTable,
+  usersTable,
   type Booking,
   type BookingStatus,
   type Desk,
@@ -57,6 +58,36 @@ export async function getBookingById(
     .where(eq(bookingsTable.id, id))
     .limit(1);
   return row;
+}
+
+// Admin-facing variant: returns ALL bookings (no guest_user_id filter)
+// enriched with desk + space + a redacted guest record. Field selection on
+// the users JOIN is explicit (id, email, fullName) — never include
+// hashedPassword / emailVerified / etc., even for admin consumers.
+export async function listAllBookings(): Promise<
+  Array<{
+    booking: Booking;
+    desk: Desk;
+    space: Space;
+    guest: { id: string; email: string; fullName: string };
+  }>
+> {
+  return db
+    .select({
+      booking: bookingsTable,
+      desk: desksTable,
+      space: spacesTable,
+      guest: {
+        id: usersTable.id,
+        email: usersTable.email,
+        fullName: usersTable.fullName,
+      },
+    })
+    .from(bookingsTable)
+    .innerJoin(desksTable, eq(bookingsTable.deskId, desksTable.id))
+    .innerJoin(spacesTable, eq(bookingsTable.spaceId, spacesTable.id))
+    .innerJoin(usersTable, eq(bookingsTable.guestUserId, usersTable.id))
+    .orderBy(desc(bookingsTable.bookingDate), desc(bookingsTable.createdAt));
 }
 
 /**

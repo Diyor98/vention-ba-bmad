@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireSession, requireRole, AuthError } from '@/lib/auth/guards';
 
@@ -11,6 +12,10 @@ import { requireSession, requireRole, AuthError } from '@/lib/auth/guards';
 // Pages under /admin/* MUST NOT re-call requireSession/requireRole — the
 // layout has already done it. Doing so duplicates the cost and creates a
 // second source of redirect logic to maintain.
+//
+// US-4.1 added the within-admin sub-nav so Super Admins can navigate between
+// Spaces and Bookings without typing URLs. No active-state highlighting —
+// that requires usePathname() (Client Component); deferred.
 export default async function AdminLayout({
   children,
 }: {
@@ -27,5 +32,19 @@ export default async function AdminLayout({
     throw err;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <nav className="border-b border-gray-200">
+        <div className="mx-auto flex max-w-5xl gap-4 px-6 py-2 text-sm">
+          <Link href="/admin/spaces" className="text-gray-700 hover:underline">
+            Spaces
+          </Link>
+          <Link href="/admin/bookings" className="text-gray-700 hover:underline">
+            Bookings
+          </Link>
+        </div>
+      </nav>
+      {children}
+    </>
+  );
 }
