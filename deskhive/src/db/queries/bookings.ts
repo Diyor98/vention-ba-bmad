@@ -139,6 +139,27 @@ export async function confirmBooking(
   return row;
 }
 
+/**
+ * Conditional UPDATE: rejects a PENDING booking. Admin scope — no ownership
+ * clause. Returns the updated row on success; `undefined` when the row is no
+ * longer PENDING (race against Guest cancel or Admin confirm) or doesn't exist.
+ *
+ * Same shape as confirmBooking with target REJECTED. Final state-transition
+ * helper of Phase 1; with cancelBooking + confirmBooking, all three Phase 1
+ * transitions out of PENDING are wired up. (Phase 2 may add a fourth via the
+ * Stripe webhook → REFUNDED path.)
+ */
+export async function rejectBooking(
+  id: string,
+): Promise<Booking | undefined> {
+  const [row] = await db
+    .update(bookingsTable)
+    .set({ status: 'REJECTED', updatedAt: new Date() })
+    .where(and(eq(bookingsTable.id, id), eq(bookingsTable.status, 'PENDING')))
+    .returning();
+  return row;
+}
+
 // Enriches the booking row with desk + space (single round-trip via JOIN).
 // `/my-bookings` consumes this directly; admin views (US-4.x) will add a
 // sibling helper that doesn't filter on guest_user_id.
