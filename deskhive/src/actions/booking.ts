@@ -17,6 +17,7 @@ import {
   createBooking,
   getBookingById,
   cancelBooking,
+  confirmBooking,
 } from '@/db/queries/bookings';
 import { logger } from '@/lib/logger';
 
@@ -248,5 +249,92 @@ export async function cancelBookingAction(
 
   revalidatePath('/my-bookings');
   revalidatePath(`/spaces/${booking.spaceId}`);
+  return { status: 'idle' };
+}
+
+export type ConfirmBookingActionState =
+  | { status: 'idle' }
+  | { status: 'error'; code: 'FORBIDDEN'; message: string }
+  | { status: 'error'; code: 'NOT_FOUND'; message: string }
+  | { status: 'error'; code: 'CANNOT_CONFIRM'; message: string }
+  | { status: 'error'; code: 'INTERNAL_ERROR'; message: string };
+
+export async function confirmBookingAction(
+  _prevState: ConfirmBookingActionState,
+  formData: FormData,
+): Promise<ConfirmBookingActionState> {
+  const bookingId = String(formData.get('bookingId') ?? '');
+  if (!UUID_RE.test(bookingId)) {
+    return { status: 'error', code: 'NOT_FOUND', message: 'Booking not found.' };
+  }
+
+  // Auth: 401 → /login redirect; 403 (Guest tries via tampered DevTools) → state.
+  try {
+    const session = await requireSession();
+    requireRole(session, 'SUPER_ADMIN');
+  } catch (err) {
+    if (err instanceof AuthError) {
+      const status = err.response.status;
+      if (status === 401) {
+        redirect('/login?callbackUrl=/admin/bookings');
+      }
+      if (status === 403) {
+        // Verbatim message (US-4.2 chosen wording).
+        return {
+          status: 'error',
+          code: 'FORBIDDEN',
+          message: 'Only super admins can confirm bookings.',
+        };
+      }
+    }
+    logger.error('confirm_booking_action_auth_failed', { error: String(err) });
+    return {
+      status: 'error',
+      code: 'INTERNAL_ERROR',
+      message: 'Something went wrong.',
+    };
+  }
+
+  // Pre-checks (no ownership — admin scope).
+  const booking = await getBookingById(bookingId);
+  if (!booking) {
+    return { status: 'error', code: 'NOT_FOUND', message: 'Booking not found.' };
+  }
+  if (booking.status !== 'PENDING') {
+    // Verbatim message (US-4.2 AC-2).
+    return {
+      status: 'error',
+      code: 'CANNOT_CONFIRM',
+      message: 'Only pending bookings can be confirmed.',
+    };
+  }
+
+  // Conditional UPDATE: race-safe against concurrent Guest cancel.
+  let result: ConfirmBookingActionState | null = null;
+  try {
+    const updated = await confirmBooking(bookingId);
+    if (!updated) {
+      result = {
+        status: 'error',
+        code: 'CANNOT_CONFIRM',
+        message: 'Only pending bookings can be confirmed.',
+      };
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error('confirm_booking_action_db_failed', { error: msg });
+    result = {
+      status: 'error',
+      code: 'INTERNAL_ERROR',
+      message: 'Something went wrong. Please try again.',
+    };
+  }
+  if (result) return result;
+
+  // Confirm doesn't change desk availability (PENDING and CONFIRMED are
+  // both in the partial unique index's covered set), so no /spaces/[id]
+  // revalidation needed.
+  revalidatePath('/admin/bookings');
+  revalidatePath('/my-bookings');
   return { status: 'idle' };
 }

@@ -119,6 +119,26 @@ export async function cancelBooking(
   return row;
 }
 
+/**
+ * Conditional UPDATE: confirms a PENDING booking. Admin scope — no ownership
+ * clause (admin acts on any booking). Returns the updated row on success;
+ * `undefined` when the row is no longer PENDING (race against Guest cancel)
+ * or doesn't exist.
+ *
+ * Same conditional-UPDATE shape as cancelBooking, minus the guest_user_id
+ * clause. US-4.3's rejectBooking will be identical with target REJECTED.
+ */
+export async function confirmBooking(
+  id: string,
+): Promise<Booking | undefined> {
+  const [row] = await db
+    .update(bookingsTable)
+    .set({ status: 'CONFIRMED', updatedAt: new Date() })
+    .where(and(eq(bookingsTable.id, id), eq(bookingsTable.status, 'PENDING')))
+    .returning();
+  return row;
+}
+
 // Enriches the booking row with desk + space (single round-trip via JOIN).
 // `/my-bookings` consumes this directly; admin views (US-4.x) will add a
 // sibling helper that doesn't filter on guest_user_id.

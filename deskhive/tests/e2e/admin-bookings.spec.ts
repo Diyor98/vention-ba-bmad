@@ -14,4 +14,15 @@ test.describe('admin bookings — unauthenticated', () => {
     const body = await res.json();
     expect(body.code).toBe('UNAUTHORIZED');
   });
+
+  test('POST /api/admin/bookings/:id/confirm returns 401 without a session cookie', async ({
+    request,
+  }) => {
+    const res = await request.post(
+      '/api/admin/bookings/00000000-0000-0000-0000-000000000000/confirm',
+    );
+    expect(res.status()).toBe(401);
+    const body = await res.json();
+    expect(body.code).toBe('UNAUTHORIZED');
+  });
 });
