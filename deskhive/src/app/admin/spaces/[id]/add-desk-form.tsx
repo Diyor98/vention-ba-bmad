@@ -6,6 +6,9 @@ import { createDeskAction, type CreateDeskActionState } from '@/actions/desk';
 
 const initialState: CreateDeskActionState = { status: 'idle' };
 
+// Story 5-2 reskin: .add-desk-row layout from admin.css. Server-side
+// behavior unchanged from US-2.3 (incl. verbatim duplicate-label error
+// from the 12bee8b follow-up commit, surfaced via .field-error below).
 export function AddDeskForm({ spaceId }: { spaceId: string }) {
   const [state, formAction] = useActionState(
     createDeskAction.bind(null, spaceId),
@@ -25,48 +28,48 @@ export function AddDeskForm({ spaceId }: { spaceId: string }) {
       : undefined;
 
   return (
-    <form action={formAction} className="space-y-4" noValidate>
-      <div>
-        <label htmlFor="label" className="field-label">
-          Label
-        </label>
+    <form action={formAction} noValidate>
+      <div className="add-desk-row">
         <input
-          id="label"
           name="label"
           type="text"
           required
-          className="input"
+          placeholder="Label (e.g. Desk 8)"
+          aria-label="Label"
           aria-invalid={fieldError('label') ? true : undefined}
+          className="input"
         />
-        {fieldError('label') && <p className="field-error">{fieldError('label')}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="dailyPriceCents" className="field-label">
-          Daily price (cents)
-        </label>
         <input
-          id="dailyPriceCents"
           name="dailyPriceCents"
           type="number"
           step="1"
           min="0"
           required
-          className="input tnum"
+          placeholder="Daily price (cents)"
+          aria-label="Daily price (cents)"
           aria-invalid={fieldError('dailyPriceCents') ? true : undefined}
+          className="input tnum"
         />
-        {fieldError('dailyPriceCents') && (
-          <p className="field-error">{fieldError('dailyPriceCents')}</p>
-        )}
+        <SubmitButton />
       </div>
 
-      {topLevelError && (
-        <p className="field-error" role="alert">
-          {topLevelError}
-        </p>
+      {(fieldError('label') ||
+        fieldError('dailyPriceCents') ||
+        topLevelError) && (
+        <div style={{ padding: '0.5rem 1rem' }}>
+          {fieldError('label') && (
+            <p className="field-error">{fieldError('label')}</p>
+          )}
+          {fieldError('dailyPriceCents') && (
+            <p className="field-error">{fieldError('dailyPriceCents')}</p>
+          )}
+          {topLevelError && (
+            <p className="field-error" role="alert">
+              {topLevelError}
+            </p>
+          )}
+        </div>
       )}
-
-      <SubmitButton />
     </form>
   );
 }
@@ -78,7 +81,8 @@ function SubmitButton() {
       type="submit"
       disabled={pending}
       aria-disabled={pending || undefined}
-      className="btn btn-primary"
+      className="btn btn-primary btn-sm"
+      style={{ height: '2rem' }}
     >
       {pending ? 'Adding…' : 'Add desk'}
     </button>

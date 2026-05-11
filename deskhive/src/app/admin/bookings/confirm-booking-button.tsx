@@ -9,22 +9,23 @@ import {
 
 const initialState: ConfirmBookingActionState = { status: 'idle' };
 
+// Inline action button used inside the admin Bookings table row. The
+// underlying Server Action (US-4.2) is unchanged — only the visual
+// treatment switched to .btn-xs.btn-confirm per Story 5-2 design.
 export function ConfirmBookingButton({ bookingId }: { bookingId: string }) {
   const [state, formAction] = useActionState(confirmBookingAction, initialState);
   const errorMessage = state.status === 'error' ? state.message : undefined;
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <form action={formAction}>
-        <input type="hidden" name="bookingId" value={bookingId} />
-        <SubmitButton />
-      </form>
+    <form action={formAction} style={{ display: 'inline-flex' }}>
+      <input type="hidden" name="bookingId" value={bookingId} />
+      <SubmitButton />
       {errorMessage && (
-        <p className="field-error" role="alert">
+        <span className="field-error" role="alert" style={{ marginLeft: '0.5rem' }}>
           {errorMessage}
-        </p>
+        </span>
       )}
-    </div>
+    </form>
   );
 }
 
@@ -35,7 +36,7 @@ function SubmitButton() {
       type="submit"
       disabled={pending}
       aria-disabled={pending || undefined}
-      className="btn btn-primary btn-sm"
+      className="btn-xs btn-confirm"
     >
       {pending ? 'Confirming…' : 'Confirm'}
     </button>

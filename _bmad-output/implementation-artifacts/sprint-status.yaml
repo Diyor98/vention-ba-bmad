@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-07 (Story 5-1 implemented and moved to review; public screens reskin landed per Makhbuba design package; 5-2 admin reskin still backlog)
+# last_updated: 2026-05-11 (Story 5-2 implemented and moved to review; admin reskin landed; Epic 5 closes pending BA greenlight. Phase 1 fully covered after BA verification.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -110,5 +110,5 @@ development_status:
   # ─────────────────────────────────────────────────────────────────
   epic-5: in-progress
   5-1-design-reskin-public-screens: review
-  5-2-design-reskin-admin-screens: backlog
+  5-2-design-reskin-admin-screens: review
   epic-5-retrospective: optional

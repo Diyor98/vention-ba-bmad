@@ -4,7 +4,7 @@ import { Header } from "@/components/header";
 import "./globals.css";
 
 // Inter via next/font/google. The `--font-inter` CSS variable is referenced
-// by globals.css's `--font-sans` token (Story 5-1, BA Decisions В§2). Demo
+// by globals.css's `--font-sans` token (Story 5-1, BA Decisions §2). Demo
 // HTML uses the Google Fonts CDN <link>; production must NOT — next/font
 // handles preloading + subsetting + zero-CLS rendering.
 const inter = Inter({
@@ -30,7 +30,7 @@ export default function RootLayout({
         <div className="flex-1">{children}</div>
         <footer className="site-footer">
           <div className="site-footer-inner">
-            <span>В© {new Date().getFullYear()} DeskHive</span>
+            <span>© {new Date().getFullYear()} DeskHive</span>
             <span
               className="font-mono"
               style={{

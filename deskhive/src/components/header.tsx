@@ -6,7 +6,7 @@ import { LogoutButton } from './logout-button';
 // Site header — sticky, audience-aware. Story 5-1 reskin.
 //
 // Public (logged out):  logo + "Browse spaces" + "Log in" + "Sign up" (primary)
-//                       NB: "How it works" link from BA Decisions В§2 is
+//                       NB: "How it works" link from BA Decisions §2 is
 //                       intentionally omitted — its destination lives in the
 //                       Phase 2 marketing landing.
 // Guest (logged in):    logo + "Browse spaces" + "My bookings" + user-pill + "Log out"

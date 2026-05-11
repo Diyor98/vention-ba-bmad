@@ -1,4 +1,4 @@
-﻿import type { BookingStatus } from '@/db/schema';
+import type { BookingStatus } from '@/db/schema';
 
 const STATUS_CLASS: Record<BookingStatus, string> = {
   PENDING: 'badge-pending',
@@ -20,7 +20,7 @@ export function StatusBadge({
 }: {
   status: BookingStatus;
   // 'lg' renders the prominent confirmed-card variant + larger dot per
-  // Doc B В§7.4 / Story 5-1's `.badge-lg` design.
+  // Doc B §7.4 / Story 5-1's `.badge-lg` design.
   size?: 'sm' | 'lg';
 }) {
   const sizeClass = size === 'lg' ? ' badge-lg' : '';

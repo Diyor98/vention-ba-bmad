@@ -1,21 +1,18 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireSession, requireRole, AuthError } from '@/lib/auth/guards';
+import { listAllSpaces } from '@/db/queries/spaces';
+import { listAllBookings } from '@/db/queries/bookings';
+import { AdminTabs } from './admin-tabs';
+import type { BookingStatus } from '@/db/schema';
 
 // Centralized admin-area guard. Runs once per request before any /admin/*
 // page renders. Replaces the per-page try/catch blocks introduced in US-2.1.
 //
-// 401 (no session) → /login (the proxy handles this earlier at the edge for
-//   the no-cookie case; this catches the cookie-present-but-invalid case).
-// 403 (Guest hitting admin) → / silently per US-2.1 AC-5.
-//
-// Pages under /admin/* MUST NOT re-call requireSession/requireRole — the
-// layout has already done it. Doing so duplicates the cost and creates a
-// second source of redirect logic to maintain.
-//
-// US-4.1 added the within-admin sub-nav so Super Admins can navigate between
-// Spaces and Bookings without typing URLs. No active-state highlighting —
-// that requires usePathname() (Client Component); deferred.
+// Story 5-2: also computes the tab badge counts (Spaces total + PENDING
+// bookings count) so the <AdminTabs> Client Component below has data
+// without each tab page having to refetch on its own. usePathname() lives
+// in <AdminTabs>; this layout must remain a Server Component to keep the
+// requireSession()/requireRole() guard authoritative.
 export default async function AdminLayout({
   children,
 }: {
@@ -32,31 +29,20 @@ export default async function AdminLayout({
     throw err;
   }
 
+  // Tab counts. Phase 1 data volumes are small; an extra roundtrip per
+  // admin request is acceptable. Phase 2 candidate: consolidate into a
+  // tiny getAdminCounts() helper or memoize via unstable_cache.
+  const [spaces, bookingRows] = await Promise.all([
+    listAllSpaces(),
+    listAllBookings(),
+  ]);
+  const pendingCount = bookingRows.filter(
+    (r) => (r.booking.status as BookingStatus) === 'PENDING',
+  ).length;
+
   return (
     <>
-      <nav
-        style={{
-          borderBottom: '1px solid var(--color-border)',
-          background: 'var(--color-neutral-0)',
-        }}
-      >
-        <div
-          className="container-content"
-          style={{
-            display: 'flex',
-            gap: '0.25rem',
-            paddingTop: '0.5rem',
-            paddingBottom: '0.5rem',
-          }}
-        >
-          <Link href="/admin/spaces" className="nav-link">
-            Spaces
-          </Link>
-          <Link href="/admin/bookings" className="nav-link">
-            Bookings
-          </Link>
-        </div>
-      </nav>
+      <AdminTabs spacesCount={spaces.length} pendingCount={pendingCount} />
       {children}
     </>
   );
