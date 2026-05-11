@@ -496,4 +496,5 @@ Story 5.2 is the **second (and final) non-functional commit in Epic 5**. Subject
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-11 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| 2026-05-11 | Story implemented; admin reskin landed. Single commit per AC-14. | (filled by a small follow-up commit after push, once the hash is stable — same pattern as Story 5-1's `c4b832b`) |
+| 2026-05-11 | Story implemented; admin reskin landed. Single commit per AC-14. | `c5d830a` |
+| 2026-05-11 | Browser-verified by BA against AC-13 14-point checklist; greenlit (incl. end-to-end booking round-trip + admin Confirm flow). Role-selector confirmed cosmetic-only. Functional role-based auth flow captured for Phase 2 PRD backlog. | (this follow-up) |
