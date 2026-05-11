@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-11 (Story 5-2 implemented and moved to review; admin reskin landed; Epic 5 closes pending BA greenlight. Phase 1 fully covered after BA verification.)
+# last_updated: 2026-05-12 (Story 6-1 implemented and moved to review; dollars input landed on admin desk forms; src/lib/money.ts established as money-math seam for Phase 2 reuse)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -112,3 +112,13 @@ development_status:
   5-1-design-reskin-public-screens: review
   5-2-design-reskin-admin-screens: review
   epic-5-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────
+  # Epic 6 — Phase 1 Polish (synthetic, post-Epic-5)
+  # Source: docs/phase2-framing-and-polish-backlog.md items 6-1 → 6-3
+  # ─────────────────────────────────────────────────────────────────
+  epic-6: in-progress
+  6-1-price-input-dollars: review
+  6-2-hide-my-bookings-from-admin: backlog
+  6-3-booking-confirmation-toast: backlog
+  epic-6-retrospective: optional

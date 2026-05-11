@@ -6,9 +6,11 @@ import { createDeskAction, type CreateDeskActionState } from '@/actions/desk';
 
 const initialState: CreateDeskActionState = { status: 'idle' };
 
-// Story 5-2 reskin: .add-desk-row layout from admin.css. Server-side
-// behavior unchanged from US-2.3 (incl. verbatim duplicate-label error
-// from the 12bee8b follow-up commit, surfaced via .field-error below).
+// Story 5-2 reskin: .add-desk-row layout from admin.css.
+// Story 6-1: price input accepts dollars (e.g. "25" or "25.50"). The
+// schema renames `dailyPriceDollars` → `dailyPriceCents` at the seam.
+// Server-side behavior preserved (verbatim duplicate-label error from
+// US-2.3 follow-up commit 12bee8b is unchanged).
 export function AddDeskForm({ spaceId }: { spaceId: string }) {
   const [state, formAction] = useActionState(
     createDeskAction.bind(null, spaceId),
@@ -39,29 +41,34 @@ export function AddDeskForm({ spaceId }: { spaceId: string }) {
           aria-invalid={fieldError('label') ? true : undefined}
           className="input"
         />
-        <input
-          name="dailyPriceCents"
-          type="number"
-          step="1"
-          min="0"
-          required
-          placeholder="Daily price (cents)"
-          aria-label="Daily price (cents)"
-          aria-invalid={fieldError('dailyPriceCents') ? true : undefined}
-          className="input tnum"
-        />
+        <div>
+          <input
+            name="dailyPriceDollars"
+            type="text"
+            inputMode="decimal"
+            pattern="^\d{1,5}(?:\.\d{1,2})?$"
+            required
+            placeholder="25.00"
+            aria-label="Daily price"
+            aria-invalid={fieldError('dailyPriceDollars') ? true : undefined}
+            className="input tnum"
+          />
+          <p className="field-help" style={{ marginTop: '0.25rem' }}>
+            In USD. Example: 25 or 25.50
+          </p>
+        </div>
         <SubmitButton />
       </div>
 
       {(fieldError('label') ||
-        fieldError('dailyPriceCents') ||
+        fieldError('dailyPriceDollars') ||
         topLevelError) && (
         <div style={{ padding: '0.5rem 1rem' }}>
           {fieldError('label') && (
             <p className="field-error">{fieldError('label')}</p>
           )}
-          {fieldError('dailyPriceCents') && (
-            <p className="field-error">{fieldError('dailyPriceCents')}</p>
+          {fieldError('dailyPriceDollars') && (
+            <p className="field-error">{fieldError('dailyPriceDollars')}</p>
           )}
           {topLevelError && (
             <p className="field-error" role="alert">

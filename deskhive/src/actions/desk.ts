@@ -46,9 +46,11 @@ export async function createDeskAction(
     return { status: 'error', code: 'NOT_FOUND', message: 'Space not found.' };
   }
 
+  // Story 6-1: form field is `dailyPriceDollars` (string the admin typed).
+  // The schema renames it to `dailyPriceCents: number` at the seam.
   const parsed = createDeskSchema.safeParse({
     label: formData.get('label'),
-    dailyPriceCents: formData.get('dailyPriceCents'),
+    dailyPriceDollars: formData.get('dailyPriceDollars'),
   });
 
   if (!parsed.success) {
@@ -134,7 +136,7 @@ export async function editDeskAction(
   // string 'false' as truthy, which is not what we want.
   const parsed = editDeskSchema.safeParse({
     label: formData.get('label'),
-    dailyPriceCents: formData.get('dailyPriceCents'),
+    dailyPriceDollars: formData.get('dailyPriceDollars'),
     isActive: formData.get('isActive') === 'on',
   });
 
