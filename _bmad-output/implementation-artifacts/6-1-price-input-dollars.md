@@ -437,4 +437,5 @@ export const createDeskSchema = z
 |---|---|---|
 | 2026-05-12 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
 | 2026-05-12 | BA locked the rename direction (input `dailyPriceDollars` → output `dailyPriceCents`) before dev-story dispatch. | (none) |
-| 2026-05-12 | Story implemented; dollars input landed. Single commit per AC-12. | (filled by a small follow-up commit after push, once the hash is stable — same pattern as Stories 5.1 / 5.2) |
+| 2026-05-12 | Story implemented; dollars input landed. Single commit per AC-12. | `6e256f6` |
+| 2026-05-12 | Browser-verified by BA against AC-11 10-point checklist; greenlit (incl. round-trip on existing Desk-3 / Desk-5 + all 5 validation rejection paths). `src/lib/money.ts` established as Phase 2 money-math foundation. | (this follow-up) |
