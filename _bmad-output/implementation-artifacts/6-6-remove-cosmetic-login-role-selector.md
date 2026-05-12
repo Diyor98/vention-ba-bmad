@@ -298,4 +298,5 @@ No issues encountered. Smallest commit in Epic 6 — pure deletion + memory rena
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-12 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| 2026-05-12 | Story implemented; toggle JSX + CSS deleted, `<Header>` left untouched (AC-5 confirmed no simplification ever shipped), memory entry renamed. Single commit per AC-12. | (filled by a small follow-up commit after push, once the hash is stable — same pattern as Stories 5.1 / 5.2 / 6.1 / 6.2 / 6.3) |
+| 2026-05-12 | Story implemented; toggle JSX + CSS deleted, `<Header>` left untouched (AC-5 confirmed no simplification ever shipped), memory entry renamed. Single commit per AC-12. | `48c8f2e` |
+| 2026-05-12 | Browser-verified by BA against AC-10 13-point checklist; greenlit. Smallest commit in Epic 6 (pure deletion + memory rename, zero new logic). | (this follow-up) |
