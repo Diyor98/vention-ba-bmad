@@ -31,7 +31,12 @@ export const usersTable = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [check('users_role_check', sql`${t.role} IN ('GUEST', 'SUPER_ADMIN')`)],
+  (t) => [
+    check(
+      'users_role_check',
+      sql`${t.role} IN ('GUEST', 'SUPER_ADMIN', 'SPACE_OWNER')`,
+    ),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────
@@ -47,6 +52,10 @@ export const spacesTable = pgTable(
     description: text('description').notNull(),
     primaryImageUrl: text('primary_image_url').notNull(),
     status: text('status').notNull().default('PUBLISHED'),
+    // Story 7-1: nullable owner_id introduces the SPACE_OWNER → spaces
+    // relationship. Phase 1 seeded spaces stay NULL — no backfill in this
+    // story. Future stories may require non-null or backfill explicitly.
+    ownerId: uuid('owner_id').references(() => usersTable.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -166,8 +175,17 @@ export type Desk = typeof desksTable.$inferSelect;
 export type Booking = typeof bookingsTable.$inferSelect;
 export type NewBooking = typeof bookingsTable.$inferInsert;
 
-// Role: SPACE_ADMIN reserved per Doc A §7.4 — TS literal only.
-// DB CHECK constraint rejects 'SPACE_ADMIN' inserts in Phase 1; Phase 2 migration extends the CHECK.
-export type Role = 'GUEST' | 'SUPER_ADMIN' | 'SPACE_ADMIN';
+// Role: Phase 2 introduces SPACE_OWNER (Story 7-1).
+//
+// Naming evolution: architecture.md §7.4 originally reserved 'SPACE_ADMIN'
+// as the forward-compat literal. The Phase 2 PRD + Story 7-1 BA decisions
+// settled on 'SPACE_OWNER' as the product-facing name — better aligned with
+// the Airbnb-model "host/owner" framing and Story 6-6's one-login memory.
+// The Phase 1 'SPACE_ADMIN' reservation was TS-literal-only; the DB CHECK
+// constraint was never written to accept it, so this is a clean rename.
+// architecture.md itself is not updated as part of this story (BA/architect
+// role owns those edits); the rename rationale is codified in memory at
+// reference_role_and_mode_switching.md.
+export type Role = 'GUEST' | 'SUPER_ADMIN' | 'SPACE_OWNER';
 
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED';

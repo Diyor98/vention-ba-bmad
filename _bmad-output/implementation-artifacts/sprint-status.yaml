@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-12 (Story 6-6 implemented and moved to review; cosmetic Guest/Admin login toggle removed — JSX + CSS deleted, memory entry renamed to project_login_single_form_post_auth_role_switch.md. Phase 2 multi-tenant theme will introduce the post-auth role switcher per Airbnb model.)
+# last_updated: 2026-05-12 (Story 7-1 implemented and moved to review — first Phase 2 feature shipped; SPACE_OWNER role + deskhive_mode cookie + UserPill dropdown + /owner/* placeholders. SPACE_ADMIN → SPACE_OWNER rename locked at schema seam.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -123,3 +123,18 @@ development_status:
   6-3-booking-confirmation-toast: review
   6-6-remove-cosmetic-login-role-selector: review
   epic-6-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────
+  # Epic 7 — Multi-Tenant (Space Owner Role) — Phase 2 Theme A
+  # Source: docs/03-phase2-prd.md §8 Epic 7
+  # NB: BA combined original PRD 7-1 (role infra) + original 7-5 (mode
+  # switch) into the new 7-1 to eliminate dormant nav code. Original 7-6
+  # (owner dashboard) becomes new 7-5. PRD will be updated post-7-1-ship.
+  # ─────────────────────────────────────────────────────────────────
+  epic-7: in-progress
+  7-1-role-infrastructure-and-mode-switching: review
+  7-2-applications-data-model: backlog
+  7-3-guest-application-form: backlog
+  7-4-admin-application-review: backlog
+  7-5-owner-dashboard-and-spaces: backlog
+  epic-7-retrospective: optional

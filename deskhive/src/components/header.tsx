@@ -1,35 +1,49 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { auth } from '@/lib/auth/config';
-import { LogoutButton } from './logout-button';
+import { effectiveMode } from '@/lib/mode';
+import { UserPill } from './user-pill';
 
-// Site header — sticky, audience-aware. Story 5-1 reskin.
+// Site header — sticky, audience-aware.
 //
-// Public (logged out):  logo + "Browse spaces" + "Log in" + "Sign up" (primary)
-//                       NB: "How it works" link from BA Decisions §2 is
-//                       intentionally omitted — its destination lives in the
-//                       Phase 2 marketing landing.
-// Guest (logged in):    logo + "Browse spaces" + "My bookings" + user-pill + "Log out"
-// Super Admin:          logo + "Browse spaces" + "Admin" + user-pill + "Log out"
+// Variants (Story 7-1 introduces #4 and reframes #3):
 //
-// Story 6-2: "My bookings" is hidden from the Super Admin nav variant —
-// admins operate the platform, they don't book desks. Direct navigation to
-// /my-bookings by an admin is caught by the page's own role check and
-// redirected to /admin/bookings (see src/app/my-bookings/page.tsx).
+//   1. Public (logged out):
+//      logo + "Browse spaces" + "Log in" + "Sign up" (primary)
+//      NB: "How it works" omitted — destination is Phase 2 marketing landing.
+//
+//   2. Guest (role === 'GUEST'):
+//      logo + "Browse spaces" + "My bookings" + <UserPill> (Log out)
+//
+//   3. SPACE_OWNER in Guest mode:
+//      logo + "Browse spaces" + "My bookings" + <UserPill> (Switch to hosting + Log out)
+//
+//   4. SPACE_OWNER in Host mode:
+//      logo + "Dashboard" + "My spaces" + "Bookings" + <UserPill> (Switch to traveling + Log out)
+//      Host nav targets: /owner, /owner/spaces, /owner/bookings.
+//      All three resolve to placeholder pages until Story 7-5 fills them in.
+//
+//   5. SUPER_ADMIN (role === 'SUPER_ADMIN'):
+//      logo + "Browse spaces" + "Admin" + <UserPill> (Log out — no mode switch)
+//      "My bookings" hidden per Story 6-2 (admins operate, don't book).
+//      No Host mode for admins (BA Decision §3 — they have /admin/* chrome).
 //
 // `await auth.api.getSession({ headers: await headers() })` is the canonical
-// session-read pattern from US-1.3. Role check unchanged. The existing
-// `<LogoutButton>` Server Action form is reused; only its visual classes
-// change.
+// session-read pattern from US-1.3. `effectiveMode(session)` validates the
+// deskhive_mode cookie against the session role so a stale Host-mode cookie
+// held by a non-SPACE_OWNER falls back to Guest mode cleanly.
 export async function Header() {
   const session = await auth.api.getSession({ headers: await headers() });
   const user = session?.user;
   const role = (user as { role?: string } | undefined)?.role;
+  const mode = await effectiveMode(session);
+
   const displayName = user
     ? typeof user.name === 'string' && user.name.trim().length > 0
       ? user.name
       : user.email
     : '';
+  const email = user?.email ?? '';
   const initial = displayName.trim().charAt(0).toUpperCase() || '·';
 
   return (
@@ -41,42 +55,76 @@ export async function Header() {
         </Link>
 
         <nav className="flex items-center gap-1">
-          <Link href="/" className="nav-link">
-            Browse spaces
-          </Link>
-
-          {user && role !== 'SUPER_ADMIN' && (
-            <Link href="/my-bookings" className="nav-link">
-              My bookings
-            </Link>
-          )}
-
-          {role === 'SUPER_ADMIN' && (
-            <Link href="/admin/spaces" className="nav-link">
-              Admin
-            </Link>
-          )}
-
-          <span className="nav-divider" aria-hidden="true" />
-
-          {user ? (
+          {!user ? (
+            // Variant 1 — Public
             <>
-              <span className="user-pill" aria-label={`Logged in as ${displayName}`}>
-                <span className="user-avatar" aria-hidden="true">
-                  {initial}
-                </span>
-                <span className="hidden sm:inline">{displayName}</span>
-              </span>
-              <LogoutButton />
-            </>
-          ) : (
-            <>
+              <Link href="/" className="nav-link">
+                Browse spaces
+              </Link>
+              <span className="nav-divider" aria-hidden="true" />
               <Link href="/login" className="nav-link">
                 Log in
               </Link>
               <Link href="/register" className="btn btn-primary btn-sm">
                 Sign up
               </Link>
+            </>
+          ) : role === 'SPACE_OWNER' && mode === 'host' ? (
+            // Variant 4 — SPACE_OWNER in Host mode
+            <>
+              <Link href="/owner" className="nav-link">
+                Dashboard
+              </Link>
+              <Link href="/owner/spaces" className="nav-link">
+                My spaces
+              </Link>
+              <Link href="/owner/bookings" className="nav-link">
+                Bookings
+              </Link>
+              <span className="nav-divider" aria-hidden="true" />
+              <UserPill
+                displayName={displayName}
+                email={email}
+                initial={initial}
+                role={role}
+                mode={mode}
+              />
+            </>
+          ) : role === 'SUPER_ADMIN' ? (
+            // Variant 5 — SUPER_ADMIN
+            <>
+              <Link href="/" className="nav-link">
+                Browse spaces
+              </Link>
+              <Link href="/admin/spaces" className="nav-link">
+                Admin
+              </Link>
+              <span className="nav-divider" aria-hidden="true" />
+              <UserPill
+                displayName={displayName}
+                email={email}
+                initial={initial}
+                role={role}
+                mode={mode}
+              />
+            </>
+          ) : (
+            // Variants 2 + 3 — Guest user, or SPACE_OWNER in Guest mode
+            <>
+              <Link href="/" className="nav-link">
+                Browse spaces
+              </Link>
+              <Link href="/my-bookings" className="nav-link">
+                My bookings
+              </Link>
+              <span className="nav-divider" aria-hidden="true" />
+              <UserPill
+                displayName={displayName}
+                email={email}
+                initial={initial}
+                role={role ?? 'GUEST'}
+                mode={mode}
+              />
             </>
           )}
         </nav>

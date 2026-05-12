@@ -29,12 +29,12 @@ Local development is currently scaffolded against [Neon](https://neon.tech) free
    pnpm db:seed
    ```
 
-### Seeded Super Admin credentials
+### Seeded accounts
 
-After running `pnpm db:seed`, a Super Admin account is created with:
+After running `pnpm db:seed`, two test accounts are created:
 
-- **Email:** `admin@deskhive.local`
-- **Password:** `SuperAdmin1!`
+- **Super Admin** — `admin@deskhive.local` / `SuperAdmin1!`
+- **Space Owner** — `owner@deskhive.local` / `SpaceOwner1!` (Story 7-1, Phase 2 Epic 7)
 
 These credentials are for development only. Rotate before any deployment.
 
@@ -52,7 +52,7 @@ These credentials are for development only. Rotate before any deployment.
 | `pnpm db:generate` | Generate a Drizzle migration from the schema |
 | `pnpm db:migrate` | Apply pending Drizzle migrations |
 | `pnpm db:push` | Dev-only: push schema directly without migration |
-| `pnpm db:seed` | Seed the Super Admin user |
+| `pnpm db:seed` | Seed the Super Admin + Space Owner test users |
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
