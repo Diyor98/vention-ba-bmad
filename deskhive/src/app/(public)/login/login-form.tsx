@@ -1,24 +1,19 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { loginAction, type LoginActionState } from '@/actions/auth';
 
 const initialState: LoginActionState = { status: 'idle' };
 
-// Story 5-2 design (04-login.html v2) adds a Guest/Admin role-selector
-// segmented control above the email field. **The selection is COSMETIC ONLY**
-// — it lives in component-local state and is NOT submitted with the form.
-// Better Auth continues to determine the user's role from the user record
-// server-side. Selecting "Admin" then logging in with a Guest credential
-// still logs the user in as Guest (Phase 1 verification §9). If product
-// decides it should become functional (e.g. separate admin login URL), revisit
-// in a follow-up story per BA Decisions §8 (open question pending Makhbuba).
-type Role = 'guest' | 'admin';
+// Story 6-6 removed the cosmetic Guest/Admin toggle that Story 5-2 shipped
+// here. DeskHive uses one login flow for all roles; role is determined by
+// the user account, not by pre-auth selection. Phase 2's multi-tenant theme
+// will add a post-auth role switcher (Airbnb model) in the authenticated
+// header dropdown, NOT a pre-auth toggle.
 
 export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const [state, formAction] = useActionState(loginAction, initialState);
-  const [role, setRole] = useState<Role>('guest');
 
   const fieldError = (name: string) =>
     state.status === 'error' && state.code === 'VALIDATION_ERROR'
@@ -31,61 +26,6 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   return (
     <form action={formAction} noValidate>
       <input type="hidden" name="callbackUrl" value={callbackUrl ?? ''} />
-
-      {/* Role selector — purely visual, not in form payload. */}
-      <div className="role-seg" role="group" aria-label="Sign in as">
-        <button
-          type="button"
-          data-role="guest"
-          aria-pressed={role === 'guest'}
-          onClick={() => setRole('guest')}
-        >
-          <span className="role-icon" aria-hidden="true">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 21a8 8 0 0 1 16 0" />
-            </svg>
-          </span>
-          <span className="role-text">
-            <span>Guest</span>
-            <span className="sub">Book a desk</span>
-          </span>
-        </button>
-        <button
-          type="button"
-          data-role="admin"
-          aria-pressed={role === 'admin'}
-          onClick={() => setRole('admin')}
-        >
-          <span className="role-icon" aria-hidden="true">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 2 4 5v7c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5l-8-3Z" />
-            </svg>
-          </span>
-          <span className="role-text">
-            <span>Admin</span>
-            <span className="sub">Manage spaces</span>
-          </span>
-        </button>
-      </div>
 
       <div className="mb-4">
         <label htmlFor="login-email" className="field-label">

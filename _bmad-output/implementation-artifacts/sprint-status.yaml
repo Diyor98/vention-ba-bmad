@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-12 (Story 6-3 implemented and moved to review; sonner wrapper landed, booking success/error/cancel toasts wired; AC-13 happy-path E2E escalated per cost cap. Epic 6 closes pending BA greenlight + retrospective.)
+# last_updated: 2026-05-12 (Story 6-6 implemented and moved to review; cosmetic Guest/Admin login toggle removed — JSX + CSS deleted, memory entry renamed to project_login_single_form_post_auth_role_switch.md. Phase 2 multi-tenant theme will introduce the post-auth role switcher per Airbnb model.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -121,4 +121,5 @@ development_status:
   6-1-price-input-dollars: review
   6-2-hide-my-bookings-from-admin: review
   6-3-booking-confirmation-toast: review
+  6-6-remove-cosmetic-login-role-selector: review
   epic-6-retrospective: optional
