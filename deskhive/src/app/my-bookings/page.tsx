@@ -21,6 +21,16 @@ export default async function MyBookingsPage() {
     throw err;
   }
 
+  // Story 6-2: super admins don't book desks. Send them to their natural
+  // workspace at /admin/bookings (BA Decisions §2). Silent server-side
+  // redirect — no flash, no toast (Decisions §8). The inline check is
+  // deliberate: requireRole() from @/lib/auth/guards throws AuthError(403),
+  // which is the wrong shape here — we want a clean redirect, not a deny.
+  const role = (session.user as { role?: string }).role;
+  if (role === 'SUPER_ADMIN') {
+    redirect('/admin/bookings');
+  }
+
   let rows: Row[] = [];
   let dataStatus: DataViewStatus = 'loaded';
   try {
@@ -180,7 +190,7 @@ function BookingCard({ row, archived }: { row: Row; archived: boolean }) {
           </p>
         </div>
       ) : (
-        // CONFIRMED future-dated в†’ no footer (keep card tight)
+        // CONFIRMED future-dated → no footer (keep card tight)
         null
       )}
     </li>

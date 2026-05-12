@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-12 (Story 6-1 implemented and moved to review; dollars input landed on admin desk forms; src/lib/money.ts established as money-math seam for Phase 2 reuse)
+# last_updated: 2026-05-12 (Story 6-2 implemented and moved to review; admin nav cleaned + /my-bookings server-side redirects admins to /admin/bookings; role-specific nav pattern codified in memory for Phase 2 Space Owner role)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -119,6 +119,6 @@ development_status:
   # ─────────────────────────────────────────────────────────────────
   epic-6: in-progress
   6-1-price-input-dollars: review
-  6-2-hide-my-bookings-from-admin: backlog
+  6-2-hide-my-bookings-from-admin: review
   6-3-booking-confirmation-toast: backlog
   epic-6-retrospective: optional

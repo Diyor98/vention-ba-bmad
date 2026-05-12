@@ -10,7 +10,12 @@ import { LogoutButton } from './logout-button';
 //                       intentionally omitted — its destination lives in the
 //                       Phase 2 marketing landing.
 // Guest (logged in):    logo + "Browse spaces" + "My bookings" + user-pill + "Log out"
-// Super Admin:          logo + "Browse spaces" + "My bookings" + "Admin" + user-pill + "Log out"
+// Super Admin:          logo + "Browse spaces" + "Admin" + user-pill + "Log out"
+//
+// Story 6-2: "My bookings" is hidden from the Super Admin nav variant —
+// admins operate the platform, they don't book desks. Direct navigation to
+// /my-bookings by an admin is caught by the page's own role check and
+// redirected to /admin/bookings (see src/app/my-bookings/page.tsx).
 //
 // `await auth.api.getSession({ headers: await headers() })` is the canonical
 // session-read pattern from US-1.3. Role check unchanged. The existing
@@ -40,7 +45,7 @@ export async function Header() {
             Browse spaces
           </Link>
 
-          {user && (
+          {user && role !== 'SUPER_ADMIN' && (
             <Link href="/my-bookings" className="nav-link">
               My bookings
             </Link>
