@@ -315,4 +315,5 @@ No issues encountered. All five CI checks passed first try (typecheck / lint / t
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-12 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| 2026-05-12 | Story implemented; admin nav cleaned + server-side redirect added. Single commit per AC-14. | (filled by a small follow-up commit after push, once the hash is stable — same pattern as Stories 5.1 / 5.2 / 6.1) |
+| 2026-05-12 | Story implemented; admin nav cleaned + server-side redirect added. Single commit per AC-14. | `be3e16a` |
+| 2026-05-12 | Browser-verified by BA against AC-11 13-point checklist; greenlit (Checks 1-4 + 12-13 manual; Checks 5-11 via 31/31 E2E suite). Role-specific nav pattern codified in memory for Phase 2 Space Owner role. | (this follow-up) |
