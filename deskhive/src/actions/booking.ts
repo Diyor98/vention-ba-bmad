@@ -24,6 +24,13 @@ import { logger } from '@/lib/logger';
 
 export type CreateBookingActionState =
   | { status: 'idle' }
+  // Story 6-3 (BA revision 2026-05-12): the action returns a success state
+  // instead of redirecting. The client fires the toast on /spaces/[id]
+  // (the current page); the user controls navigation to /my-bookings via
+  // the toast's "View in My Bookings" action button. This makes the toast
+  // appear in the context where the user just clicked, and gives the
+  // action button real work to do.
+  | { status: 'success' }
   | { status: 'error'; code: 'FORBIDDEN'; message: string }
   | { status: 'error'; code: 'VALIDATION_ERROR'; fields: Record<string, string> }
   | { status: 'error'; code: 'PAST_DATE'; message: string }
@@ -143,11 +150,21 @@ export async function createBookingAction(
 
   revalidatePath(`/spaces/${desk.spaceId}`);
   revalidatePath('/my-bookings');
-  redirect('/my-bookings');
+  // Story 6-3 (BA revision 2026-05-12): no redirect on success. Returning
+  // 'success' lets <BookDeskButton> fire the toast on /spaces/[id] (the
+  // current page); the user clicks the toast's action button to navigate
+  // to /my-bookings if they want, or stays on Space Detail to book another
+  // desk. Replaces the prior redirect('/my-bookings?booked=1') cross-nav
+  // pattern — the toast lives in the action context now, action button is
+  // a real link, no soft no-op.
+  return { status: 'success' };
 }
 
 export type CancelBookingActionState =
   | { status: 'idle' }
+  // Story 6-3: explicit 'success' variant so <CancelBookingButton> can fire
+  // a confirmation toast on a successful cancel (BA Decisions §10).
+  | { status: 'success' }
   | { status: 'error'; code: 'FORBIDDEN'; message: string }
   | { status: 'error'; code: 'NOT_FOUND'; message: string }
   | { status: 'error'; code: 'CANNOT_CANCEL'; message: string }
@@ -250,7 +267,8 @@ export async function cancelBookingAction(
 
   revalidatePath('/my-bookings');
   revalidatePath(`/spaces/${booking.spaceId}`);
-  return { status: 'idle' };
+  // Story 6-3: 'success' instead of 'idle' so the client can fire a toast.
+  return { status: 'success' };
 }
 
 export type ConfirmBookingActionState =

@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-12 (Story 6-2 implemented and moved to review; admin nav cleaned + /my-bookings server-side redirects admins to /admin/bookings; role-specific nav pattern codified in memory for Phase 2 Space Owner role)
+# last_updated: 2026-05-12 (Story 6-3 implemented and moved to review; sonner wrapper landed, booking success/error/cancel toasts wired; AC-13 happy-path E2E escalated per cost cap. Epic 6 closes pending BA greenlight + retrospective.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -120,5 +120,5 @@ development_status:
   epic-6: in-progress
   6-1-price-input-dollars: review
   6-2-hide-my-bookings-from-admin: review
-  6-3-booking-confirmation-toast: backlog
+  6-3-booking-confirmation-toast: review
   epic-6-retrospective: optional

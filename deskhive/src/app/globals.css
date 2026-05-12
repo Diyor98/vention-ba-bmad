@@ -1426,3 +1426,59 @@ textarea.input {
   font-weight: var(--font-weight-regular);
   color: var(--color-neutral-500);
 }
+
+/* ============================================================
+   Story 6-3 — Toast palette (sonner)
+   Reuses Story 5-1 status tokens (--color-status-confirmed-* and
+   --color-status-rejected-*). Sonner targets [data-sonner-toast]
+   for the toast root and [data-sonner-toaster] for the toaster
+   container; classNames on the wrapper's `success`/`error` calls
+   attach `.toast-success`/`.toast-error` to the toast root.
+   richColors is intentionally NOT enabled on the Toaster — these
+   classes own the palette.
+   ============================================================ */
+
+[data-sonner-toaster] [data-sonner-toast].toast-success {
+  background: var(--color-status-confirmed-bg);
+  color: var(--color-status-confirmed-fg);
+  border: 1px solid var(--color-status-confirmed-border);
+}
+[data-sonner-toaster] [data-sonner-toast].toast-success [data-icon],
+[data-sonner-toaster] [data-sonner-toast].toast-success [data-content] {
+  color: var(--color-status-confirmed-fg);
+}
+[data-sonner-toaster] [data-sonner-toast].toast-success [data-button] {
+  background: transparent;
+  color: var(--color-status-confirmed-fg);
+  border: 1px solid var(--color-status-confirmed-border);
+  font-weight: var(--font-weight-semibold);
+}
+[data-sonner-toaster] [data-sonner-toast].toast-success [data-button]:hover {
+  background: var(--color-status-confirmed-border);
+}
+
+[data-sonner-toaster] [data-sonner-toast].toast-error {
+  background: var(--color-status-rejected-bg);
+  color: var(--color-status-rejected-fg);
+  border: 1px solid var(--color-status-rejected-border);
+}
+[data-sonner-toaster] [data-sonner-toast].toast-error [data-icon],
+[data-sonner-toaster] [data-sonner-toast].toast-error [data-content] {
+  color: var(--color-status-rejected-fg);
+}
+[data-sonner-toaster] [data-sonner-toast].toast-error [data-close-button] {
+  background: transparent;
+  color: var(--color-status-rejected-fg);
+  border-color: var(--color-status-rejected-border);
+}
+
+/* Close button — both variants share base styling */
+[data-sonner-toaster] [data-sonner-toast] [data-close-button] {
+  background: transparent;
+  border: 1px solid currentColor;
+  opacity: 0.6;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+[data-sonner-toaster] [data-sonner-toast] [data-close-button]:hover {
+  opacity: 1;
+}

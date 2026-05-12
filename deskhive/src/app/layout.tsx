@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Toaster } from "sonner";
 import { Header } from "@/components/header";
 import "./globals.css";
 
@@ -44,6 +45,10 @@ export default function RootLayout({
             </span>
           </div>
         </footer>
+        {/* Story 6-3: single Toaster mount for the entire app. The palette
+            comes from .toast-success / .toast-error in globals.css (Story 5-1
+            status tokens) — NOT sonner's richColors default. */}
+        <Toaster position="bottom-right" duration={4000} closeButton />
       </body>
     </html>
   );
