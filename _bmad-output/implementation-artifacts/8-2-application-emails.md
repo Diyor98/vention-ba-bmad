@@ -1,6 +1,6 @@
 # Story 8.2: Application Emails (Received, Approved, Rejected)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -546,4 +546,5 @@ Claude Opus 4.7 (1M context).
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-13 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| _TBD_ | Story implemented; 3 application templates shipped with locked-verbatim copy; stub bodies replaced; `src/lib/email-templates/` directory scaffolded; `EMAIL_TEST_RECORD_FILE` recording branch added; 15+ unit tests + 3 E2E tests using 7-PREP-1 fixtures. Memory entry extended with voice + directory + recording patterns. Single commit per AC-13. | (filled by a small follow-up commit after push, once the hash is stable — same pattern as Stories 5.1 / 5.2 / 6.1 / 6.2 / 6.3 / 6.6 / 7.1 / 7.2 / 7.3 / 7.4 / 7.5 / 7-PREP-1 / 8.1) |
+| 2026-05-13 | Story implemented; 3 application templates shipped with locked-verbatim copy; `src/lib/email-templates/` directory scaffolded with 4 render functions; stub bodies replaced (Story 7-2 signatures preserved); `EMAIL_TEST_RECORD_FILE` recording branch + `waitForRecordedEmail` polling pattern; 18 unit tests + 4 extended notify* tests + 3 E2E tests using Story 7-PREP-1 fixtures; rejection_reason removed from TemplateData shape (compile-time anti-leakage verified at type + unit + E2E layers). Memory entry extended with directory pattern + transactional voice rule + no-internal-notes principle + recording-sink IPC pattern. Single commit per AC-13. | `8302003` |
+| 2026-05-13 | BA greenlight: all 15 browser-verification points passed including the critical Decision §6 verification (rejection-reason absence in delivered email body). Story moves from `review` to `done` upon this follow-up commit. Theme C now 2/4 stories done; Stories 8-3 (booking emails) + 8-4 (payment emails) unblocked. The `src/lib/email-templates/` directory pattern + recording-poll completion-signal idiom are now ready for Story 8-3's 8 booking templates to inherit. | (this commit) |

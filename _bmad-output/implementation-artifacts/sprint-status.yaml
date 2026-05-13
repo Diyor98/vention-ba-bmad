@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-13 (Story 8-2 implemented and moved to review — 3 application templates shipped with locked-verbatim copy; src/lib/email-templates/ directory scaffolded with 4 render functions; stub bodies replaced (Story 7-2 signatures preserved); EMAIL_TEST_RECORD_FILE recording branch + JSONL polling pattern; rejection_reason removed from TemplateData shape (compile-time anti-leakage verified via type + 3 unit tests + E2E assertion). 256/256 unit (+22) + 49/49 E2E (+3) + 36 routes unchanged + zero src/app/+src/actions/+src/db/+scripts/seed.ts+package.json changes. Memory entry extended with directory pattern + voice rule + no-internal-notes principle + E2E recording sink. Awaiting BA browser walk + Resend inbox verification.)
+# last_updated: 2026-05-13 (Story 8-2 BA-greenlit and moved to done — application emails shipped at commit 8302003. All 15 browser-verification points passed including the critical Decision §6 rejection-reason-absence assertion. Theme C now 2/4 stories done (8-1 + 8-2). Application loop is end-to-end complete: Guest applies → application-received email; admin approves → application-approved email + atomic role promotion; admin rejects → application-rejected email WITHOUT the internal note. Stories 8-3 (booking emails, 8 templates) + 8-4 (payment emails, 3 templates) unblocked — src/lib/email-templates/ directory pattern + waitForRecordedEmail polling idiom ready to inherit.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -158,7 +158,7 @@ development_status:
   # ─────────────────────────────────────────────────────────────────
   epic-8: in-progress
   8-1-email-wrapper-resend-integration: done
-  8-2-application-emails: review
+  8-2-application-emails: done
   8-3-booking-emails: backlog
   8-4-payment-emails: backlog
   epic-8-retrospective: optional
