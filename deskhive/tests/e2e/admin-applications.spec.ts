@@ -1,27 +1,38 @@
-import { test, expect } from '@playwright/test';
+import { test as baseTest, expect } from '@playwright/test';
+import { test } from '../fixtures';
 
-// Story 7-4: /admin/applications + /admin/applications/[id]. Authenticated
-// cases (the full BA 22-point browser walk — admin sees tab, filters, sorts,
-// approves, rejects with reason, SPACE_OWNER + Guest blocked) are deferred
-// to BA browser walk per the established authenticated-E2E deferral
-// precedent (Stories 5-1 → 7-3).
+// Story 7-4: /admin/applications + /admin/applications/[id]. The
+// unauthenticated → /login redirect path is covered below (no fixture
+// needed — admin/layout.tsx redirects to '/login' on the 401 path,
+// matching the existing Phase 1 behavior).
 //
-// This file covers the unauthenticated → login redirect behavior, which
-// doesn't need a Better Auth fixture. The admin-area role guard lives in
-// src/app/admin/layout.tsx and applies to both /admin/applications routes
-// inherited from the layout chain.
+// Story 7-PREP-1: extended with authenticated coverage via the
+// authenticatedPage fixture. The Story 7-4 seed creates four applicant
+// users with applications across PENDING/APPROVED/REJECTED — the
+// migrated case verifies the admin list page renders them.
 
-test.describe('/admin/applications — unauthenticated', () => {
-  test('GET /admin/applications redirects to /login', async ({ page }) => {
+baseTest.describe('/admin/applications — unauthenticated', () => {
+  baseTest('GET /admin/applications redirects to /login', async ({ page }) => {
     await page.goto('/admin/applications');
-    // admin/layout.tsx redirects to '/login' (no callbackUrl) on the 401
-    // path, matching the existing Phase 1 behavior used by /admin/spaces
-    // and /admin/bookings.
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  test('GET /admin/applications/<uuid> redirects to /login', async ({ page }) => {
+  baseTest('GET /admin/applications/<uuid> redirects to /login', async ({ page }) => {
     await page.goto('/admin/applications/00000000-0000-0000-0000-000000000000');
     await expect(page).toHaveURL(/\/login$/);
+  });
+});
+
+test.describe('/admin/applications — authenticated', () => {
+  // The Story 7-4 seed creates `applicant1@deskhive.local` (Anna
+  // Bergstrom) with a PENDING application. Admin should see them in
+  // the list. This single test verifies (a) the fixture works for the
+  // admin role, (b) the SUPER_ADMIN role guard passes when the cookie
+  // is present, and (c) listAllApplications + the join to users renders
+  // the applicant's full name end-to-end.
+  test('admin sees seeded applications in the list', async ({ authenticatedPage }) => {
+    const page = await authenticatedPage('admin');
+    await page.goto('/admin/applications');
+    await expect(page.getByText('Anna Bergstrom')).toBeVisible();
   });
 });

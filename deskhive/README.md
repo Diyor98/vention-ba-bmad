@@ -35,6 +35,7 @@ After running `pnpm db:seed`, the following test accounts are created:
 
 - **Super Admin** — `admin@deskhive.local` / `SuperAdmin1!`
 - **Space Owner** — `owner@deskhive.local` / `SpaceOwner1!` (Story 7-1, Phase 2 Epic 7)
+- **Plain Guest** — `guest@deskhive.local` / `GuestPass1!` (Story 7-PREP-1; no application — for E2E State A coverage on `/become-a-host`)
 
 Story 7-4 additionally seeds **4 applicant Guests** with applications across all statuses, for verifying the admin review flow at `/admin/applications`:
 

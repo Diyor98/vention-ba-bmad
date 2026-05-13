@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-13 (Story 7-5 BA-greenlit and moved to done — owner dashboard + space management shipped at commit 3fd797d. Two-layer ownership check verified end-to-end. **Theme A complete — Epic 7 (Stories 7-1 through 7-5) all done.** Theme B (Payments, Epic 9) + Theme C (Email, Epic 8) unblocked. Recommended pre-Theme C: Better Auth Playwright fixtures prep story to land the cumulative authenticated-E2E debt before email behavior ships.)
+# last_updated: 2026-05-13 (Story 7-PREP-1 implemented and moved to review — authenticatedPage(role) fixture shipped via auth.api.signInEmail direct call + 4 specs migrated with exactly 6 new authenticated cases including the load-bearing cross-tenant security test from Story 7-5 §8. AC-2 bounded seed exception added one fresh Guest user (guest@deskhive.local). 46/46 E2E + 220/220 unit + 36 routes unchanged + zero src/ changes. Awaiting BA browser walk.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -138,3 +138,13 @@ development_status:
   7-4-admin-application-review: done
   7-5-owner-dashboard-and-spaces: done
   epic-7-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────
+  # Cross-cutting infrastructure — Phase 2 prep stories
+  # Sits between Theme A close (Epic 7 done) and Theme C start (Epic 8).
+  # Authenticated Playwright fixtures + targeted E2E migration to close
+  # the authenticated-E2E debt accumulated across Stories 7-1 → 7-5
+  # (including the load-bearing cross-tenant test from Story 7-5 §8 that
+  # the BA browser walk skipped). Source: docs/design/7-PREP-1-...md
+  # ─────────────────────────────────────────────────────────────────
+  7-prep-1-better-auth-playwright-fixtures: review

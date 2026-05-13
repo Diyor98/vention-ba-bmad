@@ -1,3 +1,13 @@
+// Story 7-PREP-1: load .env.local + .env before any test runs. The
+// authenticatedPage fixture's `auth.api.signInEmail` call (and the seed-
+// helpers' `db` client) need DATABASE_URL + BETTER_AUTH_SECRET; without
+// this preload, fixtures throw "DATABASE_URL is not set". Same pattern
+// scripts/seed.ts uses at its top. This is the AC-4 "real technical
+// need" exception to the zero-config-touch preference.
+import { config as loadEnv } from 'dotenv';
+loadEnv({ path: '.env.local' });
+loadEnv({ path: '.env' });
+
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({

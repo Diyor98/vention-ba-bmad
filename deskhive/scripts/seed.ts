@@ -26,6 +26,20 @@ const SEED_OWNER_EMAIL = 'owner@deskhive.local';
 const SEED_OWNER_PASSWORD = 'SpaceOwner1!';
 const SEED_OWNER_FULL_NAME = 'DeskHive Space Owner';
 
+// Story 7-PREP-1 (Phase 2): seed a fresh GUEST with no application for
+// E2E State A coverage on /become-a-host. Bounded BA-approved exception
+// to the prep story's "no seed changes" rule (Decision §10 exception
+// logged in the story file). The four applicant seed users all have
+// applications and therefore land in State B; State A coverage is
+// otherwise unreachable through the fixture.
+const SEED_GUEST_EMAIL = 'guest@deskhive.local';
+// 11 chars — meets the 8-char minimum enforced by both Better Auth's
+// default and our own registerSchema (src/lib/validation/auth.ts:9).
+// BA pre-dispatch lock named `Guest1!`; bumped during dev-story to
+// satisfy the password-length policy (documented in Dev Agent Record).
+const SEED_GUEST_PASSWORD = 'GuestPass1!';
+const SEED_GUEST_FULL_NAME = 'Test Guest';
+
 // Story 7-4 (Phase 2): seed four applicant GUESTs + four applications
 // (2 PENDING + 1 APPROVED w/ atomic promotion + 1 REJECTED w/ reason).
 // Used for BA browser verification of /admin/applications.
@@ -394,6 +408,16 @@ async function main() {
     password: SEED_OWNER_PASSWORD,
     fullName: SEED_OWNER_FULL_NAME,
     role: 'SPACE_OWNER',
+  });
+
+  // Story 7-PREP-1: fresh GUEST with no application — for E2E State A
+  // coverage. No `seedApplication` call follows this user; they remain
+  // a fresh Guest. Idempotent via seedUser's email-exists check.
+  await seedUser({
+    email: SEED_GUEST_EMAIL,
+    password: SEED_GUEST_PASSWORD,
+    fullName: SEED_GUEST_FULL_NAME,
+    role: 'GUEST',
   });
 
   // Story 7-4: applicant Guests.
