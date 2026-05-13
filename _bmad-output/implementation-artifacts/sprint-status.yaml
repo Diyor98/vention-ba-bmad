@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-13 (Story 8-3 implemented and moved to review — 8 booking templates shipped with locked-verbatim copy; missing 8th template (booking-rejected-owner) added to registry; owner-side TemplateData shapes narrowed to omit guestName (compile-time anti-leakage per Decision §9); new src/lib/bookings.ts service module with 4 notify* functions enforcing Decisions §1/§2/§3; getBookingDispatchInfo extracted to src/db/queries/bookings.ts for testability (vi.mock intra-module limitation workaround); dynamic-subject mechanism added to renderTemplate; formatBookingDate helper lifted to src/lib/format.ts; 4 Server Actions wired post-commit fire-and-forget. 305/305 unit (+49 from 256) + 53/53 E2E (+4 from 49 — 2 NULL-owner + CONFIRMED-cancel cases deferred to unit-tests per AC-11 cost/benefit). 36 routes unchanged. Memory entry codifies decision rules + dynamic-subject mechanism + vi.mock gotcha + cross-template-story boundary for Story 8-4. Awaiting BA browser walk.)
+# last_updated: 2026-05-13 (Story 8-3 BA-greenlit and moved to done — booking emails shipped at commit f949230. 8 templates × 4 state transitions × 2 recipients; Decisions §1/§2/§3 enforced at the notify seam; type-level no-guestName-in-owner-emails. Theme C now 3/4 stories done. **Open follow-up logged** in memory project_phase2_prd_4_5_cancel_interpretation.md: Phase 1 cancelBookingAction rejects CONFIRMED bookings but PRD §4.5 implies they should be cancellable with refund logic — deferred to Epic 9 (refund/Stripe Connect). Surface to BA before any Epic 9 cancel/refund story. Story 8-4 (payment emails) is the last Theme C story; depends on Theme B's Stripe webhook infrastructure.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -159,6 +159,6 @@ development_status:
   epic-8: in-progress
   8-1-email-wrapper-resend-integration: done
   8-2-application-emails: done
-  8-3-booking-emails: review
+  8-3-booking-emails: done
   8-4-payment-emails: backlog
   epic-8-retrospective: optional

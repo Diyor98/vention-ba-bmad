@@ -1,6 +1,6 @@
 # Story 8.3: Booking Emails (8 templates × 4 state transitions × 2 recipients)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -556,4 +556,5 @@ Claude Opus 4.7 (1M context).
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-13 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| _TBD_ | Story implemented; 8 booking templates shipped (incl. the 8th `booking-rejected-owner` added to the registry); `src/lib/bookings.ts` service module created with `getBookingDispatchInfo` + 4 `notify*` functions; 4 Server Actions wired post-commit fire-and-forget; dynamic-subject mechanism in renderTemplate; `formatBookingDate` lifted to `src/lib/format.ts`. Memory extended with 5 new patterns. Single commit per AC-15. | (filled by a small follow-up commit after push, once the hash is stable — same pattern as Stories 5.1 / 5.2 / 6.1 / 6.2 / 6.3 / 6.6 / 7.1 / 7.2 / 7.3 / 7.4 / 7.5 / 7-PREP-1 / 8.1 / 8.2) |
+| 2026-05-13 | Story implemented; 8 booking templates shipped (incl. the 8th `booking-rejected-owner` added to the registry); `src/lib/bookings.ts` service module + 4 notify* functions enforcing Decisions §1/§2/§3; `getBookingDispatchInfo` extracted to `src/db/queries/bookings.ts` for testability (vi.mock intra-module limitation workaround); 4 Server Actions wired post-commit fire-and-forget; dynamic-subject mechanism in renderTemplate; `formatBookingDate` lifted to `src/lib/format.ts`. Memory entry extended with decision rules + dynamic-subject mechanism + vi.mock gotcha + cross-template-story boundary. Single commit per AC-15. | `f949230` |
+| 2026-05-13 | BA greenlight: all 20 browser-verification points passed. Story moves from `review` to `done`. **Follow-up logged** in memory `project_phase2_prd_4_5_cancel_interpretation.md`: Phase 1 `cancelBookingAction` rejects CONFIRMED bookings with `CANNOT_CANCEL`, but Phase 2 PRD §4.5 implies CONFIRMED-cancel should be possible with refund logic. Flow G's unit-test-only coverage in 8-3 is correct given current behavior; resolution deferred to Epic 9 (refund/Stripe Connect) — either enable guest-side CONFIRMED cancel with refund-logic branch, or document owner/admin-only CONFIRMED cancel on guest's behalf. The 8-3 `booking-cancelled-guest` template body's "If a refund applies, you'll receive a separate email" is load-bearing for whichever Epic 9 resolution lands. | (this commit) |
