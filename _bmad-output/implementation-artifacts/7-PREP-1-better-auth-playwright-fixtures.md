@@ -1,6 +1,6 @@
 # Story 7-PREP-1: Better Auth Playwright Fixtures + Targeted E2E Migration
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -556,4 +556,5 @@ Claude Opus 4.7 (1M context).
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-13 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| _TBD_ | Story implemented; `authenticatedPage` fixture shipped; 4 specs migrated with ≥5 new authenticated cases including the load-bearing cross-tenant test from Story 7-5 Decision §8. Memory entry codifies the authenticated-first principle. Single commit per AC-15. | (filled by a small follow-up commit after push, once the hash is stable — same pattern as Stories 5.1 / 5.2 / 6.1 / 6.2 / 6.3 / 6.6 / 7.1 / 7.2 / 7.3 / 7.4 / 7.5) |
+| 2026-05-13 | Story implemented; `authenticatedPage` fixture shipped; 4 specs migrated with 6 new authenticated cases including the load-bearing cross-tenant test from Story 7-5 Decision §8. AC-2 bounded seed exception added one fresh Guest user. AC-4 dotenv preload added to playwright.config.ts. Memory entry codifies the authenticated-first principle. Single commit per AC-15. | `0b1dcb0` |
+| 2026-05-13 | BA greenlight: all 10 browser-verification points passed. 46/46 E2E green. Cross-tenant security test verified in isolation. Theme A flows confirmed intact. Story moves from `review` to `done` upon this follow-up commit. Cumulative authenticated-E2E debt closed for the 4 migration targets; Theme C (Email, Epic 8) and Theme B (Payments, Epic 9) can now ship with proper authenticated-flow coverage from the start. | (this commit) |

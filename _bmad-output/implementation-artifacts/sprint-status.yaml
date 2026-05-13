@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-13 (Story 7-PREP-1 implemented and moved to review — authenticatedPage(role) fixture shipped via auth.api.signInEmail direct call + 4 specs migrated with exactly 6 new authenticated cases including the load-bearing cross-tenant security test from Story 7-5 §8. AC-2 bounded seed exception added one fresh Guest user (guest@deskhive.local). 46/46 E2E + 220/220 unit + 36 routes unchanged + zero src/ changes. Awaiting BA browser walk.)
+# last_updated: 2026-05-13 (Story 7-PREP-1 BA-greenlit and moved to done — authenticated Playwright fixtures + targeted E2E migration shipped at commit 0b1dcb0. Cross-tenant security test from Story 7-5 §8 now in CI. 46/46 E2E. Authenticated-E2E debt closed for the 4 migration targets. Theme C (Email, Epic 8) + Theme B (Payments, Epic 9) can now ship with authenticated-flow coverage from the start. Next dispatch: *create-story 8-1 (Resend wrapper + email service layer) — see Story 7-PREP-1 §"Memory note for Phase 2 continuation".)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -147,4 +147,4 @@ development_status:
   # (including the load-bearing cross-tenant test from Story 7-5 §8 that
   # the BA browser walk skipped). Source: docs/design/7-PREP-1-...md
   # ─────────────────────────────────────────────────────────────────
-  7-prep-1-better-auth-playwright-fixtures: review
+  7-prep-1-better-auth-playwright-fixtures: done
