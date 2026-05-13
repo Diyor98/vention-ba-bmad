@@ -1,6 +1,6 @@
 # Story 7.4: Super Admin Application Review UI
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -462,4 +462,5 @@ Story 7.4 is the **fourth Phase 2 feature commit**. Subject: `feat: admin applic
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-13 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| 2026-05-13 | Story implemented; admin applications list + detail + modal trio shipped. AdminTabs fourth tab w/ PENDING-only count. `<StatusBadge>` widened for APPROVED. Seed extended w/ 4 applicants + 4 applications incl. atomic promote via `db.transaction` bypass. Memory entry codifies the admin-queue-review patterns. Single commit per AC-17. | (filled by a small follow-up commit after push, once the hash is stable — same pattern as Stories 5.1 / 5.2 / 6.1 / 6.2 / 6.3 / 6.6 / 7.1 / 7.2 / 7.3) |
+| 2026-05-13 | Story implemented; admin applications list + detail + modal trio shipped. AdminTabs fourth tab w/ PENDING-only count. `<StatusBadge>` widened for APPROVED. Seed extended w/ 4 applicants + 4 applications incl. atomic promote via `db.transaction` bypass. Memory entry codifies the admin-queue-review patterns. Single commit per AC-17. | `bac6bc0` |
+| 2026-05-13 | BA greenlight: all critical browser-walk checks passed. Atomic role promotion verified end-to-end (approved applicant gains SPACE_OWNER role + "Switch to hosting" menu entry). Reject modal flow (ESC / backdrop / Cancel / submit-with-reason) verified. Story moves from `review` to `done` upon this follow-up commit. | (this commit) |

@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-13 (Story 7-4 implemented and moved to review — admin applications review UI closes the apply→review→approve loop end-to-end through the UI. AdminTabs +1 tab, 4 new files, native <dialog> modal for reject, 35/35 E2E. Seed populated 4 applicants + 4 applications on Neon w/ atomic promote.)
+# last_updated: 2026-05-13 (Story 7-4 BA-greenlit and moved to done — admin applications review UI shipped at commit bac6bc0. Atomic role promotion verified end-to-end. Reject modal flow verified. Epic 7 now 4/5 stories done; only 7-5 (Owner Dashboard + Spaces) remains.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -135,6 +135,6 @@ development_status:
   7-1-role-infrastructure-and-mode-switching: review
   7-2-applications-data-model: review
   7-3-guest-application-form: review
-  7-4-admin-application-review: review
+  7-4-admin-application-review: done
   7-5-owner-dashboard-and-spaces: backlog
   epic-7-retrospective: optional
