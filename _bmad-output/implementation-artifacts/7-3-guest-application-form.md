@@ -435,4 +435,5 @@ Story 7.3 is the **third Phase 2 feature commit**. Subject: `feat: guest applica
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-13 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| 2026-05-13 | Story implemented; `/become-a-host` page with 5-state branching, Client form w/ confirm-and-navigate toast, UserPill Guest-only entry. 2 new TOAST_COPY constants pinned. 2 new E2E cases (unauthenticated). Memory entry codifies the state-branching + toast-pattern siblings. Single commit per AC-17. | (filled by a small follow-up commit after push, once the hash is stable — same pattern as Stories 5.1 / 5.2 / 6.1 / 6.2 / 6.3 / 6.6 / 7.1 / 7.2) |
+| 2026-05-13 | Story implemented; `/become-a-host` page with 5-state branching, Client form w/ confirm-and-navigate toast, UserPill Guest-only entry. 2 new TOAST_COPY constants pinned. 2 new E2E cases (unauthenticated). Memory entry codifies the state-branching + toast-pattern siblings. One mid-implementation pivot (Debug Log #2): BA flagged the dropdown link rendering larger than the sibling button; resolved with `font: inherit` to mirror Tailwind preflight's button reset. Single commit per AC-17. | `8a8e7e9` |
+| 2026-05-13 | Browser-verified by BA against AC-14 18-point checklist; greenlit. First UI surface of Epic 7's application flow lands. | (this follow-up) |
