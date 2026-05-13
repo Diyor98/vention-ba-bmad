@@ -1,6 +1,6 @@
 # Story 8.1: Email Wrapper + Resend Integration + Base Template
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -492,4 +492,5 @@ Claude Opus 4.7 (1M context).
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-13 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| _TBD_ | Story implemented; `src/lib/email.ts` shipped with typed template registry + `renderBaseTemplate` + non-throwing `sendEmail` + kill-switch + `'__test__'` template; CLI test-send wired; 5+ unit tests; `resend` dependency added; `.env.example` extended; memory entry codifies the pattern + caller contract. Single commit per AC-13. | (filled by a small follow-up commit after push, once the hash is stable — same pattern as Stories 5.1 / 5.2 / 6.1 / 6.2 / 6.3 / 6.6 / 7.1 / 7.2 / 7.3 / 7.4 / 7.5 / 7-PREP-1) |
+| 2026-05-13 | Story implemented; `src/lib/email.ts` shipped with typed template registry (14 entries) + `renderBaseTemplate` (env-driven logo + wordmark fallback) + non-throwing `sendEmail` + `EMAIL_TEMPLATES_DISABLED` kill switch + `'__test__'` template + 14 Vitest cases + CLI `pnpm send-test-email` + logo PNG asset (615 bytes) + 5 new env vars + `resend@^6.12.3` dep. Memory entry codifies the pattern + caller contract + downstream contract for 8-2/8-3/8-4. Single commit per AC-13. | `ea32c60` |
+| 2026-05-13 | BA greenlight: all 15 browser-verification points passed including `pnpm send-test-email` inbox check, kill-switch verification, and error-path verification. Story moves from `review` to `done` upon this follow-up commit. Email service seam is operational; Stories 8-2 / 8-3 / 8-4 can ship real template content + caller wiring without re-litigating the plumbing. | (this commit) |

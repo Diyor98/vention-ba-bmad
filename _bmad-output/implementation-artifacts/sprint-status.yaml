@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-13 (Story 8-1 implemented and moved to review — src/lib/email.ts shipped with typed template registry + non-throwing sendEmail + renderBaseTemplate (env-driven logo) + __test__ template + EMAIL_TEMPLATES_DISABLED kill switch. CLI send-test-email script wired. logo-deskhive.png asset committed (615 bytes). resend 6.12.3 added. .env.example extended with 5 vars (incl. EMAIL_LOGO_URL). 234/234 unit (+14 from email.test.ts) + 46/46 E2E unchanged + 36 routes unchanged + zero src/app/+src/actions/+src/lib/applications.ts changes. Awaiting BA browser walk + pnpm send-test-email verification.)
+# last_updated: 2026-05-13 (Story 8-1 BA-greenlit and moved to done — email service seam shipped at commit ea32c60. Resend pipeline verified end-to-end via pnpm send-test-email + inbox check + kill-switch + error-path. Epic 8 now 1/4 stories done. Theme C unblocked downstream — Stories 8-2/8-3/8-4 can ship real template content + caller wiring without re-litigating plumbing. Next dispatch: 8-2 (application emails, replaces Story 7-2 notification stubs) or 9-1 (Stripe SDK wrapper, Theme B kickoff in parallel — Themes B/C independent until 8-4).)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -157,7 +157,7 @@ development_status:
   # still in progress.
   # ─────────────────────────────────────────────────────────────────
   epic-8: in-progress
-  8-1-email-wrapper-resend-integration: review
+  8-1-email-wrapper-resend-integration: done
   8-2-application-emails: backlog
   8-3-booking-emails: backlog
   8-4-payment-emails: backlog
