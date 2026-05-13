@@ -1,4 +1,9 @@
+import { eq } from 'drizzle-orm';
+import { db } from '@/db/client';
+import { usersTable } from '@/db/schema';
 import type { Application, ApplicationStatus } from '@/db/schema';
+import { sendEmail } from '@/lib/email';
+import { logger } from '@/lib/logger';
 
 /**
  * Story 7-2: applications service module (pure logic + types + stubs).
@@ -119,32 +124,109 @@ export function checkCanReject(
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Notification stubs — Epic 8 Story 8-2 fills in real Resend bodies.
-// Signatures are LOCKED (BA Decision §8): Epic 8 swaps the body only.
-// The Server Actions invoke these inside try/catch so a notification
-// failure never rolls back a data write — log + carry on.
+// Application notifications — Story 8-2 replaces Story 7-2's stubs with
+// real sendEmail calls.
+//
+// Signatures are LOCKED (Story 7-2 BA Decision §8) — only the bodies
+// changed in Story 8-2. The Server Actions in src/actions/applications.ts
+// invoke these inside try/catch so a send failure never rolls back the
+// originating DB write. sendEmail itself is non-throwing (Story 8-1
+// Decision §4); the try/catch at the action layer is defensive belt-
+// and-suspenders against user-lookup throws.
+//
+// Note: each notification fetches the applicant user (FK lookup) to get
+// the recipient email + full name. The application object alone doesn't
+// carry the email — it lives on the users row.
+//
+// CRITICAL — Story 8-2 Decision §6: notifyApplicationRejected does NOT
+// pass application.rejectionReason to sendEmail. The 'application-
+// rejected' TemplateData shape omits the reason field, making leakage
+// a compile-time error. Admin's internal note stays in the DB.
 // ─────────────────────────────────────────────────────────────────────────
+
+function getAppUrl(): string {
+  const url = (process.env.BETTER_AUTH_URL ?? '').trim();
+  if (url.length === 0) {
+    logger.warn(
+      'BETTER_AUTH_URL unset; falling back to http://localhost:3000 for email CTA links',
+    );
+    return 'http://localhost:3000';
+  }
+  return url;
+}
+
+async function fetchApplicant(
+  userId: string,
+): Promise<{ email: string; fullName: string } | undefined> {
+  const [row] = await db
+    .select({ email: usersTable.email, fullName: usersTable.fullName })
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .limit(1);
+  return row;
+}
 
 export async function notifyApplicationReceived(
   application: Application,
 ): Promise<void> {
-  // TODO Epic 8 Story 8-2: send "application received" email via Resend.
-  // Recipient: application.user.email (joined at the action layer).
-  // Template: application-received.
-  console.log(`[stub] notifyApplicationReceived: ${application.id}`);
+  const applicant = await fetchApplicant(application.userId);
+  if (!applicant) {
+    logger.warn(
+      `notifyApplicationReceived: applicant user not found (id=${application.userId}); skipping email`,
+    );
+    return;
+  }
+  await sendEmail({
+    to: applicant.email,
+    template: 'application-received',
+    data: {
+      applicantName: applicant.fullName,
+      businessName: application.businessName,
+    },
+  });
 }
 
 export async function notifyApplicationApproved(
   application: Application,
 ): Promise<void> {
-  // TODO Epic 8 Story 8-2: send "Welcome to DeskHive Hosting" email.
-  console.log(`[stub] notifyApplicationApproved: ${application.id}`);
+  const applicant = await fetchApplicant(application.userId);
+  if (!applicant) {
+    logger.warn(
+      `notifyApplicationApproved: applicant user not found (id=${application.userId}); skipping email`,
+    );
+    return;
+  }
+  await sendEmail({
+    to: applicant.email,
+    template: 'application-approved',
+    data: {
+      applicantName: applicant.fullName,
+      businessName: application.businessName,
+      appUrl: getAppUrl(),
+    },
+  });
 }
 
 export async function notifyApplicationRejected(
   application: Application,
 ): Promise<void> {
-  // TODO Epic 8 Story 8-2: send rejection email; include
-  // application.rejectionReason when set.
-  console.log(`[stub] notifyApplicationRejected: ${application.id}`);
+  const applicant = await fetchApplicant(application.userId);
+  if (!applicant) {
+    logger.warn(
+      `notifyApplicationRejected: applicant user not found (id=${application.userId}); skipping email`,
+    );
+    return;
+  }
+  // NB: application.rejectionReason is intentionally NOT passed — the
+  // 'application-rejected' TemplateData shape omits the field (Story 8-2
+  // Decision §6 + AC-4). Admin notes stay internal.
+  await sendEmail({
+    to: applicant.email,
+    template: 'application-rejected',
+    data: {
+      applicantName: applicant.fullName,
+      businessName: application.businessName,
+      appUrl: getAppUrl(),
+    },
+  });
 }

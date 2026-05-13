@@ -136,16 +136,24 @@ describe('sendEmail (Story 8-1)', () => {
     expect(sendMock).not.toHaveBeenCalled();
   });
 
-  it('not-implemented template (8-2/8-3/8-4 placeholder) returns { status: error } without calling Resend', async () => {
+  it('not-implemented template (8-3/8-4 placeholder) returns { status: error } without calling Resend', async () => {
+    // Story 8-2 implemented application-* templates; this probe now uses
+    // a Story 8-3 placeholder (booking-requested-guest) that still throws
+    // 'not implemented' in the renderTemplate switch.
     const result = await sendEmail({
       to: 'r@example.com',
-      template: 'application-received',
-      data: { applicantName: 'Test', businessName: 'Acme' },
+      template: 'booking-requested-guest',
+      data: {
+        guestName: 'Test',
+        spaceName: 'Acme',
+        deskLabel: 'Desk 1',
+        bookingDate: '2026-06-01',
+      },
     });
 
     expect(result.status).toBe('error');
     if (result.status === 'error') {
-      expect(result.error).toContain('not implemented in Story 8-1');
+      expect(result.error).toContain('not implemented');
     }
     expect(sendMock).not.toHaveBeenCalled();
   });

@@ -13,4 +13,15 @@ export {
   type AuthRole,
   type PlaywrightCookie,
 } from './auth-helpers';
-export { getSeededOwnerSpaceId, getSeededUserId } from './seed-helpers';
+export {
+  getSeededOwnerSpaceId,
+  getSeededUserId,
+  getApplicationIdByEmailAndStatus,
+  getSeededUserRole,
+} from './seed-helpers';
+export {
+  readRecordedEmails,
+  truncateRecordedEmails,
+  deleteRecordedEmailsFile,
+  type EmailRecord,
+} from './email-helpers';

@@ -4,9 +4,14 @@
  * seeded owner's space id at runtime since UUIDs aren't predictable.
  */
 
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { spacesTable, usersTable } from '@/db/schema';
+import {
+  applicationsTable,
+  spacesTable,
+  usersTable,
+  type ApplicationStatus,
+} from '@/db/schema';
 
 /**
  * Returns the id of the space owned by `owner@deskhive.local` that the
@@ -46,4 +51,52 @@ export async function getSeededUserId(email: string): Promise<string> {
     );
   }
   return row.id;
+}
+
+/**
+ * Story 8-2: returns the id of an application owned by the user with the
+ * given email + matching status. Used by the E2E specs to navigate
+ * directly to /admin/applications/[id] without scraping the list page.
+ *
+ * Throws if no matching application exists — typically a sign that a
+ * prior test mutated state and the seed needs to be re-run.
+ */
+export async function getApplicationIdByEmailAndStatus(
+  email: string,
+  status: ApplicationStatus,
+): Promise<string> {
+  const userId = await getSeededUserId(email);
+  const [row] = await db
+    .select({ id: applicationsTable.id })
+    .from(applicationsTable)
+    .where(
+      and(
+        eq(applicationsTable.userId, userId),
+        eq(applicationsTable.status, status),
+      ),
+    )
+    .limit(1);
+  if (!row) {
+    throw new Error(
+      `No ${status} application found for ${email}. Did a prior test mutate state? Run \`pnpm db:seed\` to reset.`,
+    );
+  }
+  return row.id;
+}
+
+/**
+ * Story 8-2: returns the current role of a seeded user. Used by the
+ * Story 8-2 E2E spec to assert atomic role promotion still works after
+ * the approval flow (Story 7-2 regression check).
+ */
+export async function getSeededUserRole(email: string): Promise<string> {
+  const [row] = await db
+    .select({ role: usersTable.role })
+    .from(usersTable)
+    .where(eq(usersTable.email, email))
+    .limit(1);
+  if (!row) {
+    throw new Error(`Seeded user not found: ${email}`);
+  }
+  return row.role;
 }

@@ -8,7 +8,20 @@ import { config as loadEnv } from 'dotenv';
 loadEnv({ path: '.env.local' });
 loadEnv({ path: '.env' });
 
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
+
+// Story 8-2: shared file path for the email recording sink. The Next.js
+// dev server (started by webServer below) reads EMAIL_TEST_RECORD_FILE
+// from env and appends one JSON line per sendEmail call. Playwright
+// workers truncate + read this same file to assert email firings.
+// Single fixed location keeps the cross-process contract simple.
+const EMAIL_RECORD_PATH = join(tmpdir(), 'deskhive-e2e-email-recordings.jsonl');
+
+// Also propagate the recording path to the test-worker process so
+// readRecordedEmails() can resolve it without an explicit argument.
+process.env.EMAIL_TEST_RECORD_FILE = EMAIL_RECORD_PATH;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -36,5 +49,16 @@ export default defineConfig({
     timeout: 120_000,
     stdout: 'pipe',
     stderr: 'pipe',
+    env: {
+      // Story 8-2: activate the email recording sink in the dev-server
+      // process so sendEmail writes to the shared file instead of
+      // calling Resend. Workers read the same file to assert.
+      //
+      // NB: when reuseExistingServer is true (local dev) and a Next.js
+      // server is already running without this env var, recording
+      // won't activate. BA must run `pnpm dev` AFTER pulling this story
+      // or restart any existing dev server. CI restarts fresh each run.
+      EMAIL_TEST_RECORD_FILE: EMAIL_RECORD_PATH,
+    },
   },
 });

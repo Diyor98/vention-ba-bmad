@@ -1,4 +1,30 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Story 8-2: mock the email service + db client so notify* unit tests
+// don't hit Resend or a live DB. Vitest hoists vi.mock() calls above
+// all imports; the mock factories reference `vi.fn()`-returning closures
+// declared via vi.hoisted() so they survive the hoist.
+const { sendEmailMock, dbSelectMock } = vi.hoisted(() => ({
+  sendEmailMock: vi.fn().mockResolvedValue({ status: 'sent' as const }),
+  dbSelectMock: vi.fn(),
+}));
+
+vi.mock('@/lib/email', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/email')>(
+    '@/lib/email',
+  );
+  return {
+    ...actual,
+    sendEmail: sendEmailMock,
+  };
+});
+
+vi.mock('@/db/client', () => ({
+  db: {
+    select: (...args: unknown[]) => dbSelectMock(...args),
+  },
+}));
+
 import {
   checkCanCreate,
   checkCanApprove,
@@ -10,6 +36,27 @@ import {
   APPLICATION_STATUS,
 } from './applications';
 import type { Application, ApplicationStatus } from '@/db/schema';
+
+// Helper to wire dbSelectMock into the drizzle select().from().where().limit()
+// chain that fetchApplicant uses. Returns a chain that resolves to the
+// supplied rows array.
+function stubApplicantRow(row: { email: string; fullName: string } | undefined) {
+  const limitFn = vi.fn().mockResolvedValue(row === undefined ? [] : [row]);
+  const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
+  const fromFn = vi.fn().mockReturnValue({ where: whereFn });
+  dbSelectMock.mockReturnValue({ from: fromFn });
+}
+
+beforeEach(() => {
+  sendEmailMock.mockClear();
+  dbSelectMock.mockClear();
+  // Default: applicant resolves to a deterministic test row. Individual
+  // tests override via stubApplicantRow(undefined) for the missing-user path.
+  stubApplicantRow({
+    email: 'applicant@example.com',
+    fullName: 'Test Applicant',
+  });
+});
 
 // Story 7-2 AC-13: 12-case service-layer test surface. The BA listed 12
 // unit tests for the Server Action behaviors. Each maps cleanly to a
@@ -150,10 +197,10 @@ describe('checkCanReject (BA case 9)', () => {
   });
 });
 
-describe('notification stubs (BA case 12)', () => {
-  // BA case 12: verify the three stubs exist, are async, and run without
-  // throwing on a valid Application input. Epic 8 Story 8-2 will swap the
-  // bodies for real Resend calls; the signatures are the locked contract.
+describe('notification functions (Story 7-2 contract + Story 8-2 real bodies)', () => {
+  // Story 7-2 BA case 12: verify the three functions exist, are async, and
+  // run without throwing on a valid Application input. Story 8-2 extended
+  // these with assertions on sendEmail call shape.
 
   it('notifyApplicationReceived is an async function', () => {
     expect(typeof notifyApplicationReceived).toBe('function');
@@ -173,7 +220,7 @@ describe('notification stubs (BA case 12)', () => {
     expect(result).toBeInstanceOf(Promise);
   });
 
-  it('all three stubs resolve without throwing', async () => {
+  it('all three notification functions resolve without throwing', async () => {
     await expect(
       notifyApplicationReceived(makeApplication('PENDING')),
     ).resolves.toBeUndefined();
@@ -183,6 +230,59 @@ describe('notification stubs (BA case 12)', () => {
     await expect(
       notifyApplicationRejected(makeApplication('REJECTED')),
     ).resolves.toBeUndefined();
+  });
+
+  it("notifyApplicationReceived calls sendEmail with template 'application-received' and applicant email", async () => {
+    await notifyApplicationReceived(makeApplication('PENDING'));
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    const call = sendEmailMock.mock.calls[0][0] as {
+      to: string;
+      template: string;
+      data: { applicantName: string; businessName: string };
+    };
+    expect(call.template).toBe('application-received');
+    expect(call.to).toBe('applicant@example.com');
+    expect(call.data.applicantName).toBe('Test Applicant');
+    expect(call.data.businessName).toBe('Acme Coworking');
+  });
+
+  it("notifyApplicationApproved calls sendEmail with template 'application-approved' + appUrl", async () => {
+    await notifyApplicationApproved(makeApplication('APPROVED'));
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    const call = sendEmailMock.mock.calls[0][0] as {
+      template: string;
+      data: { applicantName: string; businessName: string; appUrl: string };
+    };
+    expect(call.template).toBe('application-approved');
+    expect(call.data.appUrl).toMatch(/^https?:\/\//);
+  });
+
+  it("notifyApplicationRejected calls sendEmail with template 'application-rejected' WITHOUT rejection reason (Story 8-2 Decision §6)", async () => {
+    const app = makeApplication('REJECTED');
+    // Synthesize a rejection-reason value to confirm it does NOT leak.
+    const appWithReason: Application = {
+      ...app,
+      rejectionReason: 'Internal note: tax ID looks incomplete',
+    };
+    await notifyApplicationRejected(appWithReason);
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    const call = sendEmailMock.mock.calls[0][0] as {
+      template: string;
+      data: Record<string, unknown>;
+    };
+    expect(call.template).toBe('application-rejected');
+    // Critical: the data object passed to sendEmail must NOT contain any
+    // field that carries the rejectionReason value. Type system enforces
+    // this at compile time; this test is defense-in-depth at runtime.
+    expect(JSON.stringify(call.data)).not.toContain('tax ID looks incomplete');
+    expect(call.data).not.toHaveProperty('reason');
+    expect(call.data).not.toHaveProperty('rejectionReason');
+  });
+
+  it('returns early without calling sendEmail when applicant user is missing (orphan FK defensive path)', async () => {
+    stubApplicantRow(undefined);
+    await notifyApplicationReceived(makeApplication('PENDING'));
+    expect(sendEmailMock).not.toHaveBeenCalled();
   });
 });
 

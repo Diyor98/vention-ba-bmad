@@ -53,9 +53,21 @@
  *                          broken-image icon.
  *   TEST_EMAIL_RECIPIENT   Read only by scripts/send-test-email.ts (the
  *                          CLI test-send tool). Not read here.
+ *   EMAIL_TEST_RECORD_FILE Story 8-2: when set to a writable file path,
+ *                          sendEmail appends a JSONL record per call and
+ *                          skips the Resend call entirely. Used by
+ *                          Playwright E2E tests to assert "the right
+ *                          email was sent" without burning Resend quota.
+ *                          Production: LEAVE UNSET (no-op when empty).
  */
 
 import { Resend } from 'resend';
+import {
+  renderApplicationReceived,
+  renderApplicationApproved,
+  renderApplicationRejected,
+  renderTestTemplate,
+} from '@/lib/email-templates';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Template registry (typed seam — adding a template means adding here).
@@ -89,10 +101,13 @@ export type TemplateName =
 // refine when they implement their render branches. The shapes here are
 // the BA decision doc's plausible guesses (Decision §1).
 export type TemplateData = {
-  // Story 8-2
+  // Story 8-2 — application emails. Locked verbatim by BA Decisions §3.
+  // NB: 'application-rejected' deliberately OMITS rejectionReason — making
+  // accidental leakage a compile-time error (Story 8-2 Decision §6). The
+  // admin's internal note stays in the DB; the user-facing email is generic.
   'application-received': { applicantName: string; businessName: string };
-  'application-approved': { applicantName: string };
-  'application-rejected': { applicantName: string; reason: string | null };
+  'application-approved': { applicantName: string; businessName: string; appUrl: string };
+  'application-rejected': { applicantName: string; businessName: string; appUrl: string };
   // Story 8-3
   'booking-requested-guest': {
     guestName: string;
@@ -160,9 +175,12 @@ export type TemplateData = {
 // by Story 8-1 BA Decision §9. Future template subjects are placeholders
 // (Stories 8-2/8-3/8-4 finalize them at content time).
 export const Subjects: Record<TemplateName, string> = {
-  'application-received': 'Your DeskHive Space Owner application has been received',
-  'application-approved': 'Welcome to DeskHive Hosting',
-  'application-rejected': 'Update on your DeskHive Space Owner application',
+  // Story 8-2 — locked verbatim by BA Decisions §3. Received + rejected
+  // intentionally share a subject so the user's inbox threads their
+  // application lifecycle together.
+  'application-received': 'Your DeskHive Space Owner application',
+  'application-approved': "You're approved as a DeskHive Space Owner",
+  'application-rejected': 'Your DeskHive Space Owner application',
   'booking-requested-guest': 'Your booking request is in',
   'booking-requested-owner': 'New booking request',
   'booking-confirmed-guest': 'Your booking is confirmed',
@@ -182,7 +200,10 @@ export const Subjects: Record<TemplateName, string> = {
 // addresses) and inherit these helpers.
 // ─────────────────────────────────────────────────────────────────────────
 
-function escapeHtml(input: string): string {
+// Story 8-2: promoted from private to exported so template renderers in
+// src/lib/email-templates/ can use it. The matching escapeHtmlAttr stays
+// private — only renderBaseTemplate needs it (for the logo URL).
+export function escapeHtml(input: string): string {
   return input
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -269,24 +290,39 @@ function renderTemplate<T extends TemplateName>(
   name: T,
   data: TemplateData[T],
 ): RenderedTemplate {
+  let rendered: { bodyHtml: string; previewText: string };
   switch (name) {
-    case '__test__': {
-      const testData = data as TemplateData['__test__'];
-      const previewText = 'Test email from DeskHive — pipeline verification';
-      const bodyHtml = `<p style="font-size: 14px; line-height: 1.5; margin: 0 0 12px;">This is a test email from the DeskHive email service. If you're seeing this, the email pipeline works.</p>
-<p style="font-size: 14px; line-height: 1.5; margin: 0 0 12px;">Message: <strong>${escapeHtml(testData.message)}</strong></p>
-<p style="font-size: 12px; line-height: 1.5; margin: 0; color: #71717a;">Sent at ${new Date().toISOString()}.</p>`;
-      return {
-        html: renderBaseTemplate({ bodyHtml, previewText }),
-        subject: Subjects['__test__'],
-        previewText,
-      };
-    }
+    case '__test__':
+      rendered = renderTestTemplate(data as TemplateData['__test__']);
+      break;
+    case 'application-received':
+      rendered = renderApplicationReceived(
+        data as TemplateData['application-received'],
+      );
+      break;
+    case 'application-approved':
+      rendered = renderApplicationApproved(
+        data as TemplateData['application-approved'],
+      );
+      break;
+    case 'application-rejected':
+      rendered = renderApplicationRejected(
+        data as TemplateData['application-rejected'],
+      );
+      break;
     default:
       throw new Error(
-        `Template not implemented in Story 8-1: '${String(name)}'. Implemented in Story 8-2 (application-*), Story 8-3 (booking-*), or Story 8-4 (payment-*).`,
+        `Template not implemented: '${String(name)}'. Implemented in Story 8-3 (booking-*) or Story 8-4 (payment-*).`,
       );
   }
+  return {
+    html: renderBaseTemplate({
+      bodyHtml: rendered.bodyHtml,
+      previewText: rendered.previewText,
+    }),
+    subject: Subjects[name],
+    previewText: rendered.previewText,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -328,6 +364,32 @@ export async function sendEmail<T extends TemplateName>(args: {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[email] render failed', { template, to, error: msg });
     return { status: 'error', error: msg };
+  }
+
+  // Story 8-2 AC-6: E2E test recording sink. When EMAIL_TEST_RECORD_FILE
+  // is set, write a JSON record and skip the Resend call entirely. This
+  // is how Playwright workers verify "the right email would have been
+  // sent" without depending on Resend's uptime or burning the free-tier
+  // quota. Production-safe: unset = no recording, Story 8-1 behavior.
+  // Set in playwright.config.ts via webServer.env for E2E runs.
+  const recordPath = (process.env.EMAIL_TEST_RECORD_FILE ?? '').trim();
+  if (recordPath.length > 0) {
+    try {
+      const fs = await import('node:fs/promises');
+      const record = {
+        template,
+        to,
+        subject: rendered.subject,
+        dataJson: JSON.stringify(data),
+        timestamp: new Date().toISOString(),
+      };
+      await fs.appendFile(recordPath, JSON.stringify(record) + '\n', 'utf8');
+      return { status: 'sent' };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[email] recording failed', { template, to, error: msg });
+      return { status: 'error', error: msg };
+    }
   }
 
   const from = process.env.EMAIL_FROM_ADDRESS ?? 'onboarding@resend.dev';
