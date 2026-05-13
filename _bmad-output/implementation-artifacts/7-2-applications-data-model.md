@@ -486,4 +486,5 @@ No issues encountered. All five CI checks passed first try after each task. One 
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-13 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| 2026-05-13 | Story implemented; applications table + migration applied to Neon, service module + queries + three Server Actions shipped including codebase's first `db.transaction()` for atomic role promotion. 30 new unit tests across two test files. Memory entry codifies the patterns for Phase 2 reuse + Epic 8 stub contract. Single commit per AC-17. | (filled by a small follow-up commit after push, once the hash is stable — same pattern as Stories 5.1 / 5.2 / 6.1 / 6.2 / 6.3 / 6.6 / 7.1) |
+| 2026-05-13 | Story implemented; applications table + migration applied to Neon, service module + queries + three Server Actions shipped including codebase's first `db.transaction()` for atomic role promotion. 30 new unit tests across two test files. Memory entry codifies the patterns for Phase 2 reuse + Epic 8 stub contract. Single commit per AC-17. | `7240499` |
+| 2026-05-13 | BA-verified backend-only per Decision §11 (no browser walk): 30 unit tests green, schema matches Decision §1 exactly, FKs + indexes verified, Phase 1 + 7.1 data untouched. | (this follow-up) |
