@@ -1,6 +1,6 @@
 # Story 7.5: Space Owner Dashboard + Space Management
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -536,4 +536,5 @@ Claude Opus 4.7 (1M context).
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-13 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| _TBD_ | Story implemented; owner dashboard + space + bookings surfaces shipped. Six Server Actions gained role-branched scope. Seed extended w/ owner space + bookings. Memory entry codifies the owner-scoped CRUD pattern. Single commit per AC-17. | (filled by a small follow-up commit after push, once the hash is stable — same pattern as Stories 5.1 / 5.2 / 6.1 / 6.2 / 6.3 / 6.6 / 7.1 / 7.2 / 7.3 / 7.4) |
+| 2026-05-13 | Story implemented; owner dashboard + space + bookings surfaces shipped. Six Server Actions gained role-branched scope. Seed extended w/ owner space + bookings. Memory entry codifies the owner-scoped CRUD pattern. Single commit per AC-17. | `3fd797d` |
+| 2026-05-13 | BA greenlight: all critical browser-walk checks passed. Two-layer ownership check verified (route soft-redirect + Server Action NOT_FOUND). Cross-tenant isolation confirmed. Admin platform-wide regression clean. Story moves from `review` to `done` upon this follow-up commit. **Theme A complete — Stories 7-1 through 7-5 all shipped.** Theme B (Payments, Epic 9) + Theme C (Email, Epic 8) unblocked. | (this commit) |
