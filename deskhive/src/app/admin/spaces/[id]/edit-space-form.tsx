@@ -1,17 +1,36 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { editSpaceAction, type EditSpaceActionState } from '@/actions/space';
 import type { Space } from '@/db/schema';
 
 const initialState: EditSpaceActionState = { status: 'idle' };
 
-export function EditSpaceForm({ space }: { space: Space }) {
+// Story 7-5: same `variant` prop pattern as <CreateSpaceForm>. Action
+// returns success state; the form decides where to navigate. No toast on
+// edit success in either variant — Phase 1 parity.
+export function EditSpaceForm({
+  space,
+  variant = 'admin',
+}: {
+  space: Space;
+  variant?: 'admin' | 'owner';
+}) {
   const [state, formAction] = useActionState(
     editSpaceAction.bind(null, space.id),
     initialState,
   );
+  const router = useRouter();
+  const lastHandledRef = useRef<EditSpaceActionState | null>(null);
+
+  useEffect(() => {
+    if (state.status !== 'success') return;
+    if (lastHandledRef.current === state) return;
+    lastHandledRef.current = state;
+    router.push(variant === 'owner' ? '/owner/spaces' : '/admin/spaces');
+  }, [state, router, variant]);
 
   const fieldError = (name: string) =>
     state.status === 'error' && state.code === 'VALIDATION_ERROR'

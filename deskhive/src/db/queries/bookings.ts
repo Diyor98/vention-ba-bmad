@@ -160,6 +160,39 @@ export async function rejectBooking(
   return row;
 }
 
+// Story 7-5: owner-scoped variant of listAllBookings. Same JOIN shape and
+// safe-field-projection rules; filters on spaces.owner_id at the SQL layer
+// (authoritative seam). SUPER_ADMIN still uses listAllBookings for the
+// platform-wide /admin/bookings view (Decision §7).
+export async function listBookingsForOwner(
+  ownerId: string,
+): Promise<
+  Array<{
+    booking: Booking;
+    desk: Desk;
+    space: Space;
+    guest: { id: string; email: string; fullName: string };
+  }>
+> {
+  return db
+    .select({
+      booking: bookingsTable,
+      desk: desksTable,
+      space: spacesTable,
+      guest: {
+        id: usersTable.id,
+        email: usersTable.email,
+        fullName: usersTable.fullName,
+      },
+    })
+    .from(bookingsTable)
+    .innerJoin(desksTable, eq(bookingsTable.deskId, desksTable.id))
+    .innerJoin(spacesTable, eq(bookingsTable.spaceId, spacesTable.id))
+    .innerJoin(usersTable, eq(bookingsTable.guestUserId, usersTable.id))
+    .where(eq(spacesTable.ownerId, ownerId))
+    .orderBy(desc(bookingsTable.bookingDate), desc(bookingsTable.createdAt));
+}
+
 // Enriches the booking row with desk + space (single round-trip via JOIN).
 // `/my-bookings` consumes this directly; admin views (US-4.x) will add a
 // sibling helper that doesn't filter on guest_user_id.

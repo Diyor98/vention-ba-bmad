@@ -5,8 +5,14 @@ config({ path: '.env' });
 import { and, eq } from 'drizzle-orm';
 import { auth } from '@/lib/auth/config';
 import { db } from '@/db/client';
-import { applicationsTable, usersTable } from '@/db/schema';
-import type { ApplicationStatus } from '@/db/schema';
+import {
+  applicationsTable,
+  bookingsTable,
+  desksTable,
+  spacesTable,
+  usersTable,
+} from '@/db/schema';
+import type { ApplicationStatus, BookingStatus } from '@/db/schema';
 
 const SEED_ADMIN_EMAIL = 'admin@deskhive.local';
 const SEED_ADMIN_PASSWORD = 'SuperAdmin1!';
@@ -199,6 +205,182 @@ async function seedApplication(opts: {
   );
 }
 
+/**
+ * Story 7-5: seed a single space owned by `owner@deskhive.local` plus 2-3
+ * desks. Idempotent via a name marker (`'Seeded Owner Coworks'`) — if a
+ * space with that name and the right owner_id already exists, skip both
+ * the space and the desks. Other Phase 1 seeded spaces stay with
+ * owner_id = NULL (Decision §10 — no backfill).
+ */
+async function seedOwnerSpace(): Promise<string | null> {
+  const [owner] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.email, SEED_OWNER_EMAIL))
+    .limit(1);
+  if (!owner) {
+    console.warn(
+      `Seed owner not found (${SEED_OWNER_EMAIL}); skipping space seed.`,
+    );
+    return null;
+  }
+
+  const SPACE_NAME = 'Seeded Owner Coworks';
+  const [existingSpace] = await db
+    .select({ id: spacesTable.id })
+    .from(spacesTable)
+    .where(
+      and(eq(spacesTable.name, SPACE_NAME), eq(spacesTable.ownerId, owner.id)),
+    )
+    .limit(1);
+
+  if (existingSpace) {
+    console.log(
+      `Owner space already exists (${SPACE_NAME}); skipping seed of space + desks.`,
+    );
+    return existingSpace.id;
+  }
+
+  const [space] = await db
+    .insert(spacesTable)
+    .values({
+      name: SPACE_NAME,
+      city: 'Tashkent',
+      addressLine: 'Amir Temur Avenue 23',
+      description:
+        'A bright open-plan workspace in central Tashkent with espresso, fast wifi, and a south-facing balcony. Run by the seeded SPACE_OWNER for Story 7-5 verification.',
+      primaryImageUrl:
+        'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80',
+      status: 'PUBLISHED',
+      ownerId: owner.id,
+    })
+    .returning({ id: spacesTable.id });
+
+  await db.insert(desksTable).values([
+    {
+      spaceId: space.id,
+      label: 'Desk 1',
+      dailyPriceCents: 2500,
+      isActive: true,
+    },
+    {
+      spaceId: space.id,
+      label: 'Desk 2',
+      dailyPriceCents: 3500,
+      isActive: true,
+    },
+    {
+      spaceId: space.id,
+      label: 'Desk 3',
+      dailyPriceCents: 4000,
+      isActive: true,
+    },
+  ]);
+
+  console.log(
+    `Owner space seeded (${SPACE_NAME}) for ${SEED_OWNER_EMAIL} with 3 desks.`,
+  );
+  return space.id;
+}
+
+/**
+ * Story 7-5: seed 2-3 bookings from existing applicant guests on the
+ * owner's seeded space. Idempotent: skip if any booking by these guests
+ * on this space already exists. Mix of statuses across past + future
+ * dates so the BA can verify Confirm/Reject flows end-to-end.
+ */
+async function seedOwnerBookings(spaceId: string): Promise<void> {
+  const [existing] = await db
+    .select({ id: bookingsTable.id })
+    .from(bookingsTable)
+    .where(eq(bookingsTable.spaceId, spaceId))
+    .limit(1);
+  if (existing) {
+    console.log(`Owner space already has bookings; skipping booking seed.`);
+    return;
+  }
+
+  // Need a desk on this space.
+  const [desk] = await db
+    .select({ id: desksTable.id, price: desksTable.dailyPriceCents })
+    .from(desksTable)
+    .where(eq(desksTable.spaceId, spaceId))
+    .limit(1);
+  if (!desk) {
+    console.warn('No desks on owner space; skipping booking seed.');
+    return;
+  }
+
+  // Resolve three applicant Guests by email. applicant3 was promoted to
+  // SPACE_OWNER via the Story 7-4 APPROVED-application seed; skip them as
+  // a booking source.
+  const guestEmails = [
+    'applicant1@deskhive.local',
+    'applicant2@deskhive.local',
+    'applicant4@deskhive.local',
+  ];
+  const guests = await Promise.all(
+    guestEmails.map(async (email) => {
+      const [row] = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(eq(usersTable.email, email))
+        .limit(1);
+      return row ? { email, id: row.id } : null;
+    }),
+  );
+  const validGuests = guests.filter((g): g is { email: string; id: string } => g !== null);
+  if (validGuests.length < 2) {
+    console.warn(
+      'Not enough applicant guests in DB to seed owner bookings; skipping.',
+    );
+    return;
+  }
+
+  // ISO date helpers (UTC).
+  const today = new Date();
+  const future = (days: number): string => {
+    const d = new Date(today);
+    d.setUTCDate(today.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  };
+  const past = (days: number): string => future(-days);
+
+  type SeedBooking = {
+    guestId: string;
+    bookingDate: string;
+    status: BookingStatus;
+  };
+  const bookingsToSeed: SeedBooking[] = [
+    { guestId: validGuests[0].id, bookingDate: future(7), status: 'PENDING' },
+    { guestId: validGuests[1].id, bookingDate: future(14), status: 'CONFIRMED' },
+  ];
+  if (validGuests.length >= 3) {
+    bookingsToSeed.push({
+      guestId: validGuests[2].id,
+      bookingDate: past(7),
+      status: 'REJECTED',
+    });
+  }
+
+  await db.insert(bookingsTable).values(
+    bookingsToSeed.map((b) => ({
+      guestUserId: b.guestId,
+      spaceId,
+      deskId: desk.id,
+      bookingDate: b.bookingDate,
+      status: b.status,
+      totalPriceCents: desk.price,
+      paymentStatus: null,
+      paymentReference: null,
+    })),
+  );
+
+  console.log(
+    `Owner bookings seeded: ${bookingsToSeed.length} bookings (${bookingsToSeed.map((b) => b.status).join(', ')}).`,
+  );
+}
+
 async function main() {
   await seedUser({
     email: SEED_ADMIN_EMAIL,
@@ -261,6 +443,12 @@ async function main() {
     rejectionReason:
       'Insufficient business detail. Please reapply with more context about your space, capacity, and operating hours.',
   });
+
+  // Story 7-5: owner space + bookings for verification of /owner/* surfaces.
+  const ownerSpaceId = await seedOwnerSpace();
+  if (ownerSpaceId) {
+    await seedOwnerBookings(ownerSpaceId);
+  }
 
   console.log(
     'Seed credentials are documented in deskhive/README.md → "Database setup".',

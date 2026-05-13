@@ -1,13 +1,48 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { createSpaceAction, type CreateSpaceActionState } from '@/actions/space';
+import { TOAST_COPY, toastSuccess } from '@/lib/toast';
 
 const initialState: CreateSpaceActionState = { status: 'idle' };
 
-export function CreateSpaceForm() {
+// Story 7-5: the same form Client Component is reused at
+// `/admin/spaces/new` (variant 'admin', default) and `/owner/spaces/new`
+// (variant 'owner'). The action returns success state with the new
+// space's id; the variant decides where to navigate and whether to fire
+// a toast.
+//
+//   - admin: router.push('/admin/spaces'); no toast (Phase 1 parity).
+//   - owner: toastSuccess(SPACE_CREATED) + router.push(`/owner/spaces/${id}`)
+//            so the owner lands on the edit page and adds desks next
+//            (BA Decision §3).
+//
+// The success-effect uses the state-identity useRef guard from Stories
+// 6-3 / 7-3 / 7-4 so navigation only fires once per state transition.
+export function CreateSpaceForm({
+  variant = 'admin',
+}: {
+  variant?: 'admin' | 'owner';
+}) {
   const [state, formAction] = useActionState(createSpaceAction, initialState);
+  const router = useRouter();
+  const lastHandledRef = useRef<CreateSpaceActionState | null>(null);
+
+  useEffect(() => {
+    if (state.status !== 'success') return;
+    if (lastHandledRef.current === state) return;
+    lastHandledRef.current = state;
+    if (variant === 'owner') {
+      toastSuccess(TOAST_COPY.SPACE_CREATED_TITLE, {
+        description: TOAST_COPY.SPACE_CREATED_DESCRIPTION,
+      });
+      router.push(`/owner/spaces/${state.spaceId}`);
+    } else {
+      router.push('/admin/spaces');
+    }
+  }, [state, router, variant]);
 
   const fieldError = (name: string) =>
     state.status === 'error' && state.code === 'VALIDATION_ERROR'

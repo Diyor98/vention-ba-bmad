@@ -43,6 +43,14 @@ Story 7-4 additionally seeds **4 applicant Guests** with applications across all
 - `applicant3@deskhive.local` / `Applicant3!` — APPROVED application (Sundial Coworks; user is promoted to SPACE_OWNER atomically during seed)
 - `applicant4@deskhive.local` / `Applicant4!` — REJECTED application (Folk House, with rejection reason)
 
+Story 7-5 additionally seeds **one space + 3 desks + 2-3 bookings** owned by `owner@deskhive.local` so the `/owner/*` surfaces have real verification data:
+
+- Space: `Seeded Owner Coworks` in Tashkent (auto-published per Phase 2 Decision §4)
+- Desks: 3 active desks ($25 / $35 / $40 per day)
+- Bookings: one PENDING (applicant1, 7 days out), one CONFIRMED (applicant2, 14 days out), one REJECTED (applicant4, 7 days past)
+
+Use `owner@deskhive.local` for "owner with data" verification; use any newly-approved applicant for "owner without data" (empty-state) verification.
+
 These credentials are for development only. Rotate before any deployment.
 
 ## Scripts

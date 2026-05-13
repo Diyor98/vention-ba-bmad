@@ -49,3 +49,31 @@ export function requireOwnership(
     throw new AuthError(apiForbidden('Resource not owned by this user'));
   }
 }
+
+/**
+ * Story 7-5: pure ownership-scope check for multi-tenant resources where
+ * SUPER_ADMIN has platform-wide access and SPACE_OWNER is scoped to rows
+ * they own. Returns `true` when the caller is allowed to act on the
+ * resource; `false` otherwise.
+ *
+ * Caller branches:
+ *   - SUPER_ADMIN → always allowed (platform-wide access per Decision §7).
+ *   - SPACE_OWNER → allowed iff resourceOwnerId === callerId.
+ *   - any other role (or null/undefined ownership) → denied.
+ *
+ * Used inline by space / desk / booking Server Actions. The action layer
+ * returns NOT_FOUND (not FORBIDDEN) on a denial — Decision §8 leak-prevention
+ * principle. This helper just returns the boolean; the action decides which
+ * error code to surface.
+ */
+export function isOwnerScopeAllowed(opts: {
+  callerRole: Role | undefined;
+  callerId: string;
+  resourceOwnerId: string | null;
+}): boolean {
+  if (opts.callerRole === 'SUPER_ADMIN') return true;
+  if (opts.callerRole === 'SPACE_OWNER') {
+    return opts.resourceOwnerId !== null && opts.resourceOwnerId === opts.callerId;
+  }
+  return false;
+}

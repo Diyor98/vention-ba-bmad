@@ -12,7 +12,7 @@ import { isPgUniqueViolation } from '@/lib/db-errors';
 import { isPastDate } from '@/lib/format';
 import { createBookingSchema } from '@/lib/validation/booking';
 import { getActiveDeskById } from '@/db/queries/desks';
-import { getPublishedSpaceById } from '@/db/queries/spaces';
+import { getPublishedSpaceById, getSpaceById } from '@/db/queries/spaces';
 import {
   createBooking,
   getBookingById,
@@ -21,6 +21,7 @@ import {
   rejectBooking,
 } from '@/db/queries/bookings';
 import { logger } from '@/lib/logger';
+import type { Role } from '@/db/schema';
 
 export type CreateBookingActionState =
   | { status: 'idle' }
@@ -287,23 +288,30 @@ export async function confirmBookingAction(
     return { status: 'error', code: 'NOT_FOUND', message: 'Booking not found.' };
   }
 
-  // Auth: 401 → /login redirect; 403 (Guest tries via tampered DevTools) → state.
+  // Story 7-5: widened to SUPER_ADMIN OR SPACE_OWNER. The role check itself
+  // is inline; the owner-scope check happens after we know the booking's
+  // space. Decision §8.
+  let callerRole: Role | undefined;
+  let callerId: string;
   try {
     const session = await requireSession();
-    requireRole(session, 'SUPER_ADMIN');
+    callerRole = (session.user as { role?: Role }).role;
+    callerId = String(session.user.id);
+    if (callerRole !== 'SUPER_ADMIN' && callerRole !== 'SPACE_OWNER') {
+      // Verbatim message (US-4.2 chosen wording — preserved for the Guest
+      // path; SPACE_OWNER is now allowed at this gate so the message only
+      // fires for Guests).
+      return {
+        status: 'error',
+        code: 'FORBIDDEN',
+        message: 'Only super admins can confirm bookings.',
+      };
+    }
   } catch (err) {
     if (err instanceof AuthError) {
       const status = err.response.status;
       if (status === 401) {
         redirect('/login?callbackUrl=/admin/bookings');
-      }
-      if (status === 403) {
-        // Verbatim message (US-4.2 chosen wording).
-        return {
-          status: 'error',
-          code: 'FORBIDDEN',
-          message: 'Only super admins can confirm bookings.',
-        };
       }
     }
     logger.error('confirm_booking_action_auth_failed', { error: String(err) });
@@ -314,10 +322,23 @@ export async function confirmBookingAction(
     };
   }
 
-  // Pre-checks (no ownership — admin scope).
+  // Pre-checks. Admin scope is platform-wide; owner scope is restricted
+  // to bookings on their own spaces (Decision §8). NOT_FOUND for cross-
+  // tenant mismatches — same code as a genuinely-missing booking, so we
+  // don't leak the existence of other owners' rows.
   const booking = await getBookingById(bookingId);
   if (!booking) {
     return { status: 'error', code: 'NOT_FOUND', message: 'Booking not found.' };
+  }
+  if (callerRole === 'SPACE_OWNER') {
+    const space = await getSpaceById(booking.spaceId);
+    if (!space || space.ownerId !== callerId) {
+      return {
+        status: 'error',
+        code: 'NOT_FOUND',
+        message: 'Booking not found.',
+      };
+    }
   }
   if (booking.status !== 'PENDING') {
     // Verbatim message (US-4.2 AC-2).
@@ -354,6 +375,8 @@ export async function confirmBookingAction(
   // both in the partial unique index's covered set), so no /spaces/[id]
   // revalidation needed.
   revalidatePath('/admin/bookings');
+  revalidatePath('/owner/bookings');
+  revalidatePath('/owner');
   revalidatePath('/my-bookings');
   return { status: 'idle' };
 }
@@ -374,23 +397,27 @@ export async function rejectBookingAction(
     return { status: 'error', code: 'NOT_FOUND', message: 'Booking not found.' };
   }
 
-  // Auth: 401 → /login redirect; 403 (Guest tries via tampered DevTools) → state.
+  // Story 7-5: same role-branched scope check as confirmBookingAction. See
+  // Decision §8 in the story file.
+  let callerRole: Role | undefined;
+  let callerId: string;
   try {
     const session = await requireSession();
-    requireRole(session, 'SUPER_ADMIN');
+    callerRole = (session.user as { role?: Role }).role;
+    callerId = String(session.user.id);
+    if (callerRole !== 'SUPER_ADMIN' && callerRole !== 'SPACE_OWNER') {
+      // Verbatim message (US-4.3 chosen wording).
+      return {
+        status: 'error',
+        code: 'FORBIDDEN',
+        message: 'Only super admins can reject bookings.',
+      };
+    }
   } catch (err) {
     if (err instanceof AuthError) {
       const status = err.response.status;
       if (status === 401) {
         redirect('/login?callbackUrl=/admin/bookings');
-      }
-      if (status === 403) {
-        // Verbatim message (US-4.3 chosen wording).
-        return {
-          status: 'error',
-          code: 'FORBIDDEN',
-          message: 'Only super admins can reject bookings.',
-        };
       }
     }
     logger.error('reject_booking_action_auth_failed', { error: String(err) });
@@ -401,10 +428,20 @@ export async function rejectBookingAction(
     };
   }
 
-  // Pre-checks (no ownership — admin scope).
+  // Pre-checks. SPACE_OWNER scope via parent space; admin platform-wide.
   const booking = await getBookingById(bookingId);
   if (!booking) {
     return { status: 'error', code: 'NOT_FOUND', message: 'Booking not found.' };
+  }
+  if (callerRole === 'SPACE_OWNER') {
+    const space = await getSpaceById(booking.spaceId);
+    if (!space || space.ownerId !== callerId) {
+      return {
+        status: 'error',
+        code: 'NOT_FOUND',
+        message: 'Booking not found.',
+      };
+    }
   }
   if (booking.status !== 'PENDING') {
     // Verbatim message (US-4.3 AC-2).
@@ -442,6 +479,8 @@ export async function rejectBookingAction(
   // to surface fresh availability — distinct from Confirm which keeps the
   // desk reserved.
   revalidatePath('/admin/bookings');
+  revalidatePath('/owner/bookings');
+  revalidatePath('/owner');
   revalidatePath('/my-bookings');
   revalidatePath(`/spaces/${booking.spaceId}`);
   return { status: 'idle' };

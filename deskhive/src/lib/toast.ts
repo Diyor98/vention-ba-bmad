@@ -42,6 +42,11 @@ export const TOAST_COPY = {
   // (matches CANCEL_SUCCESS pattern from Story 6-3).
   APPLICATION_APPROVED_TITLE: 'Application approved',
   APPLICATION_REJECTED_TITLE: 'Application rejected.',
+  // Story 7-5: owner creates a space. The title is calm transactional; the
+  // description nudges the owner to the natural next step (a freshly-
+  // created space with zero desks is unbookable). BA Decision §3.
+  SPACE_CREATED_TITLE: 'Space created',
+  SPACE_CREATED_DESCRIPTION: 'Now add a desk to make it bookable.',
 } as const;
 
 type ToastAction = { label: string; onClick: () => void };

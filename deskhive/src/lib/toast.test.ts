@@ -168,4 +168,14 @@ describe('TOAST_COPY', () => {
   it('has the verbatim application-rejected title from Story 7-4 BA Decisions §6 (period included)', () => {
     expect(TOAST_COPY.APPLICATION_REJECTED_TITLE).toBe('Application rejected.');
   });
+
+  it('has the verbatim space-created title from Story 7-5 BA Decisions §3', () => {
+    expect(TOAST_COPY.SPACE_CREATED_TITLE).toBe('Space created');
+  });
+
+  it('has the verbatim space-created description from Story 7-5 BA Decisions §3', () => {
+    expect(TOAST_COPY.SPACE_CREATED_DESCRIPTION).toBe(
+      'Now add a desk to make it bookable.',
+    );
+  });
 });

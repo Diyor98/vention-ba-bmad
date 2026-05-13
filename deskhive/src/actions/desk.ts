@@ -1,13 +1,17 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireSession, requireRole, AuthError } from '@/lib/auth/guards';
+import { requireSession, AuthError } from '@/lib/auth/guards';
 import { createDeskSchema, editDeskSchema } from '@/lib/validation/desk';
 import { createDesk, getDeskById, updateDesk } from '@/db/queries/desks';
 import { getSpaceById } from '@/db/queries/spaces';
 import { isPgUniqueViolation } from '@/lib/db-errors';
 import { logger } from '@/lib/logger';
+import type { Role } from '@/db/schema';
 
+// Story 7-5: desk actions now allow SUPER_ADMIN (Phase 1) OR SPACE_OWNER.
+// Ownership check via parent space: an owner can only manage desks on
+// spaces they own. NOT_FOUND (not FORBIDDEN) for cross-tenant — Decision §8.
 export type CreateDeskActionState =
   | { status: 'idle' }
   | { status: 'error'; code: 'UNAUTHORIZED'; message: string }
@@ -24,9 +28,15 @@ export async function createDeskAction(
   _prevState: CreateDeskActionState,
   formData: FormData,
 ): Promise<CreateDeskActionState> {
+  let callerRole: Role | undefined;
+  let callerId: string;
   try {
     const session = await requireSession();
-    requireRole(session, 'SUPER_ADMIN');
+    callerRole = (session.user as { role?: Role }).role;
+    callerId = String(session.user.id);
+    if (callerRole !== 'SUPER_ADMIN' && callerRole !== 'SPACE_OWNER') {
+      return { status: 'error', code: 'FORBIDDEN', message: 'Forbidden.' };
+    }
   } catch (err) {
     if (err instanceof AuthError) {
       const status = err.response.status;
@@ -43,6 +53,10 @@ export async function createDeskAction(
 
   const space = await getSpaceById(spaceId);
   if (!space) {
+    return { status: 'error', code: 'NOT_FOUND', message: 'Space not found.' };
+  }
+  // Decision §8: SPACE_OWNER can only act on desks under their own spaces.
+  if (callerRole === 'SPACE_OWNER' && space.ownerId !== callerId) {
     return { status: 'error', code: 'NOT_FOUND', message: 'Space not found.' };
   }
 
@@ -87,6 +101,8 @@ export async function createDeskAction(
   if (result) return result;
 
   revalidatePath(`/admin/spaces/${spaceId}`);
+  revalidatePath(`/owner/spaces/${spaceId}`);
+  revalidatePath(`/spaces/${spaceId}`);
   return createIdle;
 }
 
@@ -106,9 +122,15 @@ export async function editDeskAction(
   _prevState: EditDeskActionState,
   formData: FormData,
 ): Promise<EditDeskActionState> {
+  let callerRole: Role | undefined;
+  let callerId: string;
   try {
     const session = await requireSession();
-    requireRole(session, 'SUPER_ADMIN');
+    callerRole = (session.user as { role?: Role }).role;
+    callerId = String(session.user.id);
+    if (callerRole !== 'SUPER_ADMIN' && callerRole !== 'SPACE_OWNER') {
+      return { status: 'error', code: 'FORBIDDEN', message: 'Forbidden.' };
+    }
   } catch (err) {
     if (err instanceof AuthError) {
       const status = err.response.status;
@@ -129,6 +151,14 @@ export async function editDeskAction(
   const desk = await getDeskById(deskId);
   if (!desk) {
     return { status: 'error', code: 'NOT_FOUND', message: 'Desk not found.' };
+  }
+  // Decision §8: SPACE_OWNER scope check via parent space. Admin skips
+  // (Phase 1 parity — one less DB roundtrip).
+  if (callerRole === 'SPACE_OWNER') {
+    const space = await getSpaceById(desk.spaceId);
+    if (!space || space.ownerId !== callerId) {
+      return { status: 'error', code: 'NOT_FOUND', message: 'Desk not found.' };
+    }
   }
 
   // HTML checkboxes submit 'on' when checked, nothing when unchecked. Convert
@@ -175,5 +205,7 @@ export async function editDeskAction(
   // spaceId comes from the desk row we already fetched; the form doesn't
   // submit it, and editing never moves a desk between spaces in Phase 1.
   revalidatePath(`/admin/spaces/${desk.spaceId}`);
+  revalidatePath(`/owner/spaces/${desk.spaceId}`);
+  revalidatePath(`/spaces/${desk.spaceId}`);
   return editIdle;
 }

@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-13 (Story 7-4 BA-greenlit and moved to done — admin applications review UI shipped at commit bac6bc0. Atomic role promotion verified end-to-end. Reject modal flow verified. Epic 7 now 4/5 stories done; only 7-5 (Owner Dashboard + Spaces) remains.)
+# last_updated: 2026-05-13 (Story 7-5 implemented and moved to review — owner dashboard + space management closes Theme A. 5 owner pages (3 placeholder replacements + 2 new) + 6 Server Action role-branched scope extensions + 3 new owner-scoped query helpers + 1 pure isOwnerScopeAllowed helper with 7 unit tests + 2 TOAST_COPY pins + seed owner space + 3 desks + 3 bookings + 5 new E2E redirect specs. 220/220 unit + 40/40 E2E + 36 routes. Cumulative authenticated-E2E debt restated pre-Theme C. Awaiting BA browser walk.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -136,5 +136,5 @@ development_status:
   7-2-applications-data-model: review
   7-3-guest-application-form: review
   7-4-admin-application-review: done
-  7-5-owner-dashboard-and-spaces: backlog
+  7-5-owner-dashboard-and-spaces: review
   epic-7-retrospective: optional
