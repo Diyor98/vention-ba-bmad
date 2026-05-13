@@ -1,7 +1,8 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import {
   applicationsTable,
+  usersTable,
   type Application,
   type NewApplication,
 } from '@/db/schema';
@@ -19,6 +20,81 @@ import {
  * That's the codebase's first transaction use; documented in memory entry
  * reference_applications_service_and_actions.md.
  */
+
+/**
+ * Story 7-4: admin list page. Returns all applications joined with their
+ * applicant's safe user fields, newest first. Mirrors `listAllBookings`'s
+ * defense-in-depth pattern: explicit projection of safe columns only
+ * (id + email + fullName) — never hashedPassword etc.
+ */
+export async function listAllApplications(): Promise<
+  Array<{
+    application: Application;
+    applicant: { id: string; email: string; fullName: string };
+  }>
+> {
+  return db
+    .select({
+      application: applicationsTable,
+      applicant: {
+        id: usersTable.id,
+        email: usersTable.email,
+        fullName: usersTable.fullName,
+      },
+    })
+    .from(applicationsTable)
+    .innerJoin(usersTable, eq(applicationsTable.userId, usersTable.id))
+    .orderBy(desc(applicationsTable.createdAt));
+}
+
+/**
+ * Story 7-4: detail page. Returns application + applicant + (optional)
+ * reviewer in a single round-trip when possible. The reviewer join uses
+ * a self-join on users via reviewedByUserId; null when status === PENDING.
+ *
+ * Returns undefined if the application doesn't exist. Mirrors
+ * getApplicationById's API but with the joined user rows.
+ */
+export async function getApplicationWithUsers(
+  id: string,
+): Promise<
+  | {
+      application: Application;
+      applicant: { id: string; email: string; fullName: string };
+      reviewer: { id: string; email: string; fullName: string } | null;
+    }
+  | undefined
+> {
+  const app = await getApplicationById(id);
+  if (!app) return undefined;
+
+  const [applicantRow] = await db
+    .select({
+      id: usersTable.id,
+      email: usersTable.email,
+      fullName: usersTable.fullName,
+    })
+    .from(usersTable)
+    .where(eq(usersTable.id, app.userId))
+    .limit(1);
+  if (!applicantRow) return undefined;
+
+  let reviewer: { id: string; email: string; fullName: string } | null = null;
+  if (app.reviewedByUserId) {
+    const [reviewerRow] = await db
+      .select({
+        id: usersTable.id,
+        email: usersTable.email,
+        fullName: usersTable.fullName,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, app.reviewedByUserId))
+      .limit(1);
+    if (reviewerRow) reviewer = reviewerRow;
+  }
+
+  return { application: app, applicant: applicantRow, reviewer };
+}
 
 export async function getApplicationById(
   id: string,

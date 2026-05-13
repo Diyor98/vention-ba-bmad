@@ -160,4 +160,12 @@ describe('TOAST_COPY', () => {
       "We'll email you when it's reviewed.",
     );
   });
+
+  it('has the verbatim application-approved title from Story 7-4 BA Decisions §6', () => {
+    expect(TOAST_COPY.APPLICATION_APPROVED_TITLE).toBe('Application approved');
+  });
+
+  it('has the verbatim application-rejected title from Story 7-4 BA Decisions §6 (period included)', () => {
+    expect(TOAST_COPY.APPLICATION_REJECTED_TITLE).toBe('Application rejected.');
+  });
 });

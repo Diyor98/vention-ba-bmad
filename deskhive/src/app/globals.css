@@ -1531,3 +1531,24 @@ textarea.input {
   outline: none;
   box-shadow: var(--shadow-focus);
 }
+
+/* Story 7-4: native <dialog> reject modal for /admin/applications/[id].
+   No new dependencies — the browser handles focus trap + ESC + modality
+   via showModal()/close(). Backdrop click dismissal is wired in JS via
+   event.target === event.currentTarget. */
+.review-dialog {
+  width: min(32rem, 92vw);
+  padding: 0;
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  color: var(--color-neutral-900);
+  overflow: hidden;
+}
+.review-dialog::backdrop {
+  background: rgb(24 24 27 / 0.45);
+}
+.review-dialog-inner {
+  padding: 1.5rem;
+}

@@ -10,13 +10,16 @@ import { usePathname } from 'next/navigation';
 export function AdminTabs({
   spacesCount,
   pendingCount,
+  pendingApplicationsCount,
 }: {
   spacesCount: number;
   pendingCount: number;
+  pendingApplicationsCount: number;
 }) {
   const pathname = usePathname() ?? '';
   const isSpaces = pathname.startsWith('/admin/spaces');
   const isBookings = pathname.startsWith('/admin/bookings');
+  const isApplications = pathname.startsWith('/admin/applications');
   const isGuests = pathname.startsWith('/admin/guests');
 
   return (
@@ -44,6 +47,22 @@ export function AdminTabs({
               {pendingCount}
             </span>
           </Link>
+          {/* Story 7-4: Applications tab. PENDING-only count badge —
+              "needs attention" semantic, same as Bookings. */}
+          <Link
+            href="/admin/applications"
+            className="admin-tab"
+            aria-current={isApplications ? 'page' : undefined}
+          >
+            Applications{' '}
+            <span
+              className={
+                pendingApplicationsCount > 0 ? 'count alert tnum' : 'count tnum'
+              }
+            >
+              {pendingApplicationsCount}
+            </span>
+          </Link>
           <Link
             href="/admin/guests"
             className="admin-tab"
@@ -53,7 +72,7 @@ export function AdminTabs({
           </Link>
         </nav>
         <div className="admin-subnav-meta">
-          <span>Phase 1</span>
+          <span>Phase 2</span>
         </div>
       </div>
     </div>

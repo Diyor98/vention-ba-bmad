@@ -31,10 +31,17 @@ Local development is currently scaffolded against [Neon](https://neon.tech) free
 
 ### Seeded accounts
 
-After running `pnpm db:seed`, two test accounts are created:
+After running `pnpm db:seed`, the following test accounts are created:
 
 - **Super Admin** — `admin@deskhive.local` / `SuperAdmin1!`
 - **Space Owner** — `owner@deskhive.local` / `SpaceOwner1!` (Story 7-1, Phase 2 Epic 7)
+
+Story 7-4 additionally seeds **4 applicant Guests** with applications across all statuses, for verifying the admin review flow at `/admin/applications`:
+
+- `applicant1@deskhive.local` / `Applicant1!` — PENDING application (Bergstrom Coworks)
+- `applicant2@deskhive.local` / `Applicant2!` — PENDING application (Mission Annex)
+- `applicant3@deskhive.local` / `Applicant3!` — APPROVED application (Sundial Coworks; user is promoted to SPACE_OWNER atomically during seed)
+- `applicant4@deskhive.local` / `Applicant4!` — REJECTED application (Folk House, with rejection reason)
 
 These credentials are for development only. Rotate before any deployment.
 

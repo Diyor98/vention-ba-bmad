@@ -2,8 +2,9 @@ import { redirect } from 'next/navigation';
 import { requireSession, requireRole, AuthError } from '@/lib/auth/guards';
 import { listAllSpaces } from '@/db/queries/spaces';
 import { listAllBookings } from '@/db/queries/bookings';
+import { listAllApplications } from '@/db/queries/applications';
 import { AdminTabs } from './admin-tabs';
-import type { BookingStatus } from '@/db/schema';
+import type { ApplicationStatus, BookingStatus } from '@/db/schema';
 
 // Centralized admin-area guard. Runs once per request before any /admin/*
 // page renders. Replaces the per-page try/catch blocks introduced in US-2.1.
@@ -30,19 +31,28 @@ export default async function AdminLayout({
   }
 
   // Tab counts. Phase 1 data volumes are small; an extra roundtrip per
-  // admin request is acceptable. Phase 2 candidate: consolidate into a
+  // admin request is acceptable. Phase 2 candidate (carried from Story
+  // 7-1 Dev Notes; Story 7-4 added a third query): consolidate into a
   // tiny getAdminCounts() helper or memoize via unstable_cache.
-  const [spaces, bookingRows] = await Promise.all([
+  const [spaces, bookingRows, applicationRows] = await Promise.all([
     listAllSpaces(),
     listAllBookings(),
+    listAllApplications(),
   ]);
   const pendingCount = bookingRows.filter(
     (r) => (r.booking.status as BookingStatus) === 'PENDING',
   ).length;
+  const pendingApplicationsCount = applicationRows.filter(
+    (r) => (r.application.status as ApplicationStatus) === 'PENDING',
+  ).length;
 
   return (
     <>
-      <AdminTabs spacesCount={spaces.length} pendingCount={pendingCount} />
+      <AdminTabs
+        spacesCount={spaces.length}
+        pendingCount={pendingCount}
+        pendingApplicationsCount={pendingApplicationsCount}
+      />
       {children}
     </>
   );

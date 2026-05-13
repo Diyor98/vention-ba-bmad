@@ -35,6 +35,13 @@ export const TOAST_COPY = {
   // Story 6-3 pattern. The email-channel deferral is in the description.
   APPLICATION_SUBMITTED_TITLE: 'Application submitted',
   APPLICATION_SUBMITTED_DESCRIPTION: "We'll email you when it's reviewed.",
+  // Story 7-4: admin review outcomes. The approve toast's description is
+  // built dynamically at the call site (`${applicantName} is now a Space
+  // Owner.`) because it interpolates the applicant name — only the title
+  // is a frozen constant. The reject toast is a short single sentence
+  // (matches CANCEL_SUCCESS pattern from Story 6-3).
+  APPLICATION_APPROVED_TITLE: 'Application approved',
+  APPLICATION_REJECTED_TITLE: 'Application rejected.',
 } as const;
 
 type ToastAction = { label: string; onClick: () => void };
