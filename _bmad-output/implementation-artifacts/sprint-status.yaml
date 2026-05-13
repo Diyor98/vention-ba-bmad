@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-12 (Story 7-1 implemented and moved to review — first Phase 2 feature shipped; SPACE_OWNER role + deskhive_mode cookie + UserPill dropdown + /owner/* placeholders. SPACE_ADMIN → SPACE_OWNER rename locked at schema seam.)
+# last_updated: 2026-05-13 (Story 7-2 implemented and moved to review — applications table + migration applied to Neon; service module + queries + three Server Actions w/ first db.transaction() in codebase for atomic role promotion; 30 new unit tests; Epic 8 notification-stub contract locked.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -133,7 +133,7 @@ development_status:
   # ─────────────────────────────────────────────────────────────────
   epic-7: in-progress
   7-1-role-infrastructure-and-mode-switching: review
-  7-2-applications-data-model: backlog
+  7-2-applications-data-model: review
   7-3-guest-application-form: backlog
   7-4-admin-application-review: backlog
   7-5-owner-dashboard-and-spaces: backlog

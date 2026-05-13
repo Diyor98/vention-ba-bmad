@@ -7,6 +7,7 @@ import {
   timestamp,
   date,
   uniqueIndex,
+  index,
   check,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
@@ -122,6 +123,46 @@ export const bookingsTable = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────────
+// applications — Story 7-2 (Phase 2 Epic 7)
+// A Guest applies to become a SPACE_OWNER. Super Admin reviews
+// and either approves (atomic role promotion in approve action)
+// or rejects. Note: id-type follows Phase 1's uuid pattern, not
+// the BA decision doc's "cuid2 or nanoid" hint which mis-
+// remembered the Phase 1 convention.
+// ─────────────────────────────────────────────────────────────
+export const applicationsTable = pgTable(
+  'applications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => usersTable.id),
+    businessName: text('business_name').notNull(),
+    businessAddress: text('business_address').notNull(),
+    taxId: text('tax_id').notNull(),
+    motivation: text('motivation'),
+    status: text('status').notNull().default('PENDING'),
+    rejectionReason: text('rejection_reason'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewedByUserId: uuid('reviewed_by_user_id').references(
+      () => usersTable.id,
+    ),
+  },
+  (t) => [
+    check(
+      'applications_status_check',
+      sql`${t.status} IN ('PENDING', 'APPROVED', 'REJECTED')`,
+    ),
+    index('applications_user_id_idx').on(t.userId),
+    index('applications_status_idx').on(t.status),
+    index('applications_created_at_idx').on(t.createdAt.desc()),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────
 // Better Auth tables — required by @better-auth/drizzle-adapter
 // ─────────────────────────────────────────────────────────────
 export const accountTable = pgTable('account', {
@@ -174,6 +215,9 @@ export type Space = typeof spacesTable.$inferSelect;
 export type Desk = typeof desksTable.$inferSelect;
 export type Booking = typeof bookingsTable.$inferSelect;
 export type NewBooking = typeof bookingsTable.$inferInsert;
+export type Application = typeof applicationsTable.$inferSelect;
+export type NewApplication = typeof applicationsTable.$inferInsert;
+export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 // Role: Phase 2 introduces SPACE_OWNER (Story 7-1).
 //

@@ -15,6 +15,13 @@
       "when": 1778578909911,
       "tag": "0001_tricky_tigra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778658484872,
+      "tag": "0002_omniscient_human_robot",
+      "breakpoints": true
     }
   ]
 }
