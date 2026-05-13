@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-13 (Story 7-PREP-1 BA-greenlit and moved to done — authenticated Playwright fixtures + targeted E2E migration shipped at commit 0b1dcb0. Cross-tenant security test from Story 7-5 §8 now in CI. 46/46 E2E. Authenticated-E2E debt closed for the 4 migration targets. Theme C (Email, Epic 8) + Theme B (Payments, Epic 9) can now ship with authenticated-flow coverage from the start. Next dispatch: *create-story 8-1 (Resend wrapper + email service layer) — see Story 7-PREP-1 §"Memory note for Phase 2 continuation".)
+# last_updated: 2026-05-13 (Story 8-1 implemented and moved to review — src/lib/email.ts shipped with typed template registry + non-throwing sendEmail + renderBaseTemplate (env-driven logo) + __test__ template + EMAIL_TEMPLATES_DISABLED kill switch. CLI send-test-email script wired. logo-deskhive.png asset committed (615 bytes). resend 6.12.3 added. .env.example extended with 5 vars (incl. EMAIL_LOGO_URL). 234/234 unit (+14 from email.test.ts) + 46/46 E2E unchanged + 36 routes unchanged + zero src/app/+src/actions/+src/lib/applications.ts changes. Awaiting BA browser walk + pnpm send-test-email verification.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -148,3 +148,17 @@ development_status:
   # the BA browser walk skipped). Source: docs/design/7-PREP-1-...md
   # ─────────────────────────────────────────────────────────────────
   7-prep-1-better-auth-playwright-fixtures: done
+
+  # ─────────────────────────────────────────────────────────────────
+  # Epic 8 — Email Infrastructure (Theme C)
+  # Source: docs/03-phase2-prd.md §8 Epic 8
+  # Independent of Theme B (Payments, Epic 9) until Story 8-4 (payment
+  # webhook emails). Stories 8-1/8-2/8-3 can ship while Theme B is
+  # still in progress.
+  # ─────────────────────────────────────────────────────────────────
+  epic-8: in-progress
+  8-1-email-wrapper-resend-integration: review
+  8-2-application-emails: backlog
+  8-3-booking-emails: backlog
+  8-4-payment-emails: backlog
+  epic-8-retrospective: optional
