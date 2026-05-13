@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { logoutAction } from '@/actions/auth';
@@ -41,6 +42,7 @@ export function UserPill({
   mode: Mode;
 }) {
   const isSpaceOwner = role === 'SPACE_OWNER';
+  const isGuest = role === 'GUEST';
   const targetMode: Mode = mode === 'host' ? 'guest' : 'host';
   const switchLabel =
     mode === 'host' ? 'Switch to traveling' : 'Switch to hosting';
@@ -61,6 +63,18 @@ export function UserPill({
         <p className="user-menu-meta">
           Signed in as <span className="user-menu-email">{email}</span>
         </p>
+
+        {/* Story 7-3: Guest-only entry to /become-a-host. Destination page
+            handles state branching (already-applied / already-owner / etc.). */}
+        {isGuest && (
+          <Link
+            href="/become-a-host"
+            role="menuitem"
+            className="user-menu-link"
+          >
+            Become a Space Owner
+          </Link>
+        )}
 
         {isSpaceOwner && <SwitchModeForm targetMode={targetMode} label={switchLabel} />}
 

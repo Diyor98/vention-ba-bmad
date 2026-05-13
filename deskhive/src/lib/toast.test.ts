@@ -150,4 +150,14 @@ describe('TOAST_COPY', () => {
   it('has the cancel success copy from BA Decisions §10', () => {
     expect(TOAST_COPY.CANCEL_SUCCESS).toBe('Booking cancelled.');
   });
+
+  it('has the verbatim application-submitted title from Story 7-3 BA Decisions §8', () => {
+    expect(TOAST_COPY.APPLICATION_SUBMITTED_TITLE).toBe('Application submitted');
+  });
+
+  it('has the verbatim application-submitted description from Story 7-3 BA Decisions §8', () => {
+    expect(TOAST_COPY.APPLICATION_SUBMITTED_DESCRIPTION).toBe(
+      "We'll email you when it's reviewed.",
+    );
+  });
 });

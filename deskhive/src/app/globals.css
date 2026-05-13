@@ -1498,3 +1498,36 @@ textarea.input {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Story 7-3: <Link>-based dropdown entry (not a form submission). Same
+   visual shape as .user-menu-button so the dropdown reads as a single
+   menu surface.
+   NB: `font: inherit` mirrors Tailwind preflight's reset for <button>
+   so the <a> picks up the same baseline font computation. Without it,
+   the link can render at the browser default 16px font-size despite
+   `font-size: 13px` overrides downstream — the `font` shorthand
+   short-circuits cascade for size + line-height + family in some
+   browsers. Fixed during BA's pre-commit review when the link rendered
+   visibly larger than the sibling "Log out" button. */
+.user-menu-link {
+  font: inherit;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  font-size: 13px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-neutral-700);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-standard),
+              color var(--duration-fast) var(--ease-standard);
+}
+.user-menu-link:hover {
+  background: var(--color-neutral-50);
+  color: var(--color-neutral-900);
+}
+.user-menu-link:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}

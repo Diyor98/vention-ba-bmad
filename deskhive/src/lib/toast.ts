@@ -30,6 +30,11 @@ export const TOAST_COPY = {
   BOOKING_FAILED_DESK_NOT_FOUND: 'This desk is not available.',
   BOOKING_FAILED_GENERIC: 'Something went wrong. Please try again.',
   CANCEL_SUCCESS: 'Booking cancelled.',
+  // Story 7-3: Become-a-Space-Owner application submitted. Non-celebratory
+  // tone — calm transactional voice (no exclamation, no emoji), matches the
+  // Story 6-3 pattern. The email-channel deferral is in the description.
+  APPLICATION_SUBMITTED_TITLE: 'Application submitted',
+  APPLICATION_SUBMITTED_DESCRIPTION: "We'll email you when it's reviewed.",
 } as const;
 
 type ToastAction = { label: string; onClick: () => void };

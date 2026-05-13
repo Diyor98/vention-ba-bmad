@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-13 (Story 7-2 implemented and moved to review — applications table + migration applied to Neon; service module + queries + three Server Actions w/ first db.transaction() in codebase for atomic role promotion; 30 new unit tests; Epic 8 notification-stub contract locked.)
+# last_updated: 2026-05-13 (Story 7-3 implemented and moved to review — first UI surface of Epic 7's application flow; /become-a-host w/ A/B/C/D/E branching, UserPill Guest entry, confirm-and-navigate toast variant. 33/33 E2E w/ 2 new unauthenticated cases.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -134,7 +134,7 @@ development_status:
   epic-7: in-progress
   7-1-role-infrastructure-and-mode-switching: review
   7-2-applications-data-model: review
-  7-3-guest-application-form: backlog
+  7-3-guest-application-form: review
   7-4-admin-application-review: backlog
   7-5-owner-dashboard-and-spaces: backlog
   epic-7-retrospective: optional
