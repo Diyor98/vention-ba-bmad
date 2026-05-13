@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-13 (Story 8-2 BA-greenlit and moved to done — application emails shipped at commit 8302003. All 15 browser-verification points passed including the critical Decision §6 rejection-reason-absence assertion. Theme C now 2/4 stories done (8-1 + 8-2). Application loop is end-to-end complete: Guest applies → application-received email; admin approves → application-approved email + atomic role promotion; admin rejects → application-rejected email WITHOUT the internal note. Stories 8-3 (booking emails, 8 templates) + 8-4 (payment emails, 3 templates) unblocked — src/lib/email-templates/ directory pattern + waitForRecordedEmail polling idiom ready to inherit.)
+# last_updated: 2026-05-13 (Story 8-3 implemented and moved to review — 8 booking templates shipped with locked-verbatim copy; missing 8th template (booking-rejected-owner) added to registry; owner-side TemplateData shapes narrowed to omit guestName (compile-time anti-leakage per Decision §9); new src/lib/bookings.ts service module with 4 notify* functions enforcing Decisions §1/§2/§3; getBookingDispatchInfo extracted to src/db/queries/bookings.ts for testability (vi.mock intra-module limitation workaround); dynamic-subject mechanism added to renderTemplate; formatBookingDate helper lifted to src/lib/format.ts; 4 Server Actions wired post-commit fire-and-forget. 305/305 unit (+49 from 256) + 53/53 E2E (+4 from 49 — 2 NULL-owner + CONFIRMED-cancel cases deferred to unit-tests per AC-11 cost/benefit). 36 routes unchanged. Memory entry codifies decision rules + dynamic-subject mechanism + vi.mock gotcha + cross-template-story boundary for Story 8-4. Awaiting BA browser walk.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -159,6 +159,6 @@ development_status:
   epic-8: in-progress
   8-1-email-wrapper-resend-integration: done
   8-2-application-emails: done
-  8-3-booking-emails: backlog
+  8-3-booking-emails: review
   8-4-payment-emails: backlog
   epic-8-retrospective: optional

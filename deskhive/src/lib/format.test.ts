@@ -1,5 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { formatCents, todayIso, isPastDate, parseDateParam } from './format';
+import {
+  formatBookingDate,
+  formatCents,
+  todayIso,
+  isPastDate,
+  parseDateParam,
+} from './format';
+
+describe('formatBookingDate (Story 8-3)', () => {
+  it('formats a YYYY-MM-DD date as short weekday + month + day (no year)', () => {
+    // 2026-08-26 is a Wednesday in UTC. The locale formatter renders
+    // 'Wed, Aug 26' for en-US.
+    expect(formatBookingDate('2026-08-26')).toBe('Wed, Aug 26');
+  });
+
+  it('returns the raw string when input is not a valid ISO date', () => {
+    expect(formatBookingDate('not-a-date')).toBe('not-a-date');
+    expect(formatBookingDate('')).toBe('');
+  });
+});
 
 describe('formatCents', () => {
   it('formats $25.00', () => {

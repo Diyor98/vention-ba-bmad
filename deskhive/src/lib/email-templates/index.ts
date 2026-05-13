@@ -11,4 +11,13 @@
 export { renderApplicationReceived } from './application-received';
 export { renderApplicationApproved } from './application-approved';
 export { renderApplicationRejected } from './application-rejected';
+// Story 8-3 — booking lifecycle (8 templates).
+export { renderBookingRequestedGuest } from './booking-requested-guest';
+export { renderBookingRequestedOwner } from './booking-requested-owner';
+export { renderBookingConfirmedGuest } from './booking-confirmed-guest';
+export { renderBookingConfirmedOwner } from './booking-confirmed-owner';
+export { renderBookingRejectedGuest } from './booking-rejected-guest';
+export { renderBookingRejectedOwner } from './booking-rejected-owner';
+export { renderBookingCancelledGuest } from './booking-cancelled-guest';
+export { renderBookingCancelledOwner } from './booking-cancelled-owner';
 export { renderTestTemplate } from './test';

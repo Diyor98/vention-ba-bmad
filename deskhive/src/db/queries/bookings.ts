@@ -1,4 +1,5 @@
 import { and, eq, inArray, desc } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/db/client';
 import {
   bookingsTable,
@@ -158,6 +159,71 @@ export async function rejectBooking(
     .where(and(eq(bookingsTable.id, id), eq(bookingsTable.status, 'PENDING')))
     .returning();
   return row;
+}
+
+// Story 8-3: dispatch-info join for booking notification emails. Returns
+// booking + space + desk + guest (inner-join, FK NOT NULL) + owner (left-
+// join via space.owner_id, nullable). The owner field is null when the
+// space has no owner (Decision §1 path).
+//
+// Lives in this file (rather than in src/lib/bookings.ts where the
+// notify* functions live) because Story 8-3 unit tests mock this import
+// via vi.mock('@/db/queries/bookings', ...) — intra-module function calls
+// in src/lib/bookings.ts can't be intercepted by vi.mock of the same
+// module.
+
+export type BookingDispatchInfo = {
+  booking: Booking;
+  space: Space;
+  desk: Desk;
+  guest: { email: string; fullName: string };
+  owner: { email: string; fullName: string } | null;
+};
+
+const ownerUsers = alias(usersTable, 'owner_users');
+
+export async function getBookingDispatchInfo(
+  bookingId: string,
+): Promise<BookingDispatchInfo | null> {
+  const [row] = await db
+    .select({
+      booking: bookingsTable,
+      space: spacesTable,
+      desk: desksTable,
+      guest: {
+        email: usersTable.email,
+        fullName: usersTable.fullName,
+      },
+      owner: {
+        email: ownerUsers.email,
+        fullName: ownerUsers.fullName,
+      },
+    })
+    .from(bookingsTable)
+    .innerJoin(spacesTable, eq(bookingsTable.spaceId, spacesTable.id))
+    .innerJoin(desksTable, eq(bookingsTable.deskId, desksTable.id))
+    .innerJoin(usersTable, eq(bookingsTable.guestUserId, usersTable.id))
+    .leftJoin(ownerUsers, eq(spacesTable.ownerId, ownerUsers.id))
+    .where(eq(bookingsTable.id, bookingId))
+    .limit(1);
+
+  if (!row) return null;
+
+  // Drizzle's leftJoin returns owner.email/fullName as null when the
+  // join misses. Normalize to a typed `{ email; fullName } | null` so
+  // callers branch cleanly on `info.owner !== null`.
+  const owner =
+    row.owner && row.owner.email !== null && row.owner.fullName !== null
+      ? { email: row.owner.email, fullName: row.owner.fullName }
+      : null;
+
+  return {
+    booking: row.booking,
+    space: row.space,
+    desk: row.desk,
+    guest: row.guest,
+    owner,
+  };
 }
 
 // Story 7-5: owner-scoped variant of listAllBookings. Same JOIN shape and

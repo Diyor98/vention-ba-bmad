@@ -18,6 +18,7 @@ export {
   getSeededUserId,
   getApplicationIdByEmailAndStatus,
   getSeededUserRole,
+  createPendingBookingViaDb,
 } from './seed-helpers';
 export {
   readRecordedEmails,

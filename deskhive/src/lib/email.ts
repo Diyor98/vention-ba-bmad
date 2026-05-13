@@ -66,6 +66,14 @@ import {
   renderApplicationReceived,
   renderApplicationApproved,
   renderApplicationRejected,
+  renderBookingRequestedGuest,
+  renderBookingRequestedOwner,
+  renderBookingConfirmedGuest,
+  renderBookingConfirmedOwner,
+  renderBookingRejectedGuest,
+  renderBookingRejectedOwner,
+  renderBookingCancelledGuest,
+  renderBookingCancelledOwner,
   renderTestTemplate,
 } from '@/lib/email-templates';
 
@@ -85,6 +93,7 @@ export type TemplateName =
   | 'booking-confirmed-guest'
   | 'booking-confirmed-owner'
   | 'booking-rejected-guest'
+  | 'booking-rejected-owner'
   | 'booking-cancelled-guest'
   | 'booking-cancelled-owner'
   // Story 8-4 — fired from Stripe webhook handlers in Epic 9.
@@ -108,47 +117,68 @@ export type TemplateData = {
   'application-received': { applicantName: string; businessName: string };
   'application-approved': { applicantName: string; businessName: string; appUrl: string };
   'application-rejected': { applicantName: string; businessName: string; appUrl: string };
-  // Story 8-3
+  // Story 8-3 — booking lifecycle. Locked verbatim by BA Decisions §9.
+  // Owner-side shapes deliberately OMIT `guestName` (Decision §9 privacy-
+  // light minimalism: owner emails describe what to act on, not who the
+  // guest is). Same type-level anti-leakage pattern as Story 8-2's
+  // 'application-rejected' omission of rejectionReason. `bookingDate` is
+  // a YYYY-MM-DD ISO string; render functions format it with
+  // formatBookingDate from src/lib/format.ts.
   'booking-requested-guest': {
     guestName: string;
     spaceName: string;
     deskLabel: string;
     bookingDate: string;
+    appUrl: string;
   };
   'booking-requested-owner': {
     ownerName: string;
-    guestName: string;
     spaceName: string;
     deskLabel: string;
     bookingDate: string;
+    appUrl: string;
   };
   'booking-confirmed-guest': {
     guestName: string;
     spaceName: string;
     deskLabel: string;
     bookingDate: string;
+    appUrl: string;
   };
   'booking-confirmed-owner': {
     ownerName: string;
-    guestName: string;
     spaceName: string;
+    deskLabel: string;
     bookingDate: string;
+    appUrl: string;
   };
   'booking-rejected-guest': {
     guestName: string;
     spaceName: string;
+    deskLabel: string;
     bookingDate: string;
+    appUrl: string;
+  };
+  'booking-rejected-owner': {
+    ownerName: string;
+    spaceName: string;
+    deskLabel: string;
+    bookingDate: string;
+    appUrl: string;
   };
   'booking-cancelled-guest': {
     guestName: string;
     spaceName: string;
+    deskLabel: string;
     bookingDate: string;
+    appUrl: string;
   };
   'booking-cancelled-owner': {
     ownerName: string;
-    guestName: string;
     spaceName: string;
+    deskLabel: string;
     bookingDate: string;
+    appUrl: string;
   };
   // Story 8-4
   'payment-receipt': {
@@ -181,13 +211,19 @@ export const Subjects: Record<TemplateName, string> = {
   'application-received': 'Your DeskHive Space Owner application',
   'application-approved': "You're approved as a DeskHive Space Owner",
   'application-rejected': 'Your DeskHive Space Owner application',
-  'booking-requested-guest': 'Your booking request is in',
-  'booking-requested-owner': 'New booking request',
-  'booking-confirmed-guest': 'Your booking is confirmed',
-  'booking-confirmed-owner': 'Booking confirmed',
-  'booking-rejected-guest': 'Your booking was declined',
-  'booking-cancelled-guest': 'Your booking has been cancelled',
-  'booking-cancelled-owner': 'Booking cancelled',
+  // Story 8-3 — booking subjects are DYNAMIC (interpolated with spaceName
+  // and bookingDate per BA Decision §6). The render functions return their
+  // own subject string at render time; the entries below are non-
+  // authoritative fallbacks for any future caller that bypasses the render
+  // function. renderTemplate dispatches via `rendered.subject ?? Subjects[name]`.
+  'booking-requested-guest': '[DeskHive] Your booking',
+  'booking-requested-owner': '[DeskHive] Booking on your space',
+  'booking-confirmed-guest': '[DeskHive] Your booking',
+  'booking-confirmed-owner': '[DeskHive] Booking on your space',
+  'booking-rejected-guest': '[DeskHive] Your booking',
+  'booking-rejected-owner': '[DeskHive] Booking on your space',
+  'booking-cancelled-guest': '[DeskHive] Your booking',
+  'booking-cancelled-owner': '[DeskHive] Booking on your space',
   'payment-receipt': 'Your DeskHive receipt',
   'payment-refund': 'Refund processed',
   'payout-summary': 'Your DeskHive payout',
@@ -286,11 +322,23 @@ type RenderedTemplate = {
   previewText: string;
 };
 
+// Story 8-3: render functions may optionally return their own `subject`
+// for templates with interpolated subjects (e.g., '[DeskHive] Your
+// booking at {spaceName}'). When omitted, renderTemplate falls back to
+// the static Subjects[name] registry. Story 8-2 templates + '__test__'
+// continue to use the static path; only Story 8-3 booking templates
+// return rendered.subject.
+type TemplateRenderResult = {
+  bodyHtml: string;
+  previewText: string;
+  subject?: string;
+};
+
 function renderTemplate<T extends TemplateName>(
   name: T,
   data: TemplateData[T],
 ): RenderedTemplate {
-  let rendered: { bodyHtml: string; previewText: string };
+  let rendered: TemplateRenderResult;
   switch (name) {
     case '__test__':
       rendered = renderTestTemplate(data as TemplateData['__test__']);
@@ -310,9 +358,49 @@ function renderTemplate<T extends TemplateName>(
         data as TemplateData['application-rejected'],
       );
       break;
+    case 'booking-requested-guest':
+      rendered = renderBookingRequestedGuest(
+        data as TemplateData['booking-requested-guest'],
+      );
+      break;
+    case 'booking-requested-owner':
+      rendered = renderBookingRequestedOwner(
+        data as TemplateData['booking-requested-owner'],
+      );
+      break;
+    case 'booking-confirmed-guest':
+      rendered = renderBookingConfirmedGuest(
+        data as TemplateData['booking-confirmed-guest'],
+      );
+      break;
+    case 'booking-confirmed-owner':
+      rendered = renderBookingConfirmedOwner(
+        data as TemplateData['booking-confirmed-owner'],
+      );
+      break;
+    case 'booking-rejected-guest':
+      rendered = renderBookingRejectedGuest(
+        data as TemplateData['booking-rejected-guest'],
+      );
+      break;
+    case 'booking-rejected-owner':
+      rendered = renderBookingRejectedOwner(
+        data as TemplateData['booking-rejected-owner'],
+      );
+      break;
+    case 'booking-cancelled-guest':
+      rendered = renderBookingCancelledGuest(
+        data as TemplateData['booking-cancelled-guest'],
+      );
+      break;
+    case 'booking-cancelled-owner':
+      rendered = renderBookingCancelledOwner(
+        data as TemplateData['booking-cancelled-owner'],
+      );
+      break;
     default:
       throw new Error(
-        `Template not implemented: '${String(name)}'. Implemented in Story 8-3 (booking-*) or Story 8-4 (payment-*).`,
+        `Template not implemented: '${String(name)}'. Implemented in Story 8-4 (payment-*).`,
       );
   }
   return {
@@ -320,7 +408,7 @@ function renderTemplate<T extends TemplateName>(
       bodyHtml: rendered.bodyHtml,
       previewText: rendered.previewText,
     }),
-    subject: Subjects[name],
+    subject: rendered.subject ?? Subjects[name],
     previewText: rendered.previewText,
   };
 }

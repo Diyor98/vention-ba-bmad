@@ -8,6 +8,8 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import {
   applicationsTable,
+  bookingsTable,
+  desksTable,
   spacesTable,
   usersTable,
   type ApplicationStatus,
@@ -99,4 +101,102 @@ export async function getSeededUserRole(email: string): Promise<string> {
     throw new Error(`Seeded user not found: ${email}`);
   }
   return row.role;
+}
+
+/**
+ * Story 8-3: inserts a PENDING booking directly via the db client,
+ * bypassing the Server Action. Used by E2E specs that need a fresh
+ * PENDING booking to test cancellation/confirmation flows without
+ * triggering notifyBookingRequested (which would pollute the recording
+ * file mid-test).
+ *
+ * Resolves space + desk by space name (the seed marker `'Seeded Owner
+ * Coworks'`). bookingDate defaults to 14 days out — well clear of the
+ * past-date validation.
+ *
+ * Returns the new booking's id.
+ */
+export async function createPendingBookingViaDb(opts: {
+  guestEmail: string;
+  spaceName: string;
+  bookingDate?: string; // YYYY-MM-DD, default = 14 days out
+  deskLabel?: string; // default = first desk on the space (typically 'Desk 1')
+}): Promise<string> {
+  const [guest] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.email, opts.guestEmail))
+    .limit(1);
+  if (!guest) {
+    throw new Error(`Guest not found: ${opts.guestEmail}`);
+  }
+
+  const [space] = await db
+    .select({ id: spacesTable.id })
+    .from(spacesTable)
+    .where(eq(spacesTable.name, opts.spaceName))
+    .limit(1);
+  if (!space) {
+    throw new Error(`Space not found: ${opts.spaceName}`);
+  }
+
+  const [desk] = opts.deskLabel
+    ? await db
+        .select({ id: desksTable.id, price: desksTable.dailyPriceCents })
+        .from(desksTable)
+        .where(
+          and(
+            eq(desksTable.spaceId, space.id),
+            eq(desksTable.label, opts.deskLabel),
+          ),
+        )
+        .limit(1)
+    : await db
+        .select({ id: desksTable.id, price: desksTable.dailyPriceCents })
+        .from(desksTable)
+        .where(eq(desksTable.spaceId, space.id))
+        .limit(1);
+  if (!desk) {
+    throw new Error(
+      `No desk found on ${opts.spaceName}` +
+        (opts.deskLabel ? ` with label '${opts.deskLabel}'` : ''),
+    );
+  }
+
+  // Default booking date = today + 14 days (UTC) to avoid past-date
+  // rejection in any UI re-validation.
+  const bookingDate =
+    opts.bookingDate ??
+    (() => {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() + 14);
+      return d.toISOString().slice(0, 10);
+    })();
+
+  // Defensive: clear any existing PENDING/CONFIRMED booking on this
+  // (desk, date) slot to avoid the partial-unique-index violation. Test
+  // detritus from prior failed runs can leave stale bookings; this
+  // makes the helper idempotent across runs.
+  await db
+    .delete(bookingsTable)
+    .where(
+      and(
+        eq(bookingsTable.deskId, desk.id),
+        eq(bookingsTable.bookingDate, bookingDate),
+      ),
+    );
+
+  const [row] = await db
+    .insert(bookingsTable)
+    .values({
+      guestUserId: guest.id,
+      spaceId: space.id,
+      deskId: desk.id,
+      bookingDate,
+      status: 'PENDING',
+      totalPriceCents: desk.price,
+    })
+    .returning({ id: bookingsTable.id });
+
+  return row.id;
 }

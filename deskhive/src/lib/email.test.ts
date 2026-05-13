@@ -136,17 +136,17 @@ describe('sendEmail (Story 8-1)', () => {
     expect(sendMock).not.toHaveBeenCalled();
   });
 
-  it('not-implemented template (8-3/8-4 placeholder) returns { status: error } without calling Resend', async () => {
-    // Story 8-2 implemented application-* templates; this probe now uses
-    // a Story 8-3 placeholder (booking-requested-guest) that still throws
+  it('not-implemented template (8-4 placeholder) returns { status: error } without calling Resend', async () => {
+    // Story 8-3 implemented all 8 booking-* templates; this probe now
+    // uses a Story 8-4 placeholder ('payment-receipt') that still throws
     // 'not implemented' in the renderTemplate switch.
     const result = await sendEmail({
       to: 'r@example.com',
-      template: 'booking-requested-guest',
+      template: 'payment-receipt',
       data: {
         guestName: 'Test',
+        amountCents: 2500,
         spaceName: 'Acme',
-        deskLabel: 'Desk 1',
         bookingDate: '2026-06-01',
       },
     });

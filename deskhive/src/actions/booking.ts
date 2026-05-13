@@ -22,6 +22,15 @@ import {
 } from '@/db/queries/bookings';
 import { logger } from '@/lib/logger';
 import type { Role } from '@/db/schema';
+// Story 8-3: post-commit fire-and-forget notification calls. Email send
+// failures must NEVER roll back the booking transaction; the actions
+// call notify* with `.catch(...)` rather than `await ... try { } catch`.
+import {
+  notifyBookingRequested,
+  notifyBookingConfirmed,
+  notifyBookingRejected,
+  notifyBookingCancelledByGuest,
+} from '@/lib/bookings';
 
 export type CreateBookingActionState =
   | { status: 'idle' }
@@ -121,8 +130,9 @@ export async function createBookingAction(
   // Insert. The partial unique index uniq_active_booking_per_desk_per_date
   // (Doc B §6.2) is the source of truth on conflicts.
   let result: CreateBookingActionState | null = null;
+  let created: Awaited<ReturnType<typeof createBooking>> | undefined;
   try {
-    await createBooking({
+    created = await createBooking({
       guestUserId: String(session.user.id),
       spaceId: desk.spaceId,
       deskId: desk.id,
@@ -148,6 +158,14 @@ export async function createBookingAction(
     }
   }
   if (result) return result;
+
+  // Story 8-3: fire-and-forget post-commit notification. Email failure
+  // must NOT roll back the booking — caught via .catch + logger.warn.
+  if (created) {
+    notifyBookingRequested(created.id).catch((err) => {
+      logger.warn('notify_booking_requested_failed', { error: String(err) });
+    });
+  }
 
   revalidatePath(`/spaces/${desk.spaceId}`);
   revalidatePath('/my-bookings');
@@ -244,6 +262,17 @@ export async function cancelBookingAction(
     };
   }
 
+  // Story 8-3: capture previousStatus BEFORE the cancellation UPDATE.
+  // notifyBookingCancelledByGuest's owner-side branch only fires when
+  // previousStatus === 'CONFIRMED' (Decision §2 — PENDING cancellations
+  // are noise). After the UPDATE, booking.status is 'CANCELLED' and the
+  // discriminator is lost.
+  // NB: Phase 1 only allows cancelling PENDING bookings (line 238 check
+  // above). The previousStatus capture is forward-looking — if Phase 2/3
+  // ever permits cancelling CONFIRMED bookings, the notify branch is
+  // ready. For now it'll always be 'PENDING' here.
+  const previousStatus = booking.status;
+
   // Conditional UPDATE: race-safe against concurrent Super Admin Confirm.
   let result: CancelBookingActionState | null = null;
   try {
@@ -265,6 +294,11 @@ export async function cancelBookingAction(
     };
   }
   if (result) return result;
+
+  // Story 8-3: fire-and-forget post-commit notification.
+  notifyBookingCancelledByGuest(bookingId, previousStatus).catch((err) => {
+    logger.warn('notify_booking_cancelled_failed', { error: String(err) });
+  });
 
   revalidatePath('/my-bookings');
   revalidatePath(`/spaces/${booking.spaceId}`);
@@ -371,6 +405,13 @@ export async function confirmBookingAction(
   }
   if (result) return result;
 
+  // Story 8-3: fire-and-forget post-commit notification. actorUserId
+  // tells notifyBookingConfirmed whether to skip the owner-side email
+  // (when owner === actor — Decision §3 self-action skip rule).
+  notifyBookingConfirmed(bookingId, callerId).catch((err) => {
+    logger.warn('notify_booking_confirmed_failed', { error: String(err) });
+  });
+
   // Confirm doesn't change desk availability (PENDING and CONFIRMED are
   // both in the partial unique index's covered set), so no /spaces/[id]
   // revalidation needed.
@@ -473,6 +514,13 @@ export async function rejectBookingAction(
     };
   }
   if (result) return result;
+
+  // Story 8-3: fire-and-forget post-commit notification. Same actor-
+  // check pattern as confirm — owner-side email skipped when the owner
+  // is themselves the rejecting party (Decision §3).
+  notifyBookingRejected(bookingId, callerId).catch((err) => {
+    logger.warn('notify_booking_rejected_failed', { error: String(err) });
+  });
 
   // Reject FREES the desk (PENDING → REJECTED removes the row from the
   // partial unique index's covered set), so /spaces/[id] needs revalidation
