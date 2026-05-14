@@ -1,6 +1,6 @@
 # Story 8-POLISH-1: Email Design Polish (visual wrapper refinement)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -459,4 +459,5 @@ Zero changes to: `deskhive/src/app/`, `deskhive/src/db/`, `deskhive/src/actions/
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-14 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| 2026-05-14 | Story implemented; `renderBaseTemplate` rewritten with inline-SVG hex logo + Inter font-stack + locked footer copy; `EMAIL_LOGO_URL` infrastructure retired; From-header default flipped to `'DeskHive <onboarding@resend.dev>'`; CTA inline-CSS bumped per Decision §6 across 10 templates; 3 obsolete tests removed + 3 new wrapper tests added + 2 existing tests updated; memory entry extended; sprint-status moved to `review`. 305 unit tests pass, typecheck + lint + build clean. Single commit per AC-14 — awaiting BA browser walk before push. | _TBD (filled by a small follow-up `docs:` commit after BA greenlight + push)_ |
+| 2026-05-14 | Story implemented; `renderBaseTemplate` rewritten with inline-SVG hex logo + Inter font-stack + locked footer copy; `EMAIL_LOGO_URL` infrastructure retired; From-header default flipped to `'DeskHive <onboarding@resend.dev>'`; CTA inline-CSS bumped per Decision §6 across 10 templates; 3 obsolete tests removed + 3 new wrapper tests added + 2 existing tests updated; memory entry extended; sprint-status moved to `review`. 305 unit tests pass, typecheck + lint + build clean. Single commit per AC-14 — awaiting BA browser walk before push. | `1c7145f` |
+| 2026-05-14 | BA greenlit Story 8-POLISH-1 after browser walk (AC-15's 17-point checklist). Status moved to `done`; sprint-status reflects greenlight; Change Log hash filled. | _this docs follow-up commit_ |
