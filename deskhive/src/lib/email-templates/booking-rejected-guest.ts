@@ -26,7 +26,7 @@ export function renderBookingRejectedGuest(
   const bodyHtml = `<p style="font-size: 14px; line-height: 1.5; margin: 0 0 12px;">Hi ${guestName},</p>
 <p style="font-size: 14px; line-height: 1.5; margin: 0 0 12px;">We're sorry — the host wasn't able to confirm your booking for <strong>${deskLabel}</strong> at <strong>${spaceName}</strong> on <strong>${dateLabel}</strong>.</p>
 <p style="font-size: 14px; line-height: 1.5; margin: 0 0 16px;">You're welcome to browse other spaces or try a different date.</p>
-<p style="margin: 0 0 16px;"><a href="${appUrl}" style="display: inline-block; padding: 10px 20px; background: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Browse spaces</a></p>
+<div style="margin: 24px 0; text-align: left;"><a href="${appUrl}" style="display: inline-block; padding: 14px 24px; background: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; line-height: 1; letter-spacing: 0.005em; mso-padding-alt: 0;">Browse spaces</a></div>
 <p style="font-size: 14px; line-height: 1.5; margin: 0;">Thanks,<br>The DeskHive team</p>`;
 
   return {

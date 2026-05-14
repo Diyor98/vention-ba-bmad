@@ -45,12 +45,6 @@
  *                             'booking-confirmed-owner,payment-receipt').
  *                             Disabled templates return { status: 'disabled' }
  *                             immediately without calling Resend.
- *   EMAIL_LOGO_URL         Optional. Public HTTPS URL of the DeskHive logo
- *                          PNG. When set, renderBaseTemplate emits an
- *                          <img> tag in the header. When unset (local dev
- *                          default), the header renders only the
- *                          "DeskHive" wordmark text — no <img>, no
- *                          broken-image icon.
  *   TEST_EMAIL_RECIPIENT   Read only by scripts/send-test-email.ts (the
  *                          CLI test-send tool). Not read here.
  *   EMAIL_TEST_RECORD_FILE Story 8-2: when set to a writable file path,
@@ -248,30 +242,34 @@ export function escapeHtml(input: string): string {
     .replace(/'/g, '&#39;');
 }
 
+// Story 8-POLISH-1 AC-7: retained as defensive infrastructure after the
+// EMAIL_LOGO_URL caller was removed. Future templates interpolating
+// untrusted strings into HTML attributes (e.g., href="${...}") should
+// route through this helper.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function escapeHtmlAttr(input: string): string {
-  // Same escapes as body content; attributes are equally vulnerable to
-  // injection if an env value happens to contain quotes.
   return escapeHtml(input);
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 // Base HTML template — shared layout for all transactional emails.
-// Header + body slot + footer. Inline CSS only (email-client compatibility).
-// Logo: hosted-PNG via EMAIL_LOGO_URL env, with wordmark-only fallback
-// when unset (BA-revised 2026-05-13 pre-dispatch — see story file
-// §"Email rendering quirks" for the rationale).
+// Story 8-POLISH-1 (Decisions §3 §5 §7 §8): visual wrapper applies
+// Makhbuba's Phase 2 design. Inline-SVG hex logo (no clip-path, no
+// external <img>), Inter via font-stack fallback (no <link>/@import),
+// 600px white card on #FAFAFA gutter, locked footer copy (no
+// link-to-nothing, no fake address, no © line).
 // ─────────────────────────────────────────────────────────────────────────
+
+const FONT_STACK = `'Inter', 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
+
+const HEX_LOGO_LARGE = `<svg width="22" height="22" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; display: inline-block;"><polygon points="25,5 75,5 100,50 75,95 25,95 0,50" fill="#4F46E5" /></svg>`;
+const HEX_LOGO_SMALL = `<svg width="14" height="14" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; display: inline-block;"><polygon points="25,5 75,5 100,50 75,95 25,95 0,50" fill="#4F46E5" /></svg>`;
 
 export function renderBaseTemplate(args: {
   bodyHtml: string;
   previewText: string;
 }): string {
   const { bodyHtml, previewText } = args;
-  const logoUrl = (process.env.EMAIL_LOGO_URL ?? '').trim();
-  const logoHtml =
-    logoUrl.length > 0
-      ? `<img src="${escapeHtmlAttr(logoUrl)}" alt="DeskHive" width="22" height="22" style="vertical-align: middle; margin-right: 8px; border: 0;" />`
-      : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -280,25 +278,28 @@ export function renderBaseTemplate(args: {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DeskHive</title>
 </head>
-<body style="margin: 0; padding: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #18181b;">
+<body style="margin: 0; padding: 0; background-color: #FAFAFA; font-family: ${FONT_STACK}; color: #3F3F46;">
   <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">${escapeHtml(previewText)}</div>
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background: #f5f5f7;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #FAFAFA;">
     <tr>
-      <td align="center" style="padding: 24px 12px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; background: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+      <td align="center" style="padding: 32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; background-color: #FFFFFF; border: 1px solid #E4E4E7; border-radius: 12px; overflow: hidden;">
           <tr>
-            <td style="padding: 20px 24px; border-bottom: 1px solid #e4e4e7;">
-              ${logoHtml}<span style="font-size: 16px; font-weight: 600; color: #4F46E5; vertical-align: middle;">DeskHive</span>
+            <td style="padding: 24px 32px; border-bottom: 1px solid #E4E4E7;">
+              ${HEX_LOGO_LARGE}<span style="font-family: ${FONT_STACK}; font-size: 15px; font-weight: 500; color: #3F3F46; vertical-align: middle; margin-left: 8px;">DeskHive</span>
             </td>
           </tr>
           <tr>
-            <td style="padding: 24px;">
+            <td style="padding: 32px; font-family: ${FONT_STACK}; font-size: 15px; line-height: 24px; color: #3F3F46;">
               ${bodyHtml}
             </td>
           </tr>
           <tr>
-            <td style="padding: 16px 24px; border-top: 1px solid #e4e4e7; font-size: 12px; color: #71717a; text-align: center;">
-              © 2026 DeskHive
+            <td style="padding: 24px 32px; border-top: 1px solid #E4E4E7; font-family: ${FONT_STACK}; font-size: 13px; line-height: 20px; color: #71717A;">
+              <div style="margin-bottom: 8px;">
+                ${HEX_LOGO_SMALL}<span style="font-weight: 500; color: #3F3F46; vertical-align: middle; margin-left: 8px;">DeskHive</span>
+              </div>
+              <p style="margin: 0;">This email was sent because you have an active account on DeskHive. If you didn't expect this, you can safely ignore it.</p>
             </td>
           </tr>
         </table>
@@ -480,7 +481,7 @@ export async function sendEmail<T extends TemplateName>(args: {
     }
   }
 
-  const from = process.env.EMAIL_FROM_ADDRESS ?? 'onboarding@resend.dev';
+  const from = process.env.EMAIL_FROM_ADDRESS ?? 'DeskHive <onboarding@resend.dev>';
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || apiKey.trim().length === 0) {
     console.error('[email] RESEND_API_KEY not configured', { template, to });

@@ -28,7 +28,7 @@ export function renderBookingRejectedOwner(
 
   const bodyHtml = `<p style="font-size: 14px; line-height: 1.5; margin: 0 0 12px;">Hi ${ownerName},</p>
 <p style="font-size: 14px; line-height: 1.5; margin: 0 0 16px;">An admin rejected a booking on <strong>${spaceName}</strong> for <strong>${deskLabel}</strong> on <strong>${dateLabel}</strong>. No action needed from you.</p>
-<p style="margin: 0 0 16px;"><a href="${appUrl}/owner/bookings" style="display: inline-block; padding: 10px 20px; background: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">View bookings</a></p>
+<div style="margin: 24px 0; text-align: left;"><a href="${appUrl}/owner/bookings" style="display: inline-block; padding: 14px 24px; background: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; line-height: 1; letter-spacing: 0.005em; mso-padding-alt: 0;">View bookings</a></div>
 <p style="font-size: 14px; line-height: 1.5; margin: 0;">Thanks,<br>The DeskHive team</p>`;
 
   return {

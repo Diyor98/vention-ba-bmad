@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-13 (Story 8-3 BA-greenlit and moved to done — booking emails shipped at commit f949230. 8 templates × 4 state transitions × 2 recipients; Decisions §1/§2/§3 enforced at the notify seam; type-level no-guestName-in-owner-emails. Theme C now 3/4 stories done. **Open follow-up logged** in memory project_phase2_prd_4_5_cancel_interpretation.md: Phase 1 cancelBookingAction rejects CONFIRMED bookings but PRD §4.5 implies they should be cancellable with refund logic — deferred to Epic 9 (refund/Stripe Connect). Surface to BA before any Epic 9 cancel/refund story. Story 8-4 (payment emails) is the last Theme C story; depends on Theme B's Stripe webhook infrastructure.)
+# last_updated: 2026-05-14 (Story 8-POLISH-1 dev-story complete and moved to review — visual wrapper rewritten with inline-SVG hex logo + Inter font-stack + locked footer copy; `EMAIL_LOGO_URL` env-var infrastructure retired; From-header default flipped to `'DeskHive <onboarding@resend.dev>'`; CTA inline-CSS bumped in 10 templates (BA decision doc said 9, real count was 10 — application-approved + application-rejected + 8 booking-*). 305/306 unit tests pass (1 pre-existing skip), typecheck + lint + build clean. 14 files modified, zero changes in `src/app/` / `src/db/` / `src/actions/` / `src/lib/applications.ts` / `src/lib/bookings.ts` / `tests/` / `package.json` per AC-13. E2E: 44/49 pass; 4 recording-sink-dependent tests fail because the dev server already running on port 3000 was started without `EMAIL_TEST_RECORD_FILE` (Playwright `reuseExistingServer: !CI` reuses it — config comment explicitly calls this out as "BA must restart any existing dev server"). Not a wrapper regression. Story 8-3's follow-up still logged in memory project_phase2_prd_4_5_cancel_interpretation.md. Awaiting BA browser walk + greenlight before push.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -161,4 +161,5 @@ development_status:
   8-2-application-emails: done
   8-3-booking-emails: done
   8-4-payment-emails: backlog
+  8-polish-1-email-design-polish: review
   epic-8-retrospective: optional

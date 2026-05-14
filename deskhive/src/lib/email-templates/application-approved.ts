@@ -24,7 +24,7 @@ export function renderApplicationApproved(
   const bodyHtml = `<p style="font-size: 14px; line-height: 1.5; margin: 0 0 12px;">Hi ${applicantName},</p>
 <p style="font-size: 14px; line-height: 1.5; margin: 0 0 12px;">Your Space Owner application for <strong>${businessName}</strong> has been approved. You can now list spaces and accept bookings on DeskHive.</p>
 <p style="font-size: 14px; line-height: 1.5; margin: 0 0 16px;">To start hosting, sign in and click the account menu in the top right of any page. You'll see a new option: <strong>Switch to hosting</strong>. That's where your Space Owner dashboard lives.</p>
-<p style="margin: 0 0 16px;"><a href="${appUrl}" style="display: inline-block; padding: 10px 20px; background: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Go to DeskHive</a></p>
+<div style="margin: 24px 0; text-align: left;"><a href="${appUrl}" style="display: inline-block; padding: 14px 24px; background: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; line-height: 1; letter-spacing: 0.005em; mso-padding-alt: 0;">Go to DeskHive</a></div>
 <p style="font-size: 14px; line-height: 1.5; margin: 0 0 12px;">If you have any questions, just reply to this email.</p>
 <p style="font-size: 14px; line-height: 1.5; margin: 0;">Thanks,<br>The DeskHive team</p>`;
 

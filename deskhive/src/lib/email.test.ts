@@ -18,12 +18,14 @@ const ORIGINAL_ENV = { ...process.env };
 
 beforeEach(() => {
   sendMock.mockReset();
-  // Provide a baseline API key + clear logo/kill-switch so each test
-  // starts from a known state. Individual tests override as needed.
+  // Provide a baseline API key + clear From-header override + kill-switch
+  // so each test starts from a known state. Story 8-POLISH-1: the From
+  // default flows from sendEmail's '?? "DeskHive <onboarding@resend.dev>"'
+  // fallback when EMAIL_FROM_ADDRESS is unset; tests that need to assert
+  // an override set it explicitly.
   process.env.RESEND_API_KEY = 'test-key';
-  process.env.EMAIL_FROM_ADDRESS = 'onboarding@resend.dev';
+  delete process.env.EMAIL_FROM_ADDRESS;
   delete process.env.EMAIL_TEMPLATES_DISABLED;
-  delete process.env.EMAIL_LOGO_URL;
 });
 
 afterEach(() => {
@@ -49,11 +51,13 @@ describe('sendEmail (Story 8-1)', () => {
       subject: string;
       html: string;
     };
-    expect(call.from).toBe('onboarding@resend.dev');
+    expect(call.from).toBe('DeskHive <onboarding@resend.dev>');
     expect(call.to).toBe('recipient@example.com');
     expect(call.subject).toBe('[DeskHive] Test email from Story 8-1');
     expect(call.html).toContain('hi');
-    expect(call.html).toContain('© 2026 DeskHive');
+    expect(call.html).toContain(
+      'This email was sent because you have an active account on DeskHive',
+    );
   });
 
   it('error path: Resend throw is caught and surfaced as { status: error }', async () => {
@@ -180,9 +184,8 @@ describe('sendEmail (Story 8-1)', () => {
   });
 });
 
-describe('renderBaseTemplate (Story 8-1)', () => {
-  it('renders header + body + footer, no <img> when EMAIL_LOGO_URL is unset', () => {
-    // EMAIL_LOGO_URL deleted in beforeEach.
+describe('renderBaseTemplate (Story 8-POLISH-1)', () => {
+  it('renders header + body + footer with hex SVG', () => {
     const html = renderBaseTemplate({
       bodyHtml: '<p>hi body</p>',
       previewText: 'preview line',
@@ -190,32 +193,14 @@ describe('renderBaseTemplate (Story 8-1)', () => {
 
     expect(html).toContain('<p>hi body</p>');
     expect(html).toContain('DeskHive');
-    expect(html).toContain('© 2026 DeskHive');
     expect(html).toContain('preview line');
-    // No img tag when the URL is unset — wordmark-only fallback.
-    expect(html).not.toContain('<img');
-  });
-
-  it('renders <img> with logo URL + alt text when EMAIL_LOGO_URL is set', () => {
-    process.env.EMAIL_LOGO_URL = 'https://example.com/logo.png';
-    const html = renderBaseTemplate({
-      bodyHtml: '<p>body</p>',
-      previewText: 'p',
-    });
-
-    expect(html).toContain('<img');
-    expect(html).toContain('https://example.com/logo.png');
-    expect(html).toContain('alt="DeskHive"');
-    expect(html).toContain('width="22"');
-    expect(html).toContain('height="22"');
-  });
-
-  it('treats empty/whitespace EMAIL_LOGO_URL as unset (no <img>)', () => {
-    process.env.EMAIL_LOGO_URL = '   ';
-    const html = renderBaseTemplate({
-      bodyHtml: '<p>x</p>',
-      previewText: 'p',
-    });
+    // Locked footer copy from BA Decision §7 — no link-to-nothing, no
+    // fake address, no copyright line.
+    expect(html).toContain(
+      'This email was sent because you have an active account on DeskHive',
+    );
+    // Inline SVG hex replaces the Story 8-1 EMAIL_LOGO_URL <img> branch.
+    expect(html).toContain('<svg');
     expect(html).not.toContain('<img');
   });
 
@@ -230,18 +215,44 @@ describe('renderBaseTemplate (Story 8-1)', () => {
     expect(html).not.toMatch(/<script[^>]*>alert/);
   });
 
-  it('escapes HTML attribute injection in EMAIL_LOGO_URL', () => {
-    // Defensive: env values are operator-controlled, but the attribute
-    // escape is the right pattern regardless.
-    process.env.EMAIL_LOGO_URL = 'https://x.com/a.png" onerror="alert(1)';
+  // ─────────────────────────────────────────────────────────────────────
+  // BA Decision §12 — three new wrapper tests pinning the polish.
+  // ─────────────────────────────────────────────────────────────────────
+
+  it('renders inline SVG hex logo with #4F46E5 fill (no clip-path, no <img>)', () => {
     const html = renderBaseTemplate({
       bodyHtml: '<p>x</p>',
       previewText: 'p',
     });
-    // The bare onerror attribute should not appear unescaped.
-    expect(html).not.toMatch(/" onerror="alert/);
-    // The quotes inside the URL should be entity-encoded.
-    expect(html).toContain('&quot;');
+    expect(html).toContain('<svg');
+    expect(html).toContain(
+      '<polygon points="25,5 75,5 100,50 75,95 25,95 0,50"',
+    );
+    expect(html).toContain('fill="#4F46E5"');
+    // Anti-pattern guards: external image refs and clip-path are out.
+    expect(html).not.toContain('<img');
+    expect(html).not.toContain('clip-path');
+  });
+
+  it('renders the new locked footer copy (BA Decision §7)', () => {
+    const html = renderBaseTemplate({
+      bodyHtml: '<p>x</p>',
+      previewText: 'p',
+    });
+    expect(html).toContain(
+      'This email was sent because you have an active account on DeskHive',
+    );
+    expect(html).toContain('you can safely ignore it');
+  });
+
+  it('does NOT contain the old Story 8-1 © 2026 footer (regression guard)', () => {
+    const html = renderBaseTemplate({
+      bodyHtml: '<p>x</p>',
+      previewText: 'p',
+    });
+    // Decision §7: copyright line removed; this test pins against
+    // accidental re-add when future templates copy from old examples.
+    expect(html).not.toContain('© 2026 DeskHive');
   });
 });
 
