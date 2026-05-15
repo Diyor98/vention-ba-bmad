@@ -1,17 +1,15 @@
-# Story 9-2: Stripe Connect Express Onboarding — BA Decisions (STRAWMAN)
+# Story 9-2: Stripe Connect Express Onboarding — BA Decisions
 
 **Story:** 9-2
 **Epic:** 9 — Payments (Theme B)
 **Phase:** 2
 **Type:** Infrastructure + first user-facing payments surface (onboarding only)
-**Author:** Ikhtiyor Ziyayev, Business Analyst (strawman drafted by dev-agent — review/edit/lock)
+**Author:** Ikhtiyor Ziyayev, Business Analyst
 **Date drafted:** 2026-05-15
-**Status:** STRAWMAN — NOT LOCKED. BA review pending.
+**Status:** LOCKED — 2026-05-15 (BA: Ikhtiyor Ziyayev).
 **Source:** Phase 2 PRD §4.4 / §4.6 / §6.1 / §6.4 / §7.2 / §8 Epic 9 Story 9-2 + Story 9-1's forward-looking notes (memory `reference_stripe_service_pattern.md` §"Downstream contract") + idiomatic Stripe Connect Express conventions
 
 **Companion story:** **9-2b — Publish Gating** (separate decisions doc at [docs/design/9-2b-publish-gating-ba-decisions.md](docs/design/9-2b-publish-gating-ba-decisions.md)). 9-2b ships AFTER 9-2 and adds the DRAFT-status enum + publish-action + gated-publish UI. The split was made because the combined scope (onboarding + gating) was too ambitious for one story. **Story 9-2 ONLY ships the onboarding plumbing + status surface; the publish-gating concept is entirely in 9-2b.**
-
-> **⚠️ STRAWMAN.** Every decision below is the dev-agent's recommendation with rationale. BA reviews each, edits where she disagrees, and removes the STRAWMAN banner before dispatching `*create-story 9-2 with path docs/design/9-2-stripe-connect-onboarding-ba-decisions.md`.
 
 ---
 
@@ -216,6 +214,9 @@ Two clean patterns:
 ```typescript
 stripe.accounts.create({
   type: 'express',
+  // Phase 2 test-mode: hardcoded to 'US' for Stripe Express compatibility
+  // (Uzbekistan not supported). Phase 3: per-owner country derived from
+  // application.businessAddress (Story 7-2 data).
   country: 'US',
   email: <user.email>,
   capabilities: {
@@ -271,6 +272,7 @@ Story 9-5 extends:
 - Do NOT process the same `stripe_event_id` twice — idempotency is non-negotiable.
 - Do NOT block on webhook delivery — Stripe expects 200 OK within a few seconds; complex processing belongs in async followups.
 - Do NOT add webhook routes outside `app/api/stripe/webhook/route.ts` — one endpoint, switch by event type.
+- Do NOT insert into `webhook_events` for unhandled event types in 9-2. Only insert when a real handler ran. This preserves Story 9-5's ability to backfill if needed once those handlers ship.
 
 **Open question for BA:** is the narrow `account.updated`-only scope in 9-2 (with everything else returning `200 OK` ignored) the right seam? **Strawman recommends YES — defers complexity to 9-5 without leaving the onboarding-state-sync hole open.**
 
@@ -512,6 +514,17 @@ Extend `reference_stripe_service_pattern.md` with:
 
 ---
 
+## Operator prereq (BA completes BEFORE dev verification)
+
+These four items are operational setup on the Stripe dashboard + local env file. Dev verification (the Browser verification checklist below) assumes all four are ticked. If any are missing, `pnpm stripe-ping` will still work (Story 9-1 plumbing), but the 9-2 onboarding flow will fail with a non-obvious Stripe error.
+
+- [ ] Stripe dashboard → Settings → Connect → Express platform activated (test mode)
+- [ ] Stripe dashboard → Settings → Connect → Branding → platform name set to "DeskHive" (30 seconds; makes Stripe-hosted onboarding feel on-brand instead of raw Stripe)
+- [ ] Stripe dashboard → Developers → Webhooks → endpoint added (prod) OR `stripe listen` running locally (dev)
+- [ ] `STRIPE_WEBHOOK_SECRET` copied into `.env.local` (`whsec_*`)
+
+---
+
 ## Browser verification checklist (preliminary — BA finalizes after lock)
 
 **Setup:**
@@ -559,19 +572,4 @@ After 9-2 ships:
 
 ---
 
-## STRAWMAN review checklist (for BA — delete before lock)
-
-- [ ] Decision §6 — country: hardcoded `'US'` for Phase 2 test mode, multi-country deferred to Phase 3?
-- [ ] Decision §7 — narrow `account.updated`-only webhook in 9-2, full dispatch in 9-5?
-- [ ] Decision §8 — synthetic seed Connect ID for `owner@deskhive.local`?
-- [ ] Decision §9 — E2E test #2 uses programmatic delete-row-before-test-then-reseed (vs. introducing a second seed user just for one test)?
-- [ ] Decision §10 — operator dashboard prereq (5 min) inline with 9-2 ship vs. separate mini-story?
-- [ ] Any decisions to remove entirely?
-- [ ] Any decisions to add that I missed?
-- [ ] Confirm: nothing in this doc references publish gating except via "see 9-2b" forward-references?
-
-When all checks are resolved + edits made, delete this section, delete the "STRAWMAN — NOT LOCKED" banner at the top, and dispatch `*create-story 9-2 with path docs/design/9-2-stripe-connect-onboarding-ba-decisions.md`.
-
----
-
-**End of strawman BA decisions document.**
+**End of BA decisions document.**
