@@ -1,0 +1,262 @@
+<!doctype html>
+<!--
+  Phase 2 · Theme C
+  Email template — base wrapper + one filled example (Booking confirmed).
+
+  This file documents:
+    1. The 13 transactional email types Phase 2 ships with (Section 6 of PRD)
+    2. The shared HTML wrapper (header w/ logo, body w/ generous padding,
+       footer with company reqs + unsubscribe link)
+    3. One concrete example fully styled — "Your booking is confirmed"
+
+  Subsequent templates can be built using the same wrapper. Plain-text
+  fallback structure is shown at the bottom for the developer.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Email templates · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="phase2.css">
+  <style>
+    .ix-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 22rem;
+      gap: 2rem;
+      align-items: start;
+    }
+    @media (max-width: 1000px) { .ix-grid { grid-template-columns: 1fr; } }
+    .templates-list {
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      position: sticky;
+      top: calc(var(--layout-header-h) + 1.5rem);
+    }
+    .templates-list h3 {
+      padding: 0.875rem 1rem;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-neutral-500);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .tpl {
+      display: grid;
+      grid-template-columns: 1.25rem 1fr auto;
+      column-gap: 0.625rem;
+      padding: 0.625rem 1rem;
+      font-size: 12px;
+      border-bottom: 1px solid var(--color-border);
+      align-items: center;
+      cursor: default;
+    }
+    .tpl:last-child { border-bottom: none; }
+    .tpl .n {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      color: var(--color-neutral-400);
+      text-align: right;
+    }
+    .tpl .title {
+      font-weight: 500;
+      color: var(--color-neutral-800);
+      line-height: 1.3;
+    }
+    .tpl .who {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.04em;
+      color: var(--color-neutral-400);
+      text-transform: uppercase;
+    }
+    .tpl.active { background: var(--color-brand-50); }
+    .tpl.active .title { color: var(--color-brand-700); font-weight: 600; }
+    .tpl.active .n { color: var(--color-brand-600); }
+    .tpl.active .who { color: var(--color-brand-600); }
+  </style>
+</head>
+<body data-screen-label="P2·11 Email templates">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="p2-00-overview.html" class="nav-link">Phase 2 overview</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container-content" style="padding-top: 3rem; padding-bottom: 4rem;">
+
+    <header class="mb-8">
+      <p class="muted" style="font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-primary);">Phase 2 · Theme C · Story 6</p>
+      <h1 class="page-h1 mt-2">Transactional emails</h1>
+      <p class="mt-1.5 muted-strong" style="font-size: 14px; max-width: 42rem;">
+        One shared wrapper. Thirteen variants — same logo, same footer, same voice (calm, factual, friendly). Below: the wrapper anatomy and the <strong>"Your booking is confirmed"</strong> template fully filled in.
+      </p>
+    </header>
+
+    <div class="ix-grid">
+
+      <!-- ─── Left: live preview ─── -->
+      <div>
+        <div class="email-canvas">
+          <div class="email-toolbar">
+            <div>
+              <span class="light">From</span> DeskHive &lt;notifications@deskhive.app&gt;
+              <span style="margin: 0 0.625rem; color: var(--color-neutral-300);">·</span>
+              <span class="light">Subject</span> Your booking is confirmed
+            </div>
+            <span class="light">600 px · light theme</span>
+          </div>
+
+          <article class="email">
+            <header class="email-head">
+              <span class="lm" aria-hidden="true"></span>
+              <span class="brand">DeskHive</span>
+            </header>
+
+            <section class="email-body">
+              <p style="margin: 0 0 0.5rem; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #15803D;">Booking confirmed</p>
+              <h1>You're set for Thursday, May 14.</h1>
+              <p>Hi Sami, good news — <strong>Elena at Northgate Studios</strong> just confirmed your booking. Your card was charged $27.60 and we've added the visit to your DeskHive trips.</p>
+
+              <div class="email-receipt">
+                <div class="receipt-row"><span class="k">Space</span><span class="v">Northgate Studios</span></div>
+                <div class="receipt-row"><span class="k">Desk</span><span class="v">Desk 3 · Hot desk</span></div>
+                <div class="receipt-row"><span class="k">Date</span><span class="v">Thursday, May 14</span></div>
+                <div class="receipt-row"><span class="k">Hours</span><span class="v">8:00 AM – 8:00 PM</span></div>
+                <div class="receipt-row"><span class="k">Address</span><span class="v" style="font-weight: 500; text-align: right;">1421 E Olive Way<br/>Seattle, WA 98122</span></div>
+                <div class="receipt-row" style="background: var(--color-neutral-50);"><span class="k" style="color: var(--color-neutral-700); font-weight: 500;">Paid to card ••4242</span><span class="v">$27.60</span></div>
+              </div>
+
+              <div class="email-cta">
+                <a href="#">View booking in DeskHive</a>
+              </div>
+
+              <p style="margin-top: 1.5rem; font-size: 13px; color: var(--color-neutral-500);">
+                <strong style="color: var(--color-neutral-700);">Heads-up about cancellations:</strong> you can cancel up to 24 hours before the visit for a full refund. After that, the day is locked in.
+              </p>
+              <p style="margin-top: 0.75rem; font-size: 13px; color: var(--color-neutral-500);">
+                Hop into the app if you have questions for Elena — she'll see them in her hosting inbox.
+              </p>
+            </section>
+
+            <footer class="email-foot">
+              <div style="display: flex; align-items: center; gap: 0.625rem; margin-bottom: 0.625rem;">
+                <span style="width: 14px; height: 14px; background: var(--color-primary); clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%); display: inline-block;"></span>
+                <span style="font-size: 12px; color: var(--color-neutral-700); font-weight: 500;">DeskHive · 218 W Hastings, Vancouver BC</span>
+              </div>
+              <p style="margin: 0 0 0.375rem;">You're receiving this because you have a booking on DeskHive.</p>
+              <p style="margin: 0;">
+                <a href="#">Email preferences</a> · <a href="#">Help center</a> · <a href="#">Terms</a>
+              </p>
+            </footer>
+          </article>
+        </div>
+
+        <!-- Wrapper anatomy -->
+        <section style="margin-top: 2rem;">
+          <div class="section-h"><h2>Wrapper anatomy</h2><span class="meta">Shared by all 13 templates</span></div>
+          <div class="form-card">
+            <div class="form-card-body">
+              <div class="app-grid">
+                <div class="app-field">
+                  <span class="k">Width</span>
+                  <span class="v tnum">600 px · centered · #FAFAFA gutter</span>
+                </div>
+                <div class="app-field">
+                  <span class="k">Body type</span>
+                  <span class="v">Inter 15 / 24 · #3F3F46</span>
+                </div>
+                <div class="app-field">
+                  <span class="k">Header</span>
+                  <span class="v">Hex logo + "DeskHive" wordmark · 24 px padding</span>
+                </div>
+                <div class="app-field">
+                  <span class="k">CTA button</span>
+                  <span class="v mono" style="background: #4F46E5; color: #fff; padding: 2px 8px; border-radius: 4px; display: inline-block; width: auto;">#4F46E5 · 6 px radius</span>
+                </div>
+                <div class="app-field" style="grid-column: 1 / -1;">
+                  <span class="k">Tone</span>
+                  <span class="v long">Calm, factual, friendly. No marketing speak. Lead with the outcome ("You're set for Thursday"), then the receipt. Sign off with one practical reminder (cancellation policy, what to expect on arrival, etc.).</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Plain-text fallback -->
+        <section style="margin-top: 2rem;">
+          <div class="section-h"><h2>Plain-text fallback</h2><span class="meta">Required per template</span></div>
+          <pre style="background: var(--color-neutral-900); color: #E4E4E7; padding: 1.25rem 1.5rem; border-radius: var(--radius-lg); font-family: var(--font-mono); font-size: 12px; line-height: 1.7; overflow-x: auto;">
+DeskHive · Your booking is confirmed
+─────────────────────────────────────
+
+Hi Sami,
+
+Good news — Elena at Northgate Studios just
+confirmed your booking. Your card was charged
+$27.60 and we've added the visit to your
+DeskHive trips.
+
+  Space     Northgate Studios
+  Desk      Desk 3 · Hot desk
+  Date      Thursday, May 14
+  Hours     8:00 AM – 8:00 PM
+  Address   1421 E Olive Way, Seattle, WA 98122
+  Paid      $27.60 to card ••4242
+
+View your booking → https://deskhive.app/bookings/BK-1184
+
+Heads-up: cancel up to 24 hours before the
+visit for a full refund. After that, the day
+is locked in.
+
+— DeskHive
+   218 W Hastings, Vancouver BC
+   Email preferences · https://deskhive.app/me/email
+</pre>
+        </section>
+      </div>
+
+      <!-- ─── Right: template list ─── -->
+      <aside>
+        <div class="templates-list">
+          <h3>All 13 templates</h3>
+          <div class="tpl"><span class="n">01</span><span class="title">We received your Space Owner application</span><span class="who">Applicant</span></div>
+          <div class="tpl"><span class="n">02</span><span class="title">Welcome to DeskHive Hosting</span><span class="who">Applicant</span></div>
+          <div class="tpl"><span class="n">03</span><span class="title">Update on your DeskHive application</span><span class="who">Applicant</span></div>
+          <div class="tpl"><span class="n">04</span><span class="title">Booking request received</span><span class="who">Guest</span></div>
+          <div class="tpl"><span class="n">05</span><span class="title">New booking request on your space</span><span class="who">Host</span></div>
+          <div class="tpl active"><span class="n">06</span><span class="title">Your booking is confirmed</span><span class="who">Guest</span></div>
+          <div class="tpl"><span class="n">07</span><span class="title">Your booking could not be accepted</span><span class="who">Guest</span></div>
+          <div class="tpl"><span class="n">08</span><span class="title">Booking cancellation confirmed</span><span class="who">Guest</span></div>
+          <div class="tpl"><span class="n">09</span><span class="title">A guest cancelled their booking</span><span class="who">Host</span></div>
+          <div class="tpl"><span class="n">10</span><span class="title">Receipt for your DeskHive booking</span><span class="who">Guest</span></div>
+          <div class="tpl"><span class="n">11</span><span class="title">Refund processed</span><span class="who">Guest</span></div>
+          <div class="tpl"><span class="n">12</span><span class="title">Payout sent</span><span class="who">Host</span></div>
+          <div class="tpl"><span class="n">13</span><span class="title">Identity needs re-verification</span><span class="who">Host</span></div>
+        </div>
+
+        <div style="margin-top: 1rem; padding: 1rem 1.125rem; border: 1px solid var(--color-border); border-radius: var(--radius-xl); background: var(--color-neutral-0);">
+          <p style="font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-neutral-500);">Delivery</p>
+          <p style="margin-top: 0.25rem; font-size: 13px; color: var(--color-neutral-700);">Sent via <strong>Resend</strong>. <code style="font-family: var(--font-mono); font-size: 12px;">notifications@deskhive.app</code> · SPF + DKIM signed.</p>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+</body>
+</html>

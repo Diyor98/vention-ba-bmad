@@ -1,0 +1,167 @@
+DeskHive — Phase 2 PRD (дизайн-версия)
+Детальное описание экранов и потоков для дизайн-работы
+Автор: Ихтиёр Зияев, Business Analyst
+Для: Махбуба Комилова, Designer
+Дата: 12 мая 2026
+Связанный документ: Phase 2 Design Brief (короткий обзор)
+
+0. Как читать этот документ
+Документ описывает все экраны и потоки Phase 2 с фокусом на дизайн. Технические детали (база данных, серверные действия, интеграция с API) опущены — они в основном PRD для разработки. Здесь только то, что нужно тебе для проектирования.
+1. Цели Phase 2
+Превратить DeskHive в полноценный маркетплейс по модели Airbnb. Конкретно:
+Независимые Space Owners могут подавать заявки, проходить рассмотрение и публиковать свои пространства
+Гости могут оплачивать бронирования через Stripe (в тестовом режиме)
+Space Owners получают выплаты (минус 15% комиссия платформы)
+Все стороны получают email-уведомления на ключевые события
+2. Демо-сценарий, который должен заработать
+В конце Phase 2 этот сценарий должен пройти от начала до конца на тестовой среде:
+Новый Guest регистрируется и входит в систему
+Guest видит в выпадающем меню &quot;Become a Space Owner&quot; и нажимает
+Заполняет форму заявки (название бизнеса, адрес, tax ID), отправляет
+Получает email &quot;Мы получили вашу заявку&quot;
+Super Admin видит заявку в /admin/applications, рассматривает, нажимает Approve
+Одобренный Space Owner получает email &quot;Добро пожаловать в DeskHive Hosting&quot;
+В шапке появляется опция &quot;Switch to hosting&quot;, Space Owner переключается
+Заходит на /owner, проходит онбординг Stripe Connect (тестовый), создаёт пространство с двумя столами
+Другой Guest находит это пространство, бронирует стол, оплачивает тестовой картой Stripe
+Guest видит toast &quot;Booking requested&quot; + получает email с чеком
+Space Owner получает email &quot;Новое бронирование&quot;
+Space Owner подтверждает бронирование → деньги списываются с карты
+Guest получает email &quot;Бронирование подтверждено&quot;
+Через какое-то время Guest отменяет → если до даты больше 24 часов → полный возврат + email; если меньше — отмена не разрешена с пояснением
+3. Роли в Phase 2
+Три роли, переключение режимов после авторизации:
+Роль
+Как получить
+Возможности
+Guest
+По умолчанию при регистрации
+Браузинг пространств, бронирование, оплата, отмена своих бронирований, подача заявки на хостинг
+Space Owner
+Заявка одобрена Super Admin&apos;ом
+Всё что и Guest + создание/редактирование своих пространств, управление бронированиями на своих пространствах, просмотр выплат
+Super Admin
+Сидируется (внутренний)
+Рассмотрение заявок, обзор всех пространств, разрешение споров. Не владеет пространствами сам.
+Важно: Space Owner остаётся и Guest&apos;ом. Может бронировать столы у других хостов. Переключение между режимами Guest/Host — это UI-выбор, не смена роли.
+4. Варианты навигации (шапки)
+Эти варианты уже реализованы в коде (Story 7-1). Нужен твой визуал на их основе.
+Состояние пользователя
+Элементы навигации
+Не залогинен (Public)
+Logo + Browse spaces + Log in + Sign up
+Guest (залогинен)
+Logo + Browse spaces + My bookings + user-pill (с опцией Become a Space Owner) + Log out
+Space Owner в Guest-режиме
+Logo + Browse spaces + My bookings + user-pill (с опцией Switch to hosting) + Log out
+Space Owner в Host-режиме
+Logo + Dashboard + My spaces + Bookings + user-pill (с опцией Switch to traveling) + Log out
+Super Admin
+Logo + Browse spaces + Admin + user-pill + Log out (как в Phase 1)
+Дропдаун user-pill — нужен твой дизайн самого выпадающего меню. Сейчас оно использует native &lt;details&gt; элемент с базовым стилем. Хотелось бы более продуманный визуал — аватар, имя, email сверху, потом список действий, разделитель, Log out внизу.
+5. Список экранов на дизайн
+5.1. /become-a-host — Лендинг + форма заявки
+Аудитория: Guest, который думает о хостинге.
+Должно быть на странице:
+Заголовок и подзаголовок (что-то вроде &quot;Стань хостом DeskHive&quot; + &quot;Зарабатывай на пустующих столах в твоём пространстве&quot;)
+Короткое объяснение ценности (3-4 пункта: &quot;Без аренды контракта&quot;, &quot;15% комиссия&quot;, &quot;Гибкое управление&quot;, &quot;Защита платежей&quot;)
+Форма заявки с полями: Full name (заполнен из аккаунта), Business name, Business address (многострочное), Tax ID, Optional motivation textarea (1000 символов)
+Раздел &quot;Что дальше&quot; — описание процесса (заявка → рассмотрение Super Admin&apos;ом до 48 часов → одобрение/отказ → email)
+Кнопка отправки заявки
+5.2. /admin/applications — Список заявок (Super Admin)
+Аудитория: Super Admin.
+Использует существующий admin sub-nav (Spaces / Bookings / Guests + добавляется новая вкладка Applications)
+Фильтр-чипы: All / Pending / Approved / Rejected (как в /admin/bookings)
+Таблица заявок: дата подачи, имя заявителя, email, название бизнеса, статус-бейдж, действие (Approve / Reject inline или Review кнопка)
+Сортировка по дате подачи
+5.3. /admin/applications/[id] — Детали заявки
+Все поля заявки в read-only виде
+Кнопки Approve / Reject
+При нажатии Reject — модалка с textarea для причины (опционально)
+Хлебные крошки: Admin / Applications / [имя заявителя]
+5.4. /owner — Дашборд Space Owner
+Аудитория: Space Owner в Host-режиме.
+Приветствие с именем хоста
+Карточки со статистикой: &quot;Active spaces&quot; (число), &quot;Pending bookings&quot; (число), &quot;This month payouts&quot; ($ сумма)
+Быстрые ссылки на My spaces / Bookings / Payouts
+Если Stripe Connect онбординг не завершён — заметный CTA &quot;Complete payout setup&quot; с переходом на /owner/settings
+5.5. /owner/spaces и /owner/spaces/[id]
+Аналогично /admin/spaces из Phase 1, но фильтрованно только для пространств этого хоста. Можно использовать тот же визуал, просто другая навигация в шапке.
+5.6. /owner/bookings
+Аналогично /admin/bookings из Phase 1, но только бронирования на пространствах этого хоста. Confirm / Reject действия как в Phase 1.
+5.7. /owner/payouts — История выплат
+Таблица: дата, сумма, статус (Paid / Pending / Failed)
+Опционально — топовая статистика (всего выплачено, ожидает выплаты)
+Пустое состояние если выплат ещё не было
+5.8. /owner/settings — Статус Stripe Connect
+Если онбординг не начат: большой CTA &quot;Set up payouts with Stripe&quot;
+Если в процессе: &quot;Continue Stripe onboarding&quot; + индикаторы что осталось
+Если завершён: зелёные галочки (Charges enabled, Payouts enabled) + ссылка &quot;Manage on Stripe&quot;
+5.9. Расширение Booking flow для оплаты
+Расширяет существующий /spaces/[id] из Phase 1.
+При нажатии &quot;Book this desk&quot; — переход на Stripe Checkout (он сам владеет UI оплаты)
+После успешной оплаты — возврат на /spaces/[id] с зелёным toast&apos;ом &quot;Booking requested&quot;
+При ошибке оплаты — возврат с красным toast&apos;ом с описанием
+В Stripe Checkout мы не управляем дизайном — это страница Stripe
+5.10. Расширение My bookings — UI отмены
+На бронированиях больше чем за 24 часа: кнопка &quot;Cancel and get refund&quot; доступна
+На бронированиях менее чем за 24 часа: кнопка &quot;Cancel&quot; задизейблена с tooltip&apos;ом &quot;Cancellations within 24 hours are not eligible for refund&quot;
+При отмене — модалка-подтверждение с указанием суммы возврата
+6. Email-шаблоны (13 типов)
+Все письма используют общий шаблон-обёртку (логотип DeskHive в шапке, футер с реквизитами компании, основной цвет — индиго бренд). Plain-text fallback нужен для каждого письма.
+Событие
+Получатель
+Тема письма
+Заявка подана
+Заявитель
+&quot;We received your Space Owner application&quot;
+Заявка одобрена
+Заявитель
+&quot;Welcome to DeskHive Hosting&quot;
+Заявка отклонена
+Заявитель
+&quot;Update on your DeskHive application&quot;
+Бронирование запрошено
+Guest
+&quot;Booking request received&quot;
+Бронирование запрошено
+Space Owner
+&quot;New booking request on your space&quot;
+Бронирование подтверждено
+Guest
+&quot;Your booking is confirmed&quot;
+Бронирование отклонено
+Guest
+&quot;Your booking could not be accepted&quot;
+Бронирование отменено гостем
+Guest
+&quot;Booking cancellation confirmed&quot;
+Бронирование отменено гостем
+Space Owner
+&quot;A guest cancelled their booking&quot;
+Платёж проведён
+Guest
+&quot;Receipt for your DeskHive booking&quot;
+Возврат проведён
+Guest
+&quot;Refund processed&quot;
+Выплата хосту
+Space Owner
+&quot;Payout sent&quot;
+На текущем этапе мне нужен базовый дизайн обёртки (шапка/футер) + один пример наполнения письма (например, &quot;Booking confirmed&quot;). Остальные шаблоны можно делать после, по мере того как Stories ставятся в работу.
+7. Что переиспользуем из Phase 1
+Дизайн-токены (цвета, типография, отступы, тени, радиусы) — без изменений
+StatusBadge — добавляем варианты PENDING / APPROVED / REJECTED для заявок
+Buttons (.btn-primary, .btn-secondary, .btn-sm, .btn-xs)
+Cards и формы — те же стили из shared.css
+Header/Footer — расширяем существующий
+Tables, sortable columns, filter chips — добавляем для admin/applications и owner/bookings, owner/payouts
+Toast (всплывающие уведомления) — обёртка готова, нужны только новые типы уведомлений для платежей и заявок
+8. Как двигаемся по работе
+Предлагаю работать по темам, в той же последовательности что и разработка:
+Сначала Theme A (Multi-Tenant) — экраны 5.1, 5.2, 5.3, 5.4, 5.5, 5.6
+Параллельно или после — Theme B (Payments) — экраны 5.7, 5.8, 5.9, 5.10
+Параллельно — Theme C (Email) — шаблоны писем
+Не нужно делать всё сразу. Достаточно отдавать мне дизайн по экранам этой темы по мере готовности — я смогу запускать разработку соответствующих историй параллельно.
+Если есть вопросы по конкретному экрану — давай обсудим в Teams. Если что-то в этом PRD не понятно или хочется изменить — пиши, обсудим.
+Спасибо! 🙏

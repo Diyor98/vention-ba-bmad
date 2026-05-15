@@ -1,0 +1,524 @@
+<!doctype html>
+<!--
+  Admin · Bookings list — every booking. Pending rows get inline
+  Confirm / Reject buttons. Other rows show a status badge only.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bookings · Admin · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13/dist/index.global.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body data-screen-label="08 Admin Bookings">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+        <span class="mode-pill"><span class="dot"></span>Admin</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="01-landing.html" class="nav-link">View as guest</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <span class="user-pill">
+          <span class="user-avatar" aria-hidden="true">IK</span>
+          <span class="username text-[13px] font-medium">Ikhtiyor</span>
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm">Log out</button>
+      </nav>
+    </div>
+  </header>
+
+  <div class="admin-subnav">
+    <div class="admin-subnav-inner">
+      <nav class="admin-tabs" aria-label="Admin sections">
+        <a href="06-admin-spaces.html" class="admin-tab">
+          Spaces <span class="count">14</span>
+        </a>
+        <a href="08-admin-bookings.html" class="admin-tab" aria-current="page">
+          Bookings <span class="count alert">7</span>
+        </a>
+        <a href="#" class="admin-tab">
+          Guests <span class="count">328</span>
+        </a>
+      </nav>
+      <div class="admin-subnav-meta">
+        <span>Synced just now</span>
+        <span class="sep" aria-hidden="true"></span>
+        <span>v0.4.2 · Phase 1</span>
+      </div>
+    </div>
+  </div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
+    </symbol>
+  </svg>
+
+  <main class="container-content admin-page">
+
+    <div class="admin-page-head">
+      <div>
+        <h1>Bookings</h1>
+        <p class="sub">Every booking on the platform. Confirm or reject pending requests inline.</p>
+      </div>
+      <div class="admin-actions">
+        <button type="button" class="btn btn-secondary btn-sm">Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="admin-toolbar">
+      <div class="admin-toolbar-left">
+        <label class="search">
+          <svg aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" placeholder="Search guest, space, or booking ID…" />
+          <span class="kbd" aria-hidden="true">⌘K</span>
+        </label>
+        <div class="flex items-center gap-1.5" role="group" aria-label="Status filter">
+          <button type="button" class="chip">All <span class="count">142</span></button>
+          <button type="button" class="chip" aria-pressed="true">Pending <span class="count">7</span></button>
+          <button type="button" class="chip">Confirmed <span class="count">98</span></button>
+          <button type="button" class="chip">Rejected <span class="count">12</span></button>
+          <button type="button" class="chip">Cancelled <span class="count">25</span></button>
+        </div>
+      </div>
+      <div class="admin-toolbar-right">
+        <input type="date" class="select" style="width: auto;" value="2025-05-01" aria-label="From date" />
+        <select class="select" aria-label="Space">
+          <option>All spaces</option>
+          <option>The Hive — Riverside</option>
+          <option>Mission Annex</option>
+          <option>Northgate Studios</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table class="table compact">
+        <thead>
+          <tr>
+            <th style="width: 9rem;" class="sortable">Booked <span class="sort-arrow">↓</span></th>
+            <th style="width: 18%;">Guest</th>
+            <th style="width: 26%;">Space · Desk</th>
+            <th style="width: 9rem;">Date</th>
+            <th class="num" style="width: 5rem;">Total</th>
+            <th style="width: 7rem;">Status</th>
+            <th class="action" style="min-width: 12rem;"></th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- ── PENDING (top, highlighted) ── -->
+          <tr class="row-attention">
+            <td class="muted tnum">May 06, 14:22</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs">EM</span>
+                <div class="cell-stack">
+                  <span class="top">Elena Marquez</span>
+                  <span class="sub">elena.m@hey.com</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">The Hive — Riverside</span>
+                <span class="sub">Desk 3 · Standing</span>
+              </div>
+            </td>
+            <td class="tnum">Thu, May 14</td>
+            <td class="num tnum">$30</td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+            <td class="action">
+              <div class="action-set">
+                <button type="button" class="btn-xs btn-confirm">
+                  <svg><use href="#i-check"/></svg>Confirm
+                </button>
+                <button type="button" class="btn-xs btn-reject">
+                  <svg><use href="#i-x"/></svg>Reject
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="row-attention">
+            <td class="muted tnum">May 06, 09:48</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#FEF3C7; color:#78350F;">JT</span>
+                <div class="cell-stack">
+                  <span class="top">Jordan Tan</span>
+                  <span class="sub">j.tan@gmail.com</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">Mission Annex</span>
+                <span class="sub">Desk 12</span>
+              </div>
+            </td>
+            <td class="tnum">Mon, May 18</td>
+            <td class="num tnum">$24</td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+            <td class="action">
+              <div class="action-set">
+                <button type="button" class="btn-xs btn-confirm">
+                  <svg><use href="#i-check"/></svg>Confirm
+                </button>
+                <button type="button" class="btn-xs btn-reject">
+                  <svg><use href="#i-x"/></svg>Reject
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="row-attention">
+            <td class="muted tnum">May 05, 19:03</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#DCFCE7; color:#14532D;">MA</span>
+                <div class="cell-stack">
+                  <span class="top">Makhbuba A.</span>
+                  <span class="sub">makhbuba@deskhive.test</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">Northgate Studios</span>
+                <span class="sub">Desk 3</span>
+              </div>
+            </td>
+            <td class="tnum">Thu, May 14</td>
+            <td class="num tnum">$26</td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+            <td class="action">
+              <div class="action-set">
+                <button type="button" class="btn-xs btn-confirm">
+                  <svg><use href="#i-check"/></svg>Confirm
+                </button>
+                <button type="button" class="btn-xs btn-reject">
+                  <svg><use href="#i-x"/></svg>Reject
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="row-attention">
+            <td class="muted tnum">May 05, 17:30</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#FEE2E2; color:#7F1D1D;">SP</span>
+                <div class="cell-stack">
+                  <span class="top">Sam Patel</span>
+                  <span class="sub">sam.patel@protonmail.com</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">Atlas Workrooms</span>
+                <span class="sub">Desk 4</span>
+              </div>
+            </td>
+            <td class="tnum">Wed, May 20</td>
+            <td class="num tnum">$22</td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+            <td class="action">
+              <div class="action-set">
+                <button type="button" class="btn-xs btn-confirm">
+                  <svg><use href="#i-check"/></svg>Confirm
+                </button>
+                <button type="button" class="btn-xs btn-reject">
+                  <svg><use href="#i-x"/></svg>Reject
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- ── Confirmed / Rejected / Cancelled ── -->
+          <tr>
+            <td class="muted tnum">May 05, 11:15</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#E0E7FF; color:#3730A3;">RV</span>
+                <div class="cell-stack">
+                  <span class="top">Rohan Varma</span>
+                  <span class="sub">rohan@varma.studio</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">The Hive — Riverside</span>
+                <span class="sub">Desk 7 · Riverside</span>
+              </div>
+            </td>
+            <td class="tnum">Tue, May 12</td>
+            <td class="num tnum">$32</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Confirmed</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="muted tnum">May 04, 22:09</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#F4F4F5; color:#3F3F46;">AH</span>
+                <div class="cell-stack">
+                  <span class="top">Aiko Hayashi</span>
+                  <span class="sub">aiko.h@me.com</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">Folk House</span>
+                <span class="sub">Desk 1</span>
+              </div>
+            </td>
+            <td class="tnum">Fri, May 22</td>
+            <td class="num tnum">$28</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Confirmed</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="muted tnum">May 04, 16:42</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#FEF3C7; color:#78350F;">DK</span>
+                <div class="cell-stack">
+                  <span class="top">Daniela Kim</span>
+                  <span class="sub">daniela@kim.dev</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">Cedar &amp; Co.</span>
+                <span class="sub">Desk 1</span>
+              </div>
+            </td>
+            <td class="tnum">Sat, May 16</td>
+            <td class="num tnum">$22</td>
+            <td><span class="badge badge-rejected"><span class="dot"></span>Rejected</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="muted tnum">May 04, 10:20</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#DCFCE7; color:#14532D;">PN</span>
+                <div class="cell-stack">
+                  <span class="top">Priya Narayan</span>
+                  <span class="sub">priya@narayan.in</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">Sundial Coworks</span>
+                <span class="sub">Desk 9</span>
+              </div>
+            </td>
+            <td class="tnum">Mon, May 19</td>
+            <td class="num tnum">$20</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Confirmed</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="muted tnum">May 03, 13:55</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#E0E7FF; color:#3730A3;">LB</span>
+                <div class="cell-stack">
+                  <span class="top">Léa Boucher</span>
+                  <span class="sub">lea.b@laposte.net</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">The Hive — Riverside</span>
+                <span class="sub">Desk 2</span>
+              </div>
+            </td>
+            <td class="tnum">Mon, May 4</td>
+            <td class="num tnum">$24</td>
+            <td><span class="badge badge-cancelled"><span class="dot"></span>Cancelled</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="muted tnum">May 03, 09:11</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#FEE2E2; color:#7F1D1D;">TO</span>
+                <div class="cell-stack">
+                  <span class="top">Tomás Oliveira</span>
+                  <span class="sub">tomas@oliveira.pt</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">Folk House</span>
+                <span class="sub">Desk 5 · Quiet zone</span>
+              </div>
+            </td>
+            <td class="tnum">Wed, May 7</td>
+            <td class="num tnum">$26</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Confirmed</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="muted tnum">May 02, 18:34</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#F4F4F5; color:#3F3F46;">CN</span>
+                <div class="cell-stack">
+                  <span class="top">Chloé Nguyen</span>
+                  <span class="sub">chloe.n@example.fr</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">Atlas Workrooms</span>
+                <span class="sub">Desk 11</span>
+              </div>
+            </td>
+            <td class="tnum">Mon, May 5</td>
+            <td class="num tnum">$22</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Confirmed</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="muted tnum">May 02, 12:00</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#E0E7FF; color:#3730A3;">MO</span>
+                <div class="cell-stack">
+                  <span class="top">Mateo Ortiz</span>
+                  <span class="sub">mateo@ortiz.mx</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">Sundial Coworks</span>
+                <span class="sub">Desk 4</span>
+              </div>
+            </td>
+            <td class="tnum">Fri, May 9</td>
+            <td class="num tnum">$20</td>
+            <td><span class="badge badge-rejected"><span class="dot"></span>Rejected</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="muted tnum">May 01, 21:18</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#DCFCE7; color:#14532D;">HW</span>
+                <div class="cell-stack">
+                  <span class="top">Hannah Wei</span>
+                  <span class="sub">hannah.wei@gmail.com</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">Bridge Studio</span>
+                <span class="sub">Desk 6</span>
+              </div>
+            </td>
+            <td class="tnum">Tue, May 6</td>
+            <td class="num tnum">$24</td>
+            <td><span class="badge badge-cancelled"><span class="dot"></span>Cancelled</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="muted tnum">May 01, 11:45</td>
+            <td>
+              <div class="cell-primary">
+                <span class="avatar-xs" style="background:#FEF3C7; color:#78350F;">FK</span>
+                <div class="cell-stack">
+                  <span class="top">Felix Kraus</span>
+                  <span class="sub">felix.kraus@gmx.de</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack">
+                <span class="top">Atlas Workrooms</span>
+                <span class="sub">Desk 4</span>
+              </div>
+            </td>
+            <td class="tnum">Wed, Apr 29</td>
+            <td class="num tnum">$22</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Confirmed</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+      <div class="table-footer">
+        <span>Showing 14 of 142 bookings · 7 pending</span>
+        <div class="pager">
+          <button type="button" class="pager-btn" disabled>‹</button>
+          <button type="button" class="pager-btn" aria-current="page">1</button>
+          <button type="button" class="pager-btn">2</button>
+          <button type="button" class="pager-btn">3</button>
+          <button type="button" class="pager-btn">›</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+</body>
+</html>

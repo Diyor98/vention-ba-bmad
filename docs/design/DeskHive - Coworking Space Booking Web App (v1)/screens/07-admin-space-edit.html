@@ -1,0 +1,291 @@
+<!doctype html>
+<!--
+  Admin · Space edit — form on top, desk-management table below.
+  Sticky save bar tracks dirty/clean state.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Edit space · Admin · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13/dist/index.global.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body data-screen-label="07 Admin Space Edit">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+        <span class="mode-pill"><span class="dot"></span>Admin</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="01-landing.html" class="nav-link">View as guest</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <span class="user-pill">
+          <span class="user-avatar" aria-hidden="true">IK</span>
+          <span class="username text-[13px] font-medium">Ikhtiyor</span>
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm">Log out</button>
+      </nav>
+    </div>
+  </header>
+
+  <div class="admin-subnav">
+    <div class="admin-subnav-inner">
+      <nav class="admin-tabs" aria-label="Admin sections">
+        <a href="06-admin-spaces.html" class="admin-tab" aria-current="page">
+          Spaces <span class="count">14</span>
+        </a>
+        <a href="08-admin-bookings.html" class="admin-tab">
+          Bookings <span class="count alert">7</span>
+        </a>
+        <a href="#" class="admin-tab">
+          Guests <span class="count">328</span>
+        </a>
+      </nav>
+      <div class="admin-subnav-meta">
+        <span>Editing spc_8h3kf2</span>
+      </div>
+    </div>
+  </div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/>
+    </symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+    </symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </symbol>
+  </svg>
+
+  <main class="container-content admin-page">
+
+    <!-- Breadcrumb -->
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="06-admin-spaces.html">Spaces</a>
+      <span class="sep">/</span>
+      <span style="color: var(--color-neutral-700);">The Hive — Riverside</span>
+    </nav>
+
+    <!-- Page header -->
+    <div class="admin-page-head">
+      <div>
+        <h1>The Hive — Riverside</h1>
+        <div class="meta-strip mt-2">
+          <span class="meta-item"><span class="cell-id">spc_8h3kf2</span></span>
+          <span class="sep" aria-hidden="true"></span>
+          <span class="meta-item">Created <strong>Apr 02, 2025</strong></span>
+          <span class="sep" aria-hidden="true"></span>
+          <span class="meta-item">Updated <strong>2h ago</strong></span>
+          <span class="sep" aria-hidden="true"></span>
+          <span class="meta-item"><strong>12</strong> desks</span>
+          <span class="sep" aria-hidden="true"></span>
+          <span class="meta-item"><strong>48</strong> bookings (30d)</span>
+        </div>
+      </div>
+      <div class="admin-actions">
+        <a href="02-space-detail.html" class="btn btn-secondary btn-sm">
+          <svg style="width:14px;height:14px"><use href="#i-eye"/></svg>
+          View public page
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Space details form ── -->
+    <section class="form-card">
+      <div class="form-card-head">
+        <div>
+          <h2>Details</h2>
+          <p class="sub">Public information shown on the space detail page.</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" checked />
+          <span class="toggle-track"></span>
+          <span class="toggle-label">Active &amp; bookable</span>
+        </label>
+      </div>
+      <div class="form-card-body">
+        <div class="form-grid">
+          <div class="span-2">
+            <label class="field-label" for="f-name">Space name</label>
+            <input id="f-name" class="input" type="text" value="The Hive — Riverside" />
+            <p class="field-help">Shown as the headline on the listing card and detail page.</p>
+          </div>
+
+          <div>
+            <label class="field-label" for="f-city">City</label>
+            <input id="f-city" class="input" type="text" value="Brooklyn, NY" />
+          </div>
+
+          <div>
+            <label class="field-label" for="f-address">Street address</label>
+            <input id="f-address" class="input" type="text" value="218 Kent Avenue, Brooklyn, NY 11249" />
+          </div>
+
+          <div class="span-2">
+            <label class="field-label" for="f-desc">Description</label>
+            <textarea id="f-desc" class="input">Sunlit second-floor space overlooking the East River. 14 hot desks, two phone booths, fast Wi-Fi, and an espresso bar that opens at 8 AM. Quiet by default; phone calls in booths only.</textarea>
+            <p class="field-help">Plain text. ~50–120 words works best.</p>
+          </div>
+
+          <div class="span-2">
+            <label class="field-label" for="f-img">Image URL</label>
+            <div class="input-row">
+              <input id="f-img" class="input" type="url" value="https://images.deskhive.example/spaces/hive-riverside-hero.jpg" />
+              <span class="addon">.jpg</span>
+            </div>
+            <p class="field-help">Paste a direct image URL. JPEG or PNG, ideally 1600×900 or larger.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Desks management ── -->
+    <section class="form-card">
+      <div class="form-card-head">
+        <div>
+          <h2>Desks</h2>
+          <p class="sub">Bookable desks inside this space. Deactivated desks stay in history but won't appear to guests.</p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('add-desk').scrollIntoView({block:'nearest'}); document.getElementById('new-desk-name').focus();">
+          <svg style="width:14px;height:14px"><use href="#i-plus"/></svg>
+          Add desk
+        </button>
+      </div>
+
+      <!-- Header row -->
+      <div class="desk-admin-row" style="background: var(--color-neutral-50); border-bottom: 1px solid var(--color-border); padding-top: 0.5rem; padding-bottom: 0.5rem;">
+        <span style="font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color: var(--color-neutral-500);">#</span>
+        <span style="font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color: var(--color-neutral-500);">Label</span>
+        <span style="font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color: var(--color-neutral-500);">Price / day</span>
+        <span style="font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color: var(--color-neutral-500);">Status</span>
+        <span style="font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color: var(--color-neutral-500); text-align:right;">30d</span>
+        <span></span>
+      </div>
+
+      <div class="desk-admin-row">
+        <span class="num">01</span>
+        <span class="name">Desk 1 · Window</span>
+        <span class="price"><strong>$28</strong> USD</span>
+        <span><span class="badge badge-confirmed"><span class="dot"></span>Active</span></span>
+        <span class="meta tnum" style="text-align:right;">6 booked</span>
+        <span class="actions">
+          <button type="button" class="icon-btn" aria-label="Edit desk"><svg><use href="#i-edit"/></svg></button>
+          <button type="button" class="icon-btn" aria-label="Deactivate desk"><svg><use href="#i-trash"/></svg></button>
+        </span>
+      </div>
+
+      <div class="desk-admin-row">
+        <span class="num">02</span>
+        <span class="name">Desk 2</span>
+        <span class="price"><strong>$24</strong> USD</span>
+        <span><span class="badge badge-confirmed"><span class="dot"></span>Active</span></span>
+        <span class="meta tnum" style="text-align:right;">4 booked</span>
+        <span class="actions">
+          <button type="button" class="icon-btn" aria-label="Edit desk"><svg><use href="#i-edit"/></svg></button>
+          <button type="button" class="icon-btn" aria-label="Deactivate desk"><svg><use href="#i-trash"/></svg></button>
+        </span>
+      </div>
+
+      <div class="desk-admin-row">
+        <span class="num">03</span>
+        <span class="name">Desk 3 · Standing</span>
+        <span class="price"><strong>$30</strong> USD</span>
+        <span><span class="badge badge-confirmed"><span class="dot"></span>Active</span></span>
+        <span class="meta tnum" style="text-align:right;">7 booked</span>
+        <span class="actions">
+          <button type="button" class="icon-btn" aria-label="Edit desk"><svg><use href="#i-edit"/></svg></button>
+          <button type="button" class="icon-btn" aria-label="Deactivate desk"><svg><use href="#i-trash"/></svg></button>
+        </span>
+      </div>
+
+      <div class="desk-admin-row">
+        <span class="num">04</span>
+        <span class="name">Desk 4</span>
+        <span class="price"><strong>$24</strong> USD</span>
+        <span><span class="badge badge-confirmed"><span class="dot"></span>Active</span></span>
+        <span class="meta tnum" style="text-align:right;">5 booked</span>
+        <span class="actions">
+          <button type="button" class="icon-btn" aria-label="Edit desk"><svg><use href="#i-edit"/></svg></button>
+          <button type="button" class="icon-btn" aria-label="Deactivate desk"><svg><use href="#i-trash"/></svg></button>
+        </span>
+      </div>
+
+      <div class="desk-admin-row">
+        <span class="num">05</span>
+        <span class="name">Desk 5 · Quiet zone</span>
+        <span class="price"><strong>$26</strong> USD</span>
+        <span><span class="badge badge-confirmed"><span class="dot"></span>Active</span></span>
+        <span class="meta tnum" style="text-align:right;">8 booked</span>
+        <span class="actions">
+          <button type="button" class="icon-btn" aria-label="Edit desk"><svg><use href="#i-edit"/></svg></button>
+          <button type="button" class="icon-btn" aria-label="Deactivate desk"><svg><use href="#i-trash"/></svg></button>
+        </span>
+      </div>
+
+      <div class="desk-admin-row">
+        <span class="num">06</span>
+        <span class="name">Desk 6</span>
+        <span class="price"><strong>$24</strong> USD</span>
+        <span><span class="badge badge-confirmed"><span class="dot"></span>Active</span></span>
+        <span class="meta tnum" style="text-align:right;">3 booked</span>
+        <span class="actions">
+          <button type="button" class="icon-btn" aria-label="Edit desk"><svg><use href="#i-edit"/></svg></button>
+          <button type="button" class="icon-btn" aria-label="Deactivate desk"><svg><use href="#i-trash"/></svg></button>
+        </span>
+      </div>
+
+      <div class="desk-admin-row" style="opacity: 0.7;">
+        <span class="num">07</span>
+        <span class="name">Desk 7 · Riverside</span>
+        <span class="price"><strong>$32</strong> USD</span>
+        <span><span class="badge badge-cancelled"><span class="dot"></span>Inactive</span></span>
+        <span class="meta tnum" style="text-align:right;">—</span>
+        <span class="actions">
+          <button type="button" class="icon-btn" aria-label="Edit desk"><svg><use href="#i-edit"/></svg></button>
+          <button type="button" class="icon-btn" aria-label="Reactivate desk"><svg><use href="#i-trash"/></svg></button>
+        </span>
+      </div>
+
+      <!-- Inline add row -->
+      <div class="add-desk-row" id="add-desk">
+        <input id="new-desk-name" type="text" class="input" placeholder="Label (e.g. Desk 8)" />
+        <div class="input-row">
+          <input type="number" class="input tnum" placeholder="24" min="1" step="1" />
+          <span class="addon">USD/day</span>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" style="height: 2rem;">
+          <svg style="width:14px;height:14px"><use href="#i-plus"/></svg>
+          Add desk
+        </button>
+      </div>
+    </section>
+
+    <!-- Sticky save bar -->
+    <div class="save-bar is-dirty">
+      <div class="status">
+        <span class="pulse"></span>
+        <span>Unsaved changes · last saved 2h ago</span>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-secondary btn-sm">Discard</button>
+        <button type="button" class="btn btn-primary btn-sm">Save changes</button>
+      </div>
+    </div>
+
+  </main>
+
+</body>
+</html>

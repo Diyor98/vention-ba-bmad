@@ -1,0 +1,158 @@
+<!doctype html>
+<!-- Narrow widths: the auth card already sits inside container-narrow (576px) — single column, full-width button, header collapses to logo + "Sign up" link. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Log in · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13/dist/index.global.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .auth-card {
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-2xl);
+      padding: 2.25rem;
+    }
+    @media (max-width: 480px) { .auth-card { padding: 1.5rem; } }
+
+    /* Role selector — segmented control. Two roles per the brief: Guest, Admin. */
+    .role-seg {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.25rem;
+      padding: 0.25rem;
+      background: var(--color-neutral-100);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 1.25rem;
+    }
+    .role-seg input { position: absolute; opacity: 0; pointer-events: none; }
+    .role-seg label {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 0.625rem;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: var(--font-weight-medium);
+      color: var(--color-neutral-600);
+      transition: background var(--duration-fast) var(--ease-standard),
+                  color var(--duration-fast) var(--ease-standard),
+                  box-shadow var(--duration-fast) var(--ease-standard);
+    }
+    .role-seg label:hover { color: var(--color-neutral-900); }
+    .role-seg input:checked + label {
+      background: var(--color-neutral-0);
+      color: var(--color-neutral-900);
+      box-shadow: var(--shadow-sm);
+    }
+    .role-seg input:focus-visible + label { box-shadow: var(--shadow-focus); }
+    .role-seg .role-icon {
+      width: 1.5rem; height: 1.5rem;
+      display: grid; place-items: center;
+      border-radius: var(--radius-sm);
+      background: var(--color-neutral-200);
+      color: var(--color-neutral-600);
+      flex: none;
+    }
+    .role-seg input:checked + label .role-icon {
+      background: var(--color-brand-100);
+      color: var(--color-brand-700);
+    }
+    .role-seg input[value="admin"]:checked + label .role-icon {
+      background: var(--color-neutral-900);
+      color: #fff;
+    }
+    .role-seg .role-text { display: flex; flex-direction: column; line-height: 1.25; }
+    .role-seg .role-text .sub {
+      font-size: 11px;
+      font-weight: var(--font-weight-regular);
+      color: var(--color-neutral-500);
+    }
+    .role-seg input:checked + label .role-text .sub { color: var(--color-neutral-500); }
+  </style>
+</head>
+<body data-screen-label="04 Login">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="03-register.html" class="nav-link">Sign up</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container-narrow" style="padding-top: 4rem; padding-bottom: 4rem;">
+
+    <div class="mb-6 text-center">
+      <h1 class="page-h1">Welcome back</h1>
+      <p class="mt-2 muted-strong" style="font-size: 14px;">Log in to manage your bookings.</p>
+    </div>
+
+    <section class="auth-card">
+      <form novalidate id="login-form">
+
+        <fieldset class="role-seg" aria-label="Sign in as">
+          <input type="radio" name="role" id="role-guest" value="guest" checked />
+          <label for="role-guest">
+            <span class="role-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+            </span>
+            <span class="role-text"><span>Guest</span><span class="sub">Book a desk</span></span>
+          </label>
+
+          <input type="radio" name="role" id="role-admin" value="admin" />
+          <label for="role-admin">
+            <span class="role-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v7c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5l-8-3Z"/></svg>
+            </span>
+            <span class="role-text"><span>Admin</span><span class="sub">Manage spaces</span></span>
+          </label>
+        </fieldset>
+
+        <div class="mb-4">
+          <label for="login-email" class="field-label">Email</label>
+          <input id="login-email" name="email" type="email" autocomplete="email" class="input" placeholder="you@company.com" required />
+        </div>
+
+        <div class="mb-6">
+          <label for="login-password" class="field-label">Password</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" class="input" placeholder="Your password" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Log in</button>
+
+      </form>
+    </section>
+
+    <p class="mt-6 text-center muted-strong" style="font-size: 14px;">
+      New to DeskHive?
+      <a href="03-register.html" style="color: var(--color-primary); font-weight: 500; text-decoration: none;">Create an account</a>
+    </p>
+
+  </main>
+
+  <script>
+    // Demo-only auth: any non-empty email + password "logs you in" by writing to localStorage.
+    // The real Next.js build replaces this with a session.
+    document.getElementById('login-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const pw = document.getElementById('login-password').value;
+      if (!email || !pw) return;
+      const role = (document.querySelector('input[name="role"]:checked') || {}).value || 'guest';
+      const name = email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Guest';
+      localStorage.setItem('deskhive.user', JSON.stringify({ email, name, role }));
+      location.href = role === 'admin' ? '06-admin-spaces.html' : '05-my-bookings.html';
+    });
+  </script>
+
+</body>
+</html>

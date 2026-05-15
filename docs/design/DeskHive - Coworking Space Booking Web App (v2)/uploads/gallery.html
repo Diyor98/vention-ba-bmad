@@ -1,0 +1,1032 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DeskHive — Component Gallery</title>
+
+  <!-- Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind v4 (browser build) — picks up @theme tokens from globals.css -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13/dist/index.global.min.js"></script>
+
+  <!-- Design tokens (inlined from globals.css) -->
+  <style id="globals-css">
+/* ============================================================
+   DeskHive — Design Tokens
+   Tailwind CSS v4 @theme block
+   (Inlined from globals.css; @import "tailwindcss" omitted
+    because the browser build already injects Tailwind.)
+   ============================================================ */
+
+@theme {
+  /* ----------------------------------------------------------
+     1. BRAND
+     ---------------------------------------------------------- */
+  /* Primary: a confident indigo-leaning blue.
+     Trustworthy enough for a marketplace, modern enough to sit
+     next to Linear / Stripe / Vercel without feeling generic. */
+  --color-brand-50:  #EEF2FF;
+  --color-brand-100: #E0E7FF;
+  --color-brand-200: #C7D2FE;
+  --color-brand-300: #A5B4FC;
+  --color-brand-400: #7C8CF8;
+  --color-brand-500: #5865F2;   /* base hover/active surface */
+  --color-brand-600: #4F46E5;   /* ← THE DeskHive primary */
+  --color-brand-700: #4338CA;
+  --color-brand-800: #3730A3;
+  --color-brand-900: #312E81;
+
+  --color-primary:        var(--color-brand-600);
+  --color-primary-hover:  var(--color-brand-700);
+  --color-primary-active: var(--color-brand-800);
+  --color-primary-fg:     #FFFFFF;
+  --color-ring:           var(--color-brand-600);
+
+  /* ----------------------------------------------------------
+     2. NEUTRALS — slightly cool, never blue-cast
+     ---------------------------------------------------------- */
+  --color-neutral-0:   #FFFFFF;
+  --color-neutral-50:  #FAFAFA;   /* page background (warm-ish) */
+  --color-neutral-100: #F4F4F5;   /* subtle surface, hover row */
+  --color-neutral-200: #E4E4E7;   /* hairline borders */
+  --color-neutral-300: #D4D4D8;   /* input borders */
+  --color-neutral-400: #A1A1AA;   /* placeholder, disabled fg */
+  --color-neutral-500: #71717A;   /* muted text, captions */
+  --color-neutral-600: #52525B;   /* secondary body */
+  --color-neutral-700: #3F3F46;   /* body strong */
+  --color-neutral-800: #27272A;   /* headings */
+  --color-neutral-900: #18181B;   /* near-black, primary text */
+  --color-neutral-950: #09090B;   /* hero text, max contrast */
+
+  /* Semantic surface aliases */
+  --color-background:        var(--color-neutral-0);
+  --color-background-subtle: var(--color-neutral-50);
+  --color-surface:           var(--color-neutral-0);
+  --color-surface-muted:     var(--color-neutral-100);
+  --color-border:            var(--color-neutral-200);
+  --color-border-strong:     var(--color-neutral-300);
+  --color-foreground:        var(--color-neutral-900);
+  --color-foreground-muted:  var(--color-neutral-500);
+  --color-foreground-subtle: var(--color-neutral-400);
+
+  /* ----------------------------------------------------------
+     3. STATUS — booking badges
+     bg + fg pairs all clear WCAG AA (≥4.5:1) for body text.
+     ---------------------------------------------------------- */
+  /* Pending — warm amber, "waiting" */
+  --color-status-pending-bg: #FEF3C7;   /* amber-100 */
+  --color-status-pending-fg: #78350F;   /* amber-900  ~9.8:1 on bg */
+  --color-status-pending-border: #FDE68A;
+
+  /* Confirmed — green, "secured" */
+  --color-status-confirmed-bg: #DCFCE7;   /* green-100 */
+  --color-status-confirmed-fg: #14532D;   /* green-900  ~10.1:1 */
+  --color-status-confirmed-border: #BBF7D0;
+
+  /* Rejected — red, "stop" */
+  --color-status-rejected-bg: #FEE2E2;    /* red-100 */
+  --color-status-rejected-fg: #7F1D1D;    /* red-900   ~9.4:1 */
+  --color-status-rejected-border: #FECACA;
+
+  /* Cancelled — neutral, "terminated" */
+  --color-status-cancelled-bg: #F4F4F5;   /* zinc-100 */
+  --color-status-cancelled-fg: #3F3F46;   /* zinc-700  ~9.6:1 */
+  --color-status-cancelled-border: #E4E4E7;
+
+  /* ----------------------------------------------------------
+     4. TYPOGRAPHY
+     Inter — see rationale below. Variable font, with tabular
+     numbers turned on for prices and dates.
+     ---------------------------------------------------------- */
+  --font-sans: "Inter", "Inter Variable", ui-sans-serif, system-ui,
+               -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+               Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+               Consolas, "Liberation Mono", monospace;
+
+  /* Type scale — 5 steps */
+  /* display: marketing/empty-state moments only */
+  --text-display:           2.5rem;     /* 40px */
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 600;
+
+  /* h1: page titles */
+  --text-h1:                1.875rem;   /* 30px */
+  --text-h1--line-height:   1.2;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h1--font-weight:   600;
+
+  /* h2: section titles, card headers */
+  --text-h2:                1.25rem;    /* 20px */
+  --text-h2--line-height:   1.35;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h2--font-weight:   600;
+
+  /* body: default reading size */
+  --text-body:              0.9375rem;  /* 15px */
+  --text-body--line-height: 1.55;
+  --text-body--letter-spacing: 0em;
+  --text-body--font-weight: 400;
+
+  /* caption: badges, meta, helper text */
+  --text-caption:           0.8125rem;  /* 13px */
+  --text-caption--line-height: 1.45;
+  --text-caption--letter-spacing: 0.005em;
+  --text-caption--font-weight: 500;
+
+  /* Weight tokens (for direct use) */
+  --font-weight-regular:  400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+
+  /* ----------------------------------------------------------
+     5. SPACING — 4px base, up to 64px
+     ---------------------------------------------------------- */
+  --spacing: 0.25rem;        /* Tailwind v4 base unit = 4px  */
+
+  /* Named tokens (for semantic use alongside the numeric scale) */
+  --spacing-0:   0;
+  --spacing-1:   0.25rem;    /*  4px */
+  --spacing-2:   0.5rem;     /*  8px */
+  --spacing-3:   0.75rem;    /* 12px */
+  --spacing-4:   1rem;       /* 16px */
+  --spacing-5:   1.25rem;    /* 20px */
+  --spacing-6:   1.5rem;     /* 24px */
+  --spacing-8:   2rem;       /* 32px */
+  --spacing-10:  2.5rem;     /* 40px */
+  --spacing-12:  3rem;       /* 48px */
+  --spacing-14:  3.5rem;     /* 56px */
+  --spacing-16:  4rem;       /* 64px */
+
+  /* Layout */
+  --container-content: 72rem;   /* 1152px — main content max-width */
+  --container-narrow:  36rem;   /* 576px — auth forms */
+  --layout-gutter:     1.5rem;  /* 24px side padding (mobile/tablet) */
+  --layout-gutter-lg:  2rem;    /* 32px side padding (desktop)       */
+  --layout-header-h:   3.75rem; /* 60px header height                */
+
+  /* ----------------------------------------------------------
+     6. RADII
+     ---------------------------------------------------------- */
+  --radius-xs:   2px;
+  --radius-sm:   4px;
+  --radius-md:   6px;     /* inputs, badges */
+  --radius-lg:   8px;     /* buttons */
+  --radius-xl:   12px;    /* cards */
+  --radius-2xl:  16px;    /* hero / large surfaces */
+  --radius-full: 9999px;
+
+  /* ----------------------------------------------------------
+     7. SHADOWS — whisper-quiet only.
+     No depth theatre, no glass. Used sparingly.
+     ---------------------------------------------------------- */
+  --shadow-xs: 0 1px 1px 0 rgb(24 24 27 / 0.04);
+  --shadow-sm: 0 1px 2px 0 rgb(24 24 27 / 0.05);
+  --shadow-md: 0 1px 2px 0 rgb(24 24 27 / 0.04),
+               0 2px 6px -2px rgb(24 24 27 / 0.05);
+  --shadow-focus: 0 0 0 3px rgb(79 70 229 / 0.18);   /* brand ring */
+
+  /* ----------------------------------------------------------
+     8. MOTION (defaults — keep gentle)
+     ---------------------------------------------------------- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast:    120ms;
+  --duration-default: 180ms;
+  --duration-slow:    260ms;
+}
+
+:root {
+  /* ----------------------------------------------------------
+     1. BRAND
+     ---------------------------------------------------------- */
+  /* Primary: a confident indigo-leaning blue.
+     Trustworthy enough for a marketplace, modern enough to sit
+     next to Linear / Stripe / Vercel without feeling generic. */
+  --color-brand-50:  #EEF2FF;
+  --color-brand-100: #E0E7FF;
+  --color-brand-200: #C7D2FE;
+  --color-brand-300: #A5B4FC;
+  --color-brand-400: #7C8CF8;
+  --color-brand-500: #5865F2;   /* base hover/active surface */
+  --color-brand-600: #4F46E5;   /* ← THE DeskHive primary */
+  --color-brand-700: #4338CA;
+  --color-brand-800: #3730A3;
+  --color-brand-900: #312E81;
+
+  --color-primary:        var(--color-brand-600);
+  --color-primary-hover:  var(--color-brand-700);
+  --color-primary-active: var(--color-brand-800);
+  --color-primary-fg:     #FFFFFF;
+  --color-ring:           var(--color-brand-600);
+
+  /* ----------------------------------------------------------
+     2. NEUTRALS — slightly cool, never blue-cast
+     ---------------------------------------------------------- */
+  --color-neutral-0:   #FFFFFF;
+  --color-neutral-50:  #FAFAFA;   /* page background (warm-ish) */
+  --color-neutral-100: #F4F4F5;   /* subtle surface, hover row */
+  --color-neutral-200: #E4E4E7;   /* hairline borders */
+  --color-neutral-300: #D4D4D8;   /* input borders */
+  --color-neutral-400: #A1A1AA;   /* placeholder, disabled fg */
+  --color-neutral-500: #71717A;   /* muted text, captions */
+  --color-neutral-600: #52525B;   /* secondary body */
+  --color-neutral-700: #3F3F46;   /* body strong */
+  --color-neutral-800: #27272A;   /* headings */
+  --color-neutral-900: #18181B;   /* near-black, primary text */
+  --color-neutral-950: #09090B;   /* hero text, max contrast */
+
+  /* Semantic surface aliases */
+  --color-background:        var(--color-neutral-0);
+  --color-background-subtle: var(--color-neutral-50);
+  --color-surface:           var(--color-neutral-0);
+  --color-surface-muted:     var(--color-neutral-100);
+  --color-border:            var(--color-neutral-200);
+  --color-border-strong:     var(--color-neutral-300);
+  --color-foreground:        var(--color-neutral-900);
+  --color-foreground-muted:  var(--color-neutral-500);
+  --color-foreground-subtle: var(--color-neutral-400);
+
+  /* ----------------------------------------------------------
+     3. STATUS — booking badges
+     bg + fg pairs all clear WCAG AA (≥4.5:1) for body text.
+     ---------------------------------------------------------- */
+  /* Pending — warm amber, "waiting" */
+  --color-status-pending-bg: #FEF3C7;   /* amber-100 */
+  --color-status-pending-fg: #78350F;   /* amber-900  ~9.8:1 on bg */
+  --color-status-pending-border: #FDE68A;
+
+  /* Confirmed — green, "secured" */
+  --color-status-confirmed-bg: #DCFCE7;   /* green-100 */
+  --color-status-confirmed-fg: #14532D;   /* green-900  ~10.1:1 */
+  --color-status-confirmed-border: #BBF7D0;
+
+  /* Rejected — red, "stop" */
+  --color-status-rejected-bg: #FEE2E2;    /* red-100 */
+  --color-status-rejected-fg: #7F1D1D;    /* red-900   ~9.4:1 */
+  --color-status-rejected-border: #FECACA;
+
+  /* Cancelled — neutral, "terminated" */
+  --color-status-cancelled-bg: #F4F4F5;   /* zinc-100 */
+  --color-status-cancelled-fg: #3F3F46;   /* zinc-700  ~9.6:1 */
+  --color-status-cancelled-border: #E4E4E7;
+
+  /* ----------------------------------------------------------
+     4. TYPOGRAPHY
+     Inter — see rationale below. Variable font, with tabular
+     numbers turned on for prices and dates.
+     ---------------------------------------------------------- */
+  --font-sans: "Inter", "Inter Variable", ui-sans-serif, system-ui,
+               -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+               Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+               Consolas, "Liberation Mono", monospace;
+
+  /* Type scale — 5 steps */
+  /* display: marketing/empty-state moments only */
+  --text-display:           2.5rem;     /* 40px */
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 600;
+
+  /* h1: page titles */
+  --text-h1:                1.875rem;   /* 30px */
+  --text-h1--line-height:   1.2;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h1--font-weight:   600;
+
+  /* h2: section titles, card headers */
+  --text-h2:                1.25rem;    /* 20px */
+  --text-h2--line-height:   1.35;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h2--font-weight:   600;
+
+  /* body: default reading size */
+  --text-body:              0.9375rem;  /* 15px */
+  --text-body--line-height: 1.55;
+  --text-body--letter-spacing: 0em;
+  --text-body--font-weight: 400;
+
+  /* caption: badges, meta, helper text */
+  --text-caption:           0.8125rem;  /* 13px */
+  --text-caption--line-height: 1.45;
+  --text-caption--letter-spacing: 0.005em;
+  --text-caption--font-weight: 500;
+
+  /* Weight tokens (for direct use) */
+  --font-weight-regular:  400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+
+  /* ----------------------------------------------------------
+     5. SPACING — 4px base, up to 64px
+     ---------------------------------------------------------- */
+  --spacing: 0.25rem;        /* Tailwind v4 base unit = 4px  */
+
+  /* Named tokens (for semantic use alongside the numeric scale) */
+  --spacing-0:   0;
+  --spacing-1:   0.25rem;    /*  4px */
+  --spacing-2:   0.5rem;     /*  8px */
+  --spacing-3:   0.75rem;    /* 12px */
+  --spacing-4:   1rem;       /* 16px */
+  --spacing-5:   1.25rem;    /* 20px */
+  --spacing-6:   1.5rem;     /* 24px */
+  --spacing-8:   2rem;       /* 32px */
+  --spacing-10:  2.5rem;     /* 40px */
+  --spacing-12:  3rem;       /* 48px */
+  --spacing-14:  3.5rem;     /* 56px */
+  --spacing-16:  4rem;       /* 64px */
+
+  /* Layout */
+  --container-content: 72rem;   /* 1152px — main content max-width */
+  --container-narrow:  36rem;   /* 576px — auth forms */
+  --layout-gutter:     1.5rem;  /* 24px side padding (mobile/tablet) */
+  --layout-gutter-lg:  2rem;    /* 32px side padding (desktop)       */
+  --layout-header-h:   3.75rem; /* 60px header height                */
+
+  /* ----------------------------------------------------------
+     6. RADII
+     ---------------------------------------------------------- */
+  --radius-xs:   2px;
+  --radius-sm:   4px;
+  --radius-md:   6px;     /* inputs, badges */
+  --radius-lg:   8px;     /* buttons */
+  --radius-xl:   12px;    /* cards */
+  --radius-2xl:  16px;    /* hero / large surfaces */
+  --radius-full: 9999px;
+
+  /* ----------------------------------------------------------
+     7. SHADOWS — whisper-quiet only.
+     No depth theatre, no glass. Used sparingly.
+     ---------------------------------------------------------- */
+  --shadow-xs: 0 1px 1px 0 rgb(24 24 27 / 0.04);
+  --shadow-sm: 0 1px 2px 0 rgb(24 24 27 / 0.05);
+  --shadow-md: 0 1px 2px 0 rgb(24 24 27 / 0.04),
+               0 2px 6px -2px rgb(24 24 27 / 0.05);
+  --shadow-focus: 0 0 0 3px rgb(79 70 229 / 0.18);   /* brand ring */
+
+  /* ----------------------------------------------------------
+     8. MOTION (defaults — keep gentle)
+     ---------------------------------------------------------- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast:    120ms;
+  --duration-default: 180ms;
+  --duration-slow:    260ms;
+}
+
+  </style>
+
+  <style>
+    html, body { font-family: var(--font-sans); }
+    body {
+      background: var(--color-neutral-50);
+      color: var(--color-neutral-900);
+      font-size: var(--text-body);
+      line-height: var(--text-body--line-height);
+      font-feature-settings: "cv11", "ss01", "ss03";
+    }
+    /* Tabular numbers for prices/dates as called for in the tokens */
+    .tnum { font-variant-numeric: tabular-nums; }
+
+    /* ---- Buttons (semantic <button>, no custom widget) ---- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      height: 2.5rem;            /* 40px */
+      padding: 0 1rem;           /* 16px */
+      border-radius: var(--radius-lg);
+      font-size: var(--text-body);
+      font-weight: var(--font-weight-medium);
+      letter-spacing: 0;
+      border: 1px solid transparent;
+      transition: background-color var(--duration-fast) var(--ease-standard),
+                  border-color    var(--duration-fast) var(--ease-standard),
+                  color           var(--duration-fast) var(--ease-standard),
+                  box-shadow      var(--duration-fast) var(--ease-standard);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .btn:focus-visible {
+      outline: none;
+      box-shadow: var(--shadow-focus);
+    }
+
+    .btn-primary {
+      background: var(--color-primary);
+      color: var(--color-primary-fg);
+      border-color: var(--color-primary);
+    }
+    .btn-primary:hover  { background: var(--color-primary-hover);  border-color: var(--color-primary-hover); }
+    .btn-primary:active { background: var(--color-primary-active); border-color: var(--color-primary-active); }
+
+    .btn-secondary {
+      background: var(--color-neutral-0);
+      color: var(--color-neutral-800);
+      border-color: var(--color-neutral-300);
+    }
+    .btn-secondary:hover  { background: var(--color-neutral-100); border-color: var(--color-neutral-300); }
+    .btn-secondary:active { background: var(--color-neutral-200); }
+
+    /* Disabled — must look obviously disabled per brief */
+    .btn:disabled,
+    .btn[aria-disabled="true"] {
+      cursor: not-allowed;
+      background: var(--color-neutral-100);
+      color: var(--color-neutral-400);
+      border-color: var(--color-neutral-200);
+      box-shadow: none;
+    }
+    .btn:disabled:hover { background: var(--color-neutral-100); }
+
+    /* Loading spinner */
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 9999px;
+      animation: spin 0.7s linear infinite;
+      opacity: 0.9;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Inputs ---- */
+    .input {
+      display: block;
+      width: 100%;
+      height: 2.5rem;
+      padding: 0 0.75rem;
+      background: var(--color-neutral-0);
+      color: var(--color-neutral-900);
+      border: 1px solid var(--color-neutral-300);
+      border-radius: var(--radius-md);
+      font-size: var(--text-body);
+      line-height: 1.4;
+      transition: border-color var(--duration-fast) var(--ease-standard),
+                  box-shadow   var(--duration-fast) var(--ease-standard);
+    }
+    .input::placeholder { color: var(--color-neutral-400); }
+    .input:hover { border-color: var(--color-neutral-400); }
+    .input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: var(--shadow-focus);
+    }
+    .input[aria-invalid="true"] {
+      border-color: #B91C1C; /* red-700 — only used here for input error border */
+    }
+    .input[aria-invalid="true"]:focus {
+      box-shadow: 0 0 0 3px rgb(185 28 28 / 0.18);
+    }
+
+    /* ---- StatusBadge ----
+       Per brief: ONE component, four variants, must be visually dominant
+       enough to satisfy "booking confidence is the #1 emotional requirement". */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      height: 1.625rem;          /* 26px */
+      padding: 0 0.625rem;       /* 10px */
+      border-radius: var(--radius-full);
+      font-size: var(--text-caption);
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: 0.005em;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 9999px;
+      background: currentColor;
+      flex: none;
+    }
+
+    .badge-pending {
+      background: var(--color-status-pending-bg);
+      color:      var(--color-status-pending-fg);
+      border-color: var(--color-status-pending-border);
+    }
+    .badge-confirmed {
+      background: var(--color-status-confirmed-bg);
+      color:      var(--color-status-confirmed-fg);
+      border-color: var(--color-status-confirmed-border);
+    }
+    /* Confirmed is the dominant variant — it's the moment the user came for.
+       Solid green fill at large size, white text, slight ring. */
+    .badge-lg.badge-confirmed {
+      background: #15803D;            /* green-700 */
+      color: #FFFFFF;
+      border-color: #166534;          /* green-800 */
+      box-shadow: 0 0 0 3px rgb(21 128 61 / 0.10);
+    }
+    .badge-lg.badge-confirmed .dot {
+      background: #BBF7D0;            /* green-200 dot on solid bg */
+    }
+    .badge-rejected {
+      background: var(--color-status-rejected-bg);
+      color:      var(--color-status-rejected-fg);
+      border-color: var(--color-status-rejected-border);
+    }
+    .badge-cancelled {
+      background: var(--color-status-cancelled-bg);
+      color:      var(--color-status-cancelled-fg);
+      border-color: var(--color-status-cancelled-border);
+    }
+
+    /* Strong size — used on the My Bookings list where dominance matters */
+    .badge-lg {
+      height: 2rem;
+      padding: 0 0.875rem;
+      font-size: var(--text-body);
+      gap: 0.625rem;
+    }
+    .badge-lg .dot { width: 8px; height: 8px; }
+
+    /* ---- Card ---- */
+    .card {
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      transition: border-color var(--duration-default) var(--ease-standard),
+                  box-shadow   var(--duration-default) var(--ease-standard),
+                  transform    var(--duration-default) var(--ease-standard);
+    }
+    .card-link:hover .card,
+    .card.is-hover {
+      border-color: var(--color-neutral-300);
+      box-shadow: var(--shadow-md);
+    }
+    .card-link:focus-visible {
+      outline: none;
+    }
+    .card-link:focus-visible .card {
+      box-shadow: var(--shadow-focus);
+      border-color: var(--color-primary);
+    }
+
+    /* Image placeholder — striped, monospace caption (per default aesthetic) */
+    .img-placeholder {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      background:
+        repeating-linear-gradient(
+          135deg,
+          var(--color-neutral-100) 0 12px,
+          var(--color-neutral-50)  12px 24px
+        );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .img-placeholder span {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--color-neutral-500);
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ---- Header ---- */
+    .site-header {
+      height: var(--layout-header-h);
+      background: var(--color-neutral-0);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .nav-link {
+      font-size: var(--text-body);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-neutral-600);
+      padding: 0.375rem 0.625rem;
+      border-radius: var(--radius-md);
+    }
+    .nav-link:hover     { color: var(--color-neutral-900); background: var(--color-neutral-100); }
+    .nav-link[aria-current="page"] { color: var(--color-neutral-900); }
+
+    /* DeskHive logo lockup — original mark, just a hex tile + wordmark */
+    .logo {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: -0.01em;
+      color: var(--color-neutral-900);
+      font-size: 1rem;
+    }
+    .logo-mark {
+      width: 22px; height: 22px;
+      background: var(--color-primary);
+      clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%);
+    }
+
+    /* ---- Gallery scaffolding ---- */
+    .section {
+      padding: 2.5rem 2rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .section:last-child { border-bottom: none; }
+    .section-title {
+      font-size: var(--text-h2);
+      line-height: var(--text-h2--line-height);
+      letter-spacing: var(--text-h2--letter-spacing);
+      font-weight: var(--text-h2--font-weight);
+      color: var(--color-neutral-900);
+      margin-bottom: 0.25rem;
+    }
+    .section-sub {
+      font-size: var(--text-caption);
+      color: var(--color-neutral-500);
+      margin-bottom: 1.5rem;
+    }
+    .state-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--color-neutral-500);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .specimen {
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ====== Page header for the gallery itself ====== -->
+  <header class="px-8 pt-10 pb-6 border-b" style="border-color: var(--color-border); background: var(--color-neutral-0);">
+    <div class="flex items-baseline justify-between gap-6 flex-wrap">
+      <div>
+        <div class="flex items-center gap-3 mb-2">
+          <span class="logo-mark"></span>
+          <span class="font-mono text-xs tracking-wider" style="color: var(--color-neutral-500);">DESKHIVE / DESIGN SYSTEM</span>
+        </div>
+        <h1 style="font-size: var(--text-h1); line-height: var(--text-h1--line-height); letter-spacing: var(--text-h1--letter-spacing); font-weight: var(--text-h1--font-weight);">
+          Component Gallery — v0.1
+        </h1>
+        <p class="mt-2 max-w-2xl" style="color: var(--color-neutral-600);">
+          Core components from Section&nbsp;5.3 of the brief, every state side by side.
+          Built with Tailwind v4 utility classes on semantic HTML, against the tokens in
+          <code class="font-mono text-[12px] px-1.5 py-0.5 rounded" style="background: var(--color-neutral-100); color: var(--color-neutral-700);">globals.css</code>.
+        </p>
+      </div>
+      <dl class="grid grid-cols-3 gap-x-8 gap-y-1 text-[13px] tnum" style="color: var(--color-neutral-600);">
+        <dt class="font-mono text-[11px] uppercase tracking-wider" style="color: var(--color-neutral-400);">Brand</dt>
+        <dt class="font-mono text-[11px] uppercase tracking-wider" style="color: var(--color-neutral-400);">Type</dt>
+        <dt class="font-mono text-[11px] uppercase tracking-wider" style="color: var(--color-neutral-400);">Base unit</dt>
+        <dd>#4F46E5</dd>
+        <dd>Inter</dd>
+        <dd>4px</dd>
+      </dl>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============================================================
+         BUTTON
+         ============================================================ -->
+    <section class="section" id="button">
+      <h2 class="section-title">Button</h2>
+      <p class="section-sub">Primary, secondary, disabled, loading — with hover and focus shown explicitly.</p>
+
+      <div class="grid grid-cols-[180px_1fr] gap-y-6 gap-x-6 items-center">
+
+        <!-- Primary row -->
+        <div class="state-label" style="margin:0;">Primary</div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button type="button" class="btn btn-primary">Book this desk</button>
+          <button type="button" class="btn btn-primary" style="background: var(--color-primary-hover); border-color: var(--color-primary-hover);">Book this desk</button>
+          <button type="button" class="btn btn-primary" style="box-shadow: var(--shadow-focus);">Book this desk</button>
+          <button type="button" class="btn btn-primary" disabled aria-disabled="true">Book this desk</button>
+          <button type="button" class="btn btn-primary" aria-busy="true" style="min-width: 9.25rem;">
+            <span class="spinner" aria-hidden="true"></span>
+            <span>Booking…</span>
+          </button>
+          <div class="flex flex-wrap gap-2 ml-2 font-mono text-[11px]" style="color: var(--color-neutral-400);">
+            <span>Default</span><span>·</span><span>Hover</span><span>·</span><span>Focus</span><span>·</span><span>Disabled</span><span>·</span><span>Loading</span>
+          </div>
+        </div>
+
+        <!-- Secondary row -->
+        <div class="state-label" style="margin:0;">Secondary</div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button type="button" class="btn btn-secondary">Cancel</button>
+          <button type="button" class="btn btn-secondary" style="background: var(--color-neutral-100);">Cancel</button>
+          <button type="button" class="btn btn-secondary" style="box-shadow: var(--shadow-focus); border-color: var(--color-primary);">Cancel</button>
+          <button type="button" class="btn btn-secondary" disabled aria-disabled="true">Cancel</button>
+          <button type="button" class="btn btn-secondary" aria-busy="true">
+            <span class="spinner" aria-hidden="true"></span>
+            <span>Cancelling…</span>
+          </button>
+        </div>
+
+      </div>
+
+      <details class="mt-8">
+        <summary class="text-[13px] cursor-pointer select-none" style="color: var(--color-neutral-500);">
+          Live (interact to see real hover & focus)
+        </summary>
+        <div class="flex gap-3 mt-4">
+          <button type="button" class="btn btn-primary">Primary</button>
+          <button type="button" class="btn btn-secondary">Secondary</button>
+          <button type="button" class="btn btn-primary" disabled>Disabled</button>
+          <button type="button" class="btn btn-primary" aria-busy="true">
+            <span class="spinner" aria-hidden="true"></span>Loading
+          </button>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============================================================
+         INPUT
+         ============================================================ -->
+    <section class="section" id="input">
+      <h2 class="section-title">Input</h2>
+      <p class="section-sub">Bare input element — no label/error wrapper. See FormField below for the composition.</p>
+
+      <div class="grid grid-cols-4 gap-6 max-w-4xl">
+        <div>
+          <div class="state-label">Default</div>
+          <input type="text" class="input" placeholder="you@company.com" />
+        </div>
+        <div>
+          <div class="state-label">Focused</div>
+          <input type="text" class="input" placeholder="you@company.com"
+                 style="border-color: var(--color-primary); box-shadow: var(--shadow-focus);" />
+        </div>
+        <div>
+          <div class="state-label">Filled</div>
+          <input type="text" class="input" value="makhbuba@deskhive.io" />
+        </div>
+        <div>
+          <div class="state-label">Error</div>
+          <input type="text" class="input" value="not-an-email" aria-invalid="true" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         FORMFIELD
+         ============================================================ -->
+    <section class="section" id="formfield">
+      <h2 class="section-title">FormField</h2>
+      <p class="section-sub">Input wrapped with label above and helper / error text below — semantic <code class="font-mono text-[12px]">&lt;label for&gt;</code> + <code class="font-mono text-[12px]">aria-describedby</code>.</p>
+
+      <div class="grid grid-cols-3 gap-8 max-w-5xl">
+
+        <!-- Default -->
+        <div class="specimen">
+          <div class="state-label">Default</div>
+          <div>
+            <label for="ff-1" class="block mb-1.5 text-[13px] font-medium" style="color: var(--color-neutral-700);">Email</label>
+            <input id="ff-1" type="email" class="input" placeholder="you@company.com" aria-describedby="ff-1-help" />
+            <p id="ff-1-help" class="mt-1.5 text-[12px]" style="color: var(--color-neutral-500);">
+              We'll only email you about your bookings.
+            </p>
+          </div>
+        </div>
+
+        <!-- Focused -->
+        <div class="specimen">
+          <div class="state-label">Focused</div>
+          <div>
+            <label for="ff-2" class="block mb-1.5 text-[13px] font-medium" style="color: var(--color-neutral-700);">Email</label>
+            <input id="ff-2" type="email" class="input" placeholder="you@company.com"
+                   style="border-color: var(--color-primary); box-shadow: var(--shadow-focus);" />
+            <p class="mt-1.5 text-[12px]" style="color: var(--color-neutral-500);">
+              We'll only email you about your bookings.
+            </p>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div class="specimen">
+          <div class="state-label">Error</div>
+          <div>
+            <label for="ff-3" class="block mb-1.5 text-[13px] font-medium" style="color: var(--color-neutral-700);">Email</label>
+            <input id="ff-3" type="email" class="input" value="not-an-email"
+                   aria-invalid="true" aria-describedby="ff-3-err" />
+            <p id="ff-3-err" class="mt-1.5 text-[12px] font-medium" style="color: #B91C1C;">
+              Enter a valid email address.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         CARD — coworking space
+         ============================================================ -->
+    <section class="section" id="card">
+      <h2 class="section-title">Card — Coworking Space</h2>
+      <p class="section-sub">Used on the homepage browse grid. Whole card is a single <code class="font-mono text-[12px]">&lt;a&gt;</code>.</p>
+
+      <div class="grid grid-cols-3 gap-6 max-w-5xl">
+
+        <!-- Default -->
+        <div>
+          <div class="state-label">Default</div>
+          <a href="#" class="card-link block">
+            <article class="card">
+              <div class="img-placeholder"><span>SPACE PHOTO</span></div>
+              <div class="p-4">
+                <h3 class="font-semibold" style="font-size: var(--text-h2); letter-spacing: var(--text-h2--letter-spacing); color: var(--color-neutral-900);">
+                  The Hive — Riverside
+                </h3>
+                <p class="mt-0.5 text-[13px]" style="color: var(--color-neutral-500);">Brooklyn, NY</p>
+              </div>
+            </article>
+          </a>
+        </div>
+
+        <!-- Hover -->
+        <div>
+          <div class="state-label">Hover</div>
+          <a href="#" class="card-link block" tabindex="-1">
+            <article class="card is-hover">
+              <div class="img-placeholder"><span>SPACE PHOTO</span></div>
+              <div class="p-4">
+                <h3 class="font-semibold" style="font-size: var(--text-h2); letter-spacing: var(--text-h2--letter-spacing); color: var(--color-neutral-900);">
+                  Northgate Studios
+                </h3>
+                <p class="mt-0.5 text-[13px]" style="color: var(--color-neutral-500);">Seattle, WA</p>
+              </div>
+            </article>
+          </a>
+        </div>
+
+        <!-- Focus -->
+        <div>
+          <div class="state-label">Focus</div>
+          <a href="#" class="card-link block">
+            <article class="card" style="box-shadow: var(--shadow-focus); border-color: var(--color-primary);">
+              <div class="img-placeholder"><span>SPACE PHOTO</span></div>
+              <div class="p-4">
+                <h3 class="font-semibold" style="font-size: var(--text-h2); letter-spacing: var(--text-h2--letter-spacing); color: var(--color-neutral-900);">
+                  Cedar &amp; Co.
+                </h3>
+                <p class="mt-0.5 text-[13px]" style="color: var(--color-neutral-500);">Austin, TX</p>
+              </div>
+            </article>
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================
+         STATUSBADGE — the critical one
+         ============================================================ -->
+    <section class="section" id="statusbadge">
+      <h2 class="section-title">StatusBadge</h2>
+      <p class="section-sub">
+        One component, four variants. Per the brief, "booking confidence is the #1 emotional requirement"
+        — so the badge is filled, bordered, with a colored dot. Two sizes: default for table rows, large for My Bookings cards.
+      </p>
+
+      <!-- Default size -->
+      <div class="state-label">Default size — for table rows and admin lists</div>
+      <div class="flex flex-wrap items-center gap-3 mb-8">
+        <span class="badge badge-pending"><span class="dot"></span>Pending</span>
+        <span class="badge badge-confirmed"><span class="dot"></span>Confirmed</span>
+        <span class="badge badge-rejected"><span class="dot"></span>Rejected</span>
+        <span class="badge badge-cancelled"><span class="dot"></span>Cancelled</span>
+      </div>
+
+      <!-- Large size -->
+      <div class="state-label">Large size — used on My Bookings page for visual dominance</div>
+      <div class="flex flex-wrap items-center gap-3 mb-8">
+        <span class="badge badge-lg badge-pending"><span class="dot"></span>Pending</span>
+        <span class="badge badge-lg badge-confirmed"><span class="dot"></span>Confirmed</span>
+        <span class="badge badge-lg badge-rejected"><span class="dot"></span>Rejected</span>
+        <span class="badge badge-lg badge-cancelled"><span class="dot"></span>Cancelled</span>
+      </div>
+
+      <!-- In context -->
+      <div class="state-label">In context — a My Bookings row</div>
+      <div class="specimen max-w-3xl">
+        <ul class="divide-y" style="border-color: var(--color-border);">
+          <li class="flex items-center justify-between py-3">
+            <div>
+              <p class="font-medium" style="color: var(--color-neutral-900);">The Hive — Riverside · Desk-7</p>
+              <p class="text-[13px] tnum" style="color: var(--color-neutral-500);">Tue, May 12 2026</p>
+            </div>
+            <span class="badge badge-lg badge-confirmed"><span class="dot"></span>Confirmed</span>
+          </li>
+          <li class="flex items-center justify-between py-3">
+            <div>
+              <p class="font-medium" style="color: var(--color-neutral-900);">Northgate Studios · Desk-3</p>
+              <p class="text-[13px] tnum" style="color: var(--color-neutral-500);">Thu, May 14 2026</p>
+            </div>
+            <span class="badge badge-lg badge-pending"><span class="dot"></span>Pending</span>
+          </li>
+          <li class="flex items-center justify-between py-3">
+            <div>
+              <p class="font-medium" style="color: var(--color-neutral-900);">Cedar &amp; Co. · Desk-1</p>
+              <p class="text-[13px] tnum" style="color: var(--color-neutral-500);">Sat, May 16 2026</p>
+            </div>
+            <span class="badge badge-lg badge-rejected"><span class="dot"></span>Rejected</span>
+          </li>
+          <li class="flex items-center justify-between py-3">
+            <div>
+              <p class="font-medium" style="color: var(--color-neutral-900);">The Hive — Riverside · Desk-2</p>
+              <p class="text-[13px] tnum" style="color: var(--color-neutral-500);">Mon, May 04 2026</p>
+            </div>
+            <span class="badge badge-lg badge-cancelled"><span class="dot"></span>Cancelled</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         HEADER — logged out & logged in
+         ============================================================ -->
+    <section class="section" id="header">
+      <h2 class="section-title">Header</h2>
+      <p class="section-sub">Logo on the left, nav and auth on the right. Two states.</p>
+
+      <!-- Logged out -->
+      <div class="state-label">Logged out</div>
+      <div class="specimen p-0 mb-8 overflow-hidden">
+        <header class="site-header">
+          <div class="h-full px-6 flex items-center justify-between">
+            <a href="#" class="logo">
+              <span class="logo-mark" aria-hidden="true"></span>
+              <span>DeskHive</span>
+            </a>
+            <nav class="flex items-center gap-1">
+              <a href="#" class="nav-link" aria-current="page">Browse spaces</a>
+              <a href="#" class="nav-link">How it works</a>
+              <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+              <a href="#" class="nav-link">Log in</a>
+              <a href="#" class="btn btn-primary" style="height: 2.25rem; padding: 0 0.875rem;">Sign up</a>
+            </nav>
+          </div>
+        </header>
+      </div>
+
+      <!-- Logged in -->
+      <div class="state-label">Logged in (Guest)</div>
+      <div class="specimen p-0 overflow-hidden">
+        <header class="site-header">
+          <div class="h-full px-6 flex items-center justify-between">
+            <a href="#" class="logo">
+              <span class="logo-mark" aria-hidden="true"></span>
+              <span>DeskHive</span>
+            </a>
+            <nav class="flex items-center gap-1">
+              <a href="#" class="nav-link">Browse spaces</a>
+              <a href="#" class="nav-link" aria-current="page">My bookings</a>
+              <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+              <span class="flex items-center gap-2 pl-2 pr-1 py-1 rounded-md" style="color: var(--color-neutral-700);">
+                <span aria-hidden="true"
+                      class="inline-flex items-center justify-center w-7 h-7 rounded-full text-[12px] font-semibold"
+                      style="background: var(--color-brand-100); color: var(--color-brand-700);">MA</span>
+                <span class="text-[13px] font-medium">Makhbuba</span>
+              </span>
+              <button type="button" class="btn btn-secondary" style="height: 2.25rem; padding: 0 0.75rem;">Log out</button>
+            </nav>
+          </div>
+        </header>
+      </div>
+    </section>
+
+    <!-- Footer note -->
+    <section class="section" style="background: var(--color-neutral-0);">
+      <div class="grid grid-cols-2 gap-8 max-w-5xl text-[13px]" style="color: var(--color-neutral-600);">
+        <div>
+          <h3 class="font-semibold mb-2" style="color: var(--color-neutral-900);">Constraints honored</h3>
+          <ul class="space-y-1.5 list-disc pl-5">
+            <li>Disabled buttons read as obviously unclickable (muted bg, muted fg, no hover affordance, <code class="font-mono text-[12px]">cursor: not-allowed</code>).</li>
+            <li>Only semantic HTML — no custom dropdowns, modals, or popovers.</li>
+            <li>Subtle effects only — single hairline borders, <code class="font-mono text-[12px]">--shadow-md</code> max on card hover, no glass.</li>
+            <li>StatusBadge is a single component with four variants; large size used where the brief calls for dominance.</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2" style="color: var(--color-neutral-900);">Open questions</h3>
+          <ul class="space-y-1.5 list-disc pl-5">
+            <li>Logo: placeholder hex mark for now — confirm whether a real wordmark / brand mark is in scope for v1.</li>
+            <li>Header on mobile: nav collapses to a single "Menu" link or stays visible? Out-of-scope per brief but worth flagging.</li>
+            <li>Loading button width — should it lock to the resting width to avoid layout shift? Currently natural-width.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

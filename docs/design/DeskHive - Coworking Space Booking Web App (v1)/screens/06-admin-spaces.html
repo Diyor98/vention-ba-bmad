@@ -1,0 +1,446 @@
+<!doctype html>
+<!--
+  Admin · Spaces list — table view, dense.
+  Same header chrome as guest screens, plus an "Admin" mode pill and a
+  secondary tab nav. Brand color reserved for primary CTA only.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spaces · Admin · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13/dist/index.global.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body data-screen-label="06 Admin Spaces">
+
+  <!-- ── Top header (matches guest screens) ── -->
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+        <span class="mode-pill"><span class="dot"></span>Admin</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="01-landing.html" class="nav-link">View as guest</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <span class="user-pill">
+          <span class="user-avatar" aria-hidden="true">IK</span>
+          <span class="username text-[13px] font-medium">Ikhtiyor</span>
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm">Log out</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── Admin secondary nav ── -->
+  <div class="admin-subnav">
+    <div class="admin-subnav-inner">
+      <nav class="admin-tabs" aria-label="Admin sections">
+        <a href="06-admin-spaces.html" class="admin-tab" aria-current="page">
+          Spaces <span class="count">14</span>
+        </a>
+        <a href="08-admin-bookings.html" class="admin-tab">
+          Bookings <span class="count alert">7</span>
+        </a>
+        <a href="#" class="admin-tab">
+          Guests <span class="count">328</span>
+        </a>
+      </nav>
+      <div class="admin-subnav-meta">
+        <span>Synced just now</span>
+        <span class="sep" aria-hidden="true"></span>
+        <span>v0.4.2 · Phase 1</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reusable inline SVGs -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 5v14M5 12h14"/>
+    </symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12h14M13 6l6 6-6 6"/>
+    </symbol>
+    <symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+      <path d="M9 8h.01M15 8h.01M9 12h.01M15 12h.01M9 16h.01M15 16h.01"/>
+    </symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
+    </symbol>
+    <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"/>
+    </symbol>
+  </svg>
+
+  <main class="container-content admin-page">
+
+    <!-- Page header -->
+    <div class="admin-page-head">
+      <div>
+        <h1>Spaces</h1>
+        <p class="sub">Coworking locations available for booking. Click a row to manage details and desks.</p>
+      </div>
+      <div class="admin-actions">
+        <button type="button" class="btn btn-secondary btn-sm">Export CSV</button>
+        <a href="07-admin-space-edit.html" class="btn btn-primary btn-sm">
+          <svg style="width:14px;height:14px"><use href="#i-plus"/></svg>
+          New space
+        </a>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="admin-toolbar">
+      <div class="admin-toolbar-left">
+        <label class="search">
+          <svg aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" placeholder="Search by name, city, or ID…" />
+          <span class="kbd" aria-hidden="true">⌘K</span>
+        </label>
+
+        <div class="flex items-center gap-1.5" role="group" aria-label="Status filter">
+          <button type="button" class="chip" aria-pressed="true">All <span class="count">14</span></button>
+          <button type="button" class="chip">Active <span class="count">11</span></button>
+          <button type="button" class="chip">Inactive <span class="count">3</span></button>
+        </div>
+      </div>
+      <div class="admin-toolbar-right">
+        <select class="select" aria-label="City filter">
+          <option>All cities</option>
+          <option>Brooklyn, NY</option>
+          <option>San Francisco, CA</option>
+          <option>Seattle, WA</option>
+        </select>
+        <select class="select" aria-label="Sort">
+          <option>Recently updated</option>
+          <option>Name (A–Z)</option>
+          <option>Most desks</option>
+          <option>Most bookings</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width: 36%;" class="sortable">Space <span class="sort-arrow">↑</span></th>
+            <th style="width: 16%;">City</th>
+            <th class="num" style="width: 8%;">Desks</th>
+            <th class="num" style="width: 10%;">Bookings (30d)</th>
+            <th style="width: 14%;">Updated</th>
+            <th style="width: 10%;">Status</th>
+            <th class="action"></th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">The Hive — Riverside</span>
+                  <span class="sub cell-id">spc_8h3kf2 · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">Brooklyn, NY</td>
+            <td class="num tnum">12</td>
+            <td class="num tnum">48</td>
+            <td class="muted tnum">2h ago</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Active</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Mission Annex</span>
+                  <span class="sub cell-id">spc_p2mq71 · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">San Francisco, CA</td>
+            <td class="num tnum">24</td>
+            <td class="num tnum">112</td>
+            <td class="muted tnum">Yesterday</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Active</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Northgate Studios</span>
+                  <span class="sub cell-id">spc_t4xv09 · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">Seattle, WA</td>
+            <td class="num tnum">8</td>
+            <td class="num tnum">31</td>
+            <td class="muted tnum">3d ago</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Active</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Folk House</span>
+                  <span class="sub cell-id">spc_lf09qr · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">Lisbon, PT</td>
+            <td class="num tnum">10</td>
+            <td class="num tnum">22</td>
+            <td class="muted tnum">3d ago</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Active</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Atlas Workrooms</span>
+                  <span class="sub cell-id">spc_b91vea · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">Berlin, DE</td>
+            <td class="num tnum">16</td>
+            <td class="num tnum">64</td>
+            <td class="muted tnum">5d ago</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Active</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Cedar &amp; Co.</span>
+                  <span class="sub cell-id">spc_cd3kx2 · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">Austin, TX</td>
+            <td class="num tnum">6</td>
+            <td class="num tnum">14</td>
+            <td class="muted tnum">1w ago</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Active</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Loomworks</span>
+                  <span class="sub cell-id">spc_lw0028 · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">Toronto, CA</td>
+            <td class="num tnum">9</td>
+            <td class="num tnum">27</td>
+            <td class="muted tnum">1w ago</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Active</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Bridge Studio</span>
+                  <span class="sub cell-id">spc_br8821 · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">Chicago, IL</td>
+            <td class="num tnum">14</td>
+            <td class="num tnum">39</td>
+            <td class="muted tnum">2w ago</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Active</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Grove &amp; Glass</span>
+                  <span class="sub cell-id">spc_gg7710 · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">Portland, OR</td>
+            <td class="num tnum">5</td>
+            <td class="num tnum">9</td>
+            <td class="muted tnum">2w ago</td>
+            <td><span class="badge badge-cancelled"><span class="dot"></span>Inactive</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Quay 14</span>
+                  <span class="sub cell-id">spc_qy0014 · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">Amsterdam, NL</td>
+            <td class="num tnum">11</td>
+            <td class="num tnum">42</td>
+            <td class="muted tnum">3w ago</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Active</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Sundial Coworks</span>
+                  <span class="sub cell-id">spc_sd2210 · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">Mexico City, MX</td>
+            <td class="num tnum">18</td>
+            <td class="num tnum">71</td>
+            <td class="muted tnum">3w ago</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Active</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Outpost Pier 9</span>
+                  <span class="sub cell-id">spc_op0009 · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">San Francisco, CA</td>
+            <td class="num tnum">7</td>
+            <td class="num tnum">3</td>
+            <td class="muted tnum">1mo ago</td>
+            <td><span class="badge badge-cancelled"><span class="dot"></span>Inactive</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Ironworks Co.</span>
+                  <span class="sub cell-id">spc_iw5512 · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">Dublin, IE</td>
+            <td class="num tnum">13</td>
+            <td class="num tnum">36</td>
+            <td class="muted tnum">1mo ago</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Active</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable" onclick="location.href='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb"><svg><use href="#i-building"/></svg></span>
+                <div class="cell-stack">
+                  <span class="top">Linden Loft</span>
+                  <span class="sub cell-id">spc_ll0431 · Hot desks</span>
+                </div>
+              </div>
+            </td>
+            <td class="muted">Copenhagen, DK</td>
+            <td class="num tnum">4</td>
+            <td class="num tnum">0</td>
+            <td class="muted tnum">2mo ago</td>
+            <td><span class="badge badge-cancelled"><span class="dot"></span>Inactive</span></td>
+            <td class="action">
+              <button type="button" class="icon-btn" aria-label="More"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+      <div class="table-footer">
+        <span>14 spaces · 157 desks total</span>
+        <div class="pager">
+          <button type="button" class="pager-btn" disabled>‹</button>
+          <button type="button" class="pager-btn" aria-current="page">1</button>
+          <button type="button" class="pager-btn" disabled>›</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+</body>
+</html>

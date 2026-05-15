@@ -1,0 +1,154 @@
+<!doctype html>
+<!--
+  Phase 2 · Theme A · Story 5.5
+  /owner/spaces — Space Owner's own spaces
+
+  Same visual as /admin/spaces but filtered to this host's spaces only.
+  Header switches to Hosting nav. Status badges remain.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My spaces · Hosting · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="phase2.css">
+</head>
+<body data-screen-label="P2·05 Owner · Spaces">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+        <span class="mode-pill mode-host"><span class="dot"></span>Hosting</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="p2-04-owner-dashboard.html" class="nav-link">Dashboard</a>
+        <a href="p2-05-owner-spaces.html" class="nav-link" aria-current="page">My spaces</a>
+        <a href="p2-06-owner-bookings.html" class="nav-link">Bookings</a>
+        <a href="p2-07-owner-payouts.html" class="nav-link">Payouts</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <span class="user-pill">
+          <span class="user-avatar" aria-hidden="true">EN</span>
+          <span class="username text-[13px] font-medium">Elena</span>
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm">Log out</button>
+      </nav>
+    </div>
+  </header>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-desk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18"/><path d="M5 8v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><path d="M7 13v6"/><path d="M17 13v6"/></symbol>
+  </svg>
+
+  <main class="container-content admin-page">
+
+    <div class="admin-page-head">
+      <div>
+        <h1>My spaces</h1>
+        <p class="sub">Two spaces you own. Add a new space or open one to manage desks, rates, and photos.</p>
+      </div>
+      <div class="admin-actions">
+        <button type="button" class="btn btn-primary">
+          <svg style="width:14px;height:14px;" aria-hidden="true"><use href="#i-plus"/></svg>
+          New space
+        </button>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="admin-toolbar">
+      <div class="admin-toolbar-left">
+        <label class="search">
+          <svg aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" placeholder="Search your spaces…" />
+        </label>
+        <div class="flex items-center gap-1.5" role="group" aria-label="Status filter">
+          <button type="button" class="chip" aria-pressed="true">All <span class="count">2</span></button>
+          <button type="button" class="chip">Active <span class="count">1</span></button>
+          <button type="button" class="chip">Draft <span class="count">1</span></button>
+          <button type="button" class="chip">Paused <span class="count">0</span></button>
+        </div>
+      </div>
+      <div class="admin-toolbar-right">
+        <select class="select" aria-label="Sort">
+          <option>Sort · Most recent</option>
+          <option>Sort · Most bookings</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Space</th>
+            <th>City</th>
+            <th class="num">Desks</th>
+            <th class="num">Avg / day</th>
+            <th class="num">Bookings (30 d)</th>
+            <th>Status</th>
+            <th class="action">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="clickable" onclick="window.location='07-admin-space-edit.html'">
+            <td>
+              <div class="cell-primary">
+                <img class="cell-img" src="https://images.unsplash.com/photo-1604328698692-f76ea9498e76?w=80&q=70&auto=format&fit=crop" alt="" />
+                <div class="cell-stack"><span class="top">Northgate Studios</span><span class="sub">Capitol Hill · listed Mar 2026</span></div>
+              </div>
+            </td>
+            <td>Seattle, WA</td>
+            <td class="num tnum">6</td>
+            <td class="num tnum"><strong>$24.00</strong></td>
+            <td class="num tnum">38</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Active</span></td>
+            <td class="action">
+              <button class="icon-btn" aria-label="Row actions" onclick="event.stopPropagation();"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+          <tr class="clickable">
+            <td>
+              <div class="cell-primary">
+                <span class="cell-thumb" aria-hidden="true"><svg><use href="#i-desk"/></svg></span>
+                <div class="cell-stack"><span class="top">Cedar &amp; Co.</span><span class="sub">East side · draft, needs photo</span></div>
+              </div>
+            </td>
+            <td>Austin, TX</td>
+            <td class="num tnum">4</td>
+            <td class="num tnum"><strong>$22.00</strong></td>
+            <td class="num tnum">0</td>
+            <td><span class="badge badge-cancelled"><span class="dot"></span>Draft</span></td>
+            <td class="action">
+              <button class="icon-btn" aria-label="Row actions"><svg><use href="#i-more"/></svg></button>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+      <div class="table-footer">
+        <span>Showing <strong>2</strong> of <strong>2</strong> spaces</span>
+        <span class="muted" style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em;">listed under jordan.reyes@gmail.com</span>
+      </div>
+    </div>
+
+    <p class="muted mt-3" style="font-size: 12px;">
+      Tip — Super Admins see every space across DeskHive in <code style="font-family: var(--font-mono); font-size: 11px;">/admin/spaces</code>. You only see your own here.
+    </p>
+
+  </main>
+
+</body>
+</html>

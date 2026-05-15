@@ -1,0 +1,84 @@
+<!doctype html>
+<!-- Narrow widths: form already lives inside container-narrow (576px), so it's mobile-friendly by default. The header collapses to logo + "Log in" link. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create your account · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13/dist/index.global.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .auth-card {
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-2xl);
+      padding: 2.25rem;
+    }
+    @media (max-width: 480px) { .auth-card { padding: 1.5rem; } }
+  </style>
+</head>
+<body data-screen-label="03 Register">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="04-login.html" class="nav-link">Log in</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container-narrow" style="padding-top: 4rem; padding-bottom: 4rem;">
+
+    <div class="mb-6 text-center">
+      <h1 class="page-h1">Create your account</h1>
+      <p class="mt-2 muted-strong" style="font-size: 14px;">Find a desk, book a day, get to work.</p>
+    </div>
+
+    <section class="auth-card">
+      <form novalidate>
+
+        <div class="mb-4">
+          <label for="reg-name" class="field-label">Full name</label>
+          <input id="reg-name" name="name" type="text" autocomplete="name" class="input" placeholder="Makhbuba Karimova" />
+        </div>
+
+        <div class="mb-4">
+          <label for="reg-email" class="field-label">Email</label>
+          <input id="reg-email" name="email" type="email" autocomplete="email" class="input" placeholder="you@company.com" aria-describedby="reg-email-help" />
+          <p id="reg-email-help" class="field-help">We'll only email you about your bookings.</p>
+        </div>
+
+        <div class="mb-6">
+          <label for="reg-password" class="field-label">Password</label>
+          <input id="reg-password" name="password" type="password" autocomplete="new-password" class="input" placeholder="At least 8 characters" aria-describedby="reg-password-help" />
+          <p id="reg-password-help" class="field-help">8+ characters. No other rules — keep it strong.</p>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Create account</button>
+
+        <p class="mt-5 text-center muted" style="font-size: 13px;">
+          By creating an account, you agree to our
+          <a href="#" style="color: var(--color-neutral-700); text-decoration: underline;">Terms</a>
+          and
+          <a href="#" style="color: var(--color-neutral-700); text-decoration: underline;">Privacy Policy</a>.
+        </p>
+
+      </form>
+    </section>
+
+    <p class="mt-6 text-center muted-strong" style="font-size: 14px;">
+      Already have an account?
+      <a href="04-login.html" style="color: var(--color-primary); font-weight: 500; text-decoration: none;">Log in</a>
+    </p>
+
+  </main>
+
+</body>
+</html>

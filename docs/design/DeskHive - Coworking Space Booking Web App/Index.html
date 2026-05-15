@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DeskHive — MVP Overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="screens/shared.css">
+  <style>
+    body { background: var(--color-neutral-50); }
+
+    .hero {
+      max-width: var(--container-content);
+      margin: 0 auto;
+      padding: 4rem var(--layout-gutter-lg) 2rem;
+    }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-neutral-500);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .eyebrow .dot { width: 6px; height: 6px; border-radius: 9999px; background: var(--color-primary); }
+    .hero h1 {
+      font-size: 2.75rem;
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+      font-weight: 600;
+      color: var(--color-neutral-900);
+      max-width: 36rem;
+    }
+    .hero p.sub {
+      margin-top: 1rem;
+      font-size: 1.0625rem;
+      line-height: 1.55;
+      color: var(--color-neutral-600);
+      max-width: 38rem;
+    }
+    .hero-meta {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem 2.25rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--color-border);
+    }
+    .hero-meta dt {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-neutral-500);
+      margin-bottom: 0.25rem;
+    }
+    .hero-meta dd { font-size: 14px; color: var(--color-neutral-900); font-weight: 500; }
+
+    section.block { max-width: var(--container-content); margin: 0 auto; padding: 2.5rem var(--layout-gutter-lg); }
+    .block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+    .block-head h2 { font-size: 1.5rem; letter-spacing: -0.015em; font-weight: 600; color: var(--color-neutral-900); }
+    .block-head .count {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      color: var(--color-neutral-500);
+    }
+    .block-head .lede { font-size: 14px; color: var(--color-neutral-600); max-width: 32rem; }
+
+    /* Screen grid */
+    .screen-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
+    @media (max-width: 960px) { .screen-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 600px) { .screen-grid { grid-template-columns: 1fr; } }
+
+    .screen-card {
+      display: block;
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color var(--duration-default) var(--ease-standard),
+                  box-shadow var(--duration-default) var(--ease-standard),
+                  transform var(--duration-default) var(--ease-standard);
+    }
+    .screen-card:hover { border-color: var(--color-neutral-300); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .screen-card:focus-visible { outline: none; border-color: var(--color-primary); box-shadow: var(--shadow-focus); }
+
+    .screen-preview {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      background: var(--color-neutral-100);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .screen-preview iframe {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1440px;
+      height: 1080px;
+      transform-origin: top left;
+      transform: scale(0.295);
+      border: 0;
+      pointer-events: none;
+      background: var(--color-neutral-0);
+    }
+    .screen-preview .badge-no {
+      position: absolute;
+      top: 0.75rem; left: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--color-neutral-700);
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border: 1px solid var(--color-border);
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      z-index: 2;
+    }
+    .screen-preview .audience {
+      position: absolute;
+      top: 0.75rem; right: 0.75rem;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      z-index: 2;
+    }
+    .audience-public { background: var(--color-brand-100); color: var(--color-brand-700); }
+    .audience-guest  { background: #DCFCE7; color: #14532D; }
+    .audience-admin  { background: var(--color-neutral-900); color: #fff; }
+
+    .screen-meta { padding: 1rem 1.125rem 1.125rem; }
+    .screen-meta .title { font-size: 0.9375rem; font-weight: 600; color: var(--color-neutral-900); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+    .screen-meta .route {
+      margin-top: 0.25rem;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--color-neutral-500);
+    }
+    .screen-meta .desc { margin-top: 0.625rem; font-size: 13px; color: var(--color-neutral-600); line-height: 1.5; }
+    .arrow { color: var(--color-neutral-400); transition: color var(--duration-fast); }
+    .screen-card:hover .arrow { color: var(--color-primary); }
+
+    /* Token row */
+    .tokens {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    @media (max-width: 760px) { .tokens { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .token {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      background: var(--color-neutral-0);
+      padding: 1.125rem 1.125rem 1rem;
+    }
+    .token .label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-neutral-500); }
+    .token .value { margin-top: 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--color-neutral-900); }
+    .swatch-row { display: flex; gap: 4px; margin-top: 0.875rem; }
+    .swatch-row span { flex: 1; height: 22px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.04); }
+
+    .badge-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.875rem; }
+
+    /* Reference panel for components */
+    .refs {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.25rem;
+    }
+    @media (max-width: 760px) { .refs { grid-template-columns: 1fr; } }
+    .ref-card {
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+    }
+    .ref-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.875rem; color: var(--color-neutral-900); }
+    .ref-card .lede { font-size: 13px; color: var(--color-neutral-600); margin-bottom: 1rem; }
+    .ref-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.875rem; }
+    .ref-row:last-child { margin-bottom: 0; }
+    .ref-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em; color: var(--color-neutral-500); min-width: 84px; }
+
+    .legend {
+      display: flex; gap: 1rem; flex-wrap: wrap;
+      font-size: 12px; color: var(--color-neutral-500);
+      margin-top: 0.75rem;
+    }
+    .legend .key { display: inline-flex; align-items: center; gap: 0.375rem; }
+    .legend .key i { width: 8px; height: 8px; border-radius: 9999px; display: inline-block; }
+    .k-public i { background: var(--color-brand-600); }
+    .k-guest  i { background: #16A34A; }
+    .k-admin  i { background: var(--color-neutral-900); }
+
+    .footnote {
+      max-width: var(--container-content);
+      margin: 0 auto;
+      padding: 1rem var(--layout-gutter-lg) 4rem;
+      font-size: 12px;
+      color: var(--color-neutral-500);
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+    }
+  </style>
+</head>
+<body data-screen-label="Overview">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="Index.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="screens/01-landing.html" class="nav-link">Landing</a>
+        <a href="screens/05-my-bookings.html" class="nav-link">My bookings</a>
+        <a href="screens/06-admin-spaces.html" class="nav-link">Admin</a>
+        <a href="components/gallery.html" class="nav-link">Components</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow"><span class="dot"></span>MVP · v2 · ready for handoff</div>
+    <h1>DeskHive MVP — visual design package.</h1>
+    <p class="sub">A coworking-space booking app, modern and minimal in the Linear / Stripe / Vercel family. Eight screens, one design-token file, and a small kit of reusable components. Everything below renders the actual production HTML — no mockups.</p>
+    <dl class="hero-meta">
+      <div><dt>Screens</dt><dd>8 · all default-loaded states</dd></div>
+      <div><dt>Roles</dt><dd>Guest · Super Admin</dd></div>
+      <div><dt>Stack</dt><dd>Next.js 16 · Tailwind v4</dd></div>
+      <div><dt>Tokens</dt><dd>globals.css · @theme block</dd></div>
+      <div><dt>Status</dt><dd style="color: #15803D;">● Ready</dd></div>
+    </dl>
+  </section>
+
+  <!-- ───────── Design system snapshot ───────── -->
+  <section class="block">
+    <div class="block-head">
+      <div>
+        <h2>Design system foundation</h2>
+        <p class="lede">Tokens live in <code style="font-family:var(--font-mono); font-size:12px; background:var(--color-neutral-100); padding:1px 6px; border-radius:4px;">globals.css</code>. The dev applies them; every screen inherits.</p>
+      </div>
+      <a href="components/gallery.html" class="nav-link" style="color: var(--color-primary);">Open component gallery →</a>
+    </div>
+
+    <div class="tokens">
+      <div class="token">
+        <div class="label">Brand</div>
+        <div class="value">Indigo · #4F46E5</div>
+        <div class="swatch-row">
+          <span style="background:#EEF2FF;"></span>
+          <span style="background:#C7D2FE;"></span>
+          <span style="background:#7C8CF8;"></span>
+          <span style="background:#4F46E5;"></span>
+          <span style="background:#4338CA;"></span>
+          <span style="background:#312E81;"></span>
+        </div>
+      </div>
+      <div class="token">
+        <div class="label">Neutrals</div>
+        <div class="value">Cool zinc · 11 steps</div>
+        <div class="swatch-row">
+          <span style="background:#FFFFFF; border-color:#E4E4E7;"></span>
+          <span style="background:#FAFAFA;"></span>
+          <span style="background:#E4E4E7;"></span>
+          <span style="background:#A1A1AA;"></span>
+          <span style="background:#52525B;"></span>
+          <span style="background:#18181B;"></span>
+        </div>
+      </div>
+      <div class="token">
+        <div class="label">Status badges</div>
+        <div class="value">4 variants</div>
+        <div class="badge-row">
+          <span class="badge badge-pending"><span class="dot"></span>Pending</span>
+          <span class="badge badge-confirmed"><span class="dot"></span>Confirmed</span>
+          <span class="badge badge-rejected"><span class="dot"></span>Rejected</span>
+          <span class="badge badge-cancelled"><span class="dot"></span>Cancelled</span>
+        </div>
+      </div>
+      <div class="token">
+        <div class="label">Typography</div>
+        <div class="value">Inter · 5 sizes</div>
+        <div style="margin-top:0.875rem; line-height:1.2;">
+          <div style="font-size:28px; font-weight:600; letter-spacing:-0.02em;">Aa</div>
+          <div style="font-family:var(--font-mono); font-size:11px; color:var(--color-neutral-500); margin-top:4px;">display · h1 · h2 · body · caption</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="refs">
+      <div class="ref-card">
+        <h3>Core components</h3>
+        <p class="lede">Real DOM, real states — exactly what the dev will render.</p>
+
+        <div class="ref-row">
+          <span class="ref-label">Button</span>
+          <button class="btn btn-primary">Book this desk</button>
+          <button class="btn btn-secondary">Cancel</button>
+          <button class="btn btn-primary" disabled>Pick a date first</button>
+          <button class="btn btn-primary"><span class="spinner"></span>Loading</button>
+        </div>
+
+        <div class="ref-row">
+          <span class="ref-label">Input</span>
+          <div style="flex:1; min-width:160px;"><input class="input" placeholder="you@company.com" /></div>
+          <div style="flex:1; min-width:160px;"><input class="input" aria-invalid="true" value="not-an-email" /></div>
+        </div>
+
+        <div class="ref-row">
+          <span class="ref-label">Availability</span>
+          <span class="avail avail-yes"><span class="dot"></span>Available</span>
+          <span class="avail avail-no"><span class="dot"></span>Unavailable</span>
+        </div>
+
+        <div class="ref-row">
+          <span class="ref-label">Badge (lg)</span>
+          <span class="badge badge-lg badge-confirmed"><span class="dot"></span>Confirmed</span>
+          <span class="badge badge-lg badge-pending"><span class="dot"></span>Pending</span>
+        </div>
+      </div>
+
+      <div class="ref-card">
+        <h3>DataView states</h3>
+        <p class="lede">One wrapper, four states. Defined once, used everywhere.</p>
+        <div style="display:grid; gap:0.5rem;">
+          <div style="display:flex; align-items:center; gap:0.625rem; padding:0.625rem 0.75rem; border:1px solid var(--color-border); border-radius:var(--radius-md);">
+            <span class="spinner" style="color:var(--color-primary);"></span>
+            <span style="font-size:13px; color:var(--color-neutral-700);">Loading</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.625rem; padding:0.625rem 0.75rem; border:1px dashed var(--color-border-strong); border-radius:var(--radius-md); background:var(--color-neutral-50);">
+            <span style="font-size:13px; color:var(--color-neutral-600);">Empty — “No spaces available yet.”</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.625rem; padding:0.625rem 0.75rem; border:1px solid #FECACA; background:#FEF2F2; border-radius:var(--radius-md);">
+            <span style="font-size:13px; color:#7F1D1D;">Error — Something went wrong.</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.625rem; padding:0.625rem 0.75rem; border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-neutral-0);">
+            <span style="width:8px; height:8px; border-radius:9999px; background:#16A34A;"></span>
+            <span style="font-size:13px; color:var(--color-neutral-700);">Loaded — content renders</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── Screens ───────── -->
+  <section class="block">
+    <div class="block-head">
+      <div>
+        <h2>All eight screens</h2>
+        <p class="lede">Click any tile to open the full screen. Live previews below.</p>
+      </div>
+      <span class="count">8 / 8</span>
+    </div>
+
+    <div class="legend">
+      <span class="key k-public"><i></i>Public</span>
+      <span class="key k-guest"><i></i>Guest-only</span>
+      <span class="key k-admin"><i></i>Admin-only</span>
+    </div>
+
+    <div class="screen-grid" style="margin-top:1rem;">
+
+      <a class="screen-card" href="screens/01-landing.html">
+        <div class="screen-preview">
+          <span class="badge-no">01</span>
+          <span class="audience audience-public">Public</span>
+          <iframe src="screens/01-landing.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Landing / Browse <span class="arrow">→</span></div>
+          <div class="route">/</div>
+          <div class="desc">Search field + grid of space cards. Each card: photo, name, city, amenities, price.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="screens/02-space-detail.html">
+        <div class="screen-preview">
+          <span class="badge-no">02</span>
+          <span class="audience audience-public">Public</span>
+          <iframe src="screens/02-space-detail.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Space detail <span class="arrow">→</span></div>
+          <div class="route">/spaces/:id</div>
+          <div class="desc">Hero image, native date picker, desk list with availability + per-desk Book buttons.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="screens/03-register.html">
+        <div class="screen-preview">
+          <span class="badge-no">03</span>
+          <span class="audience audience-public">Public</span>
+          <iframe src="screens/03-register.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Register <span class="arrow">→</span></div>
+          <div class="route">/register</div>
+          <div class="desc">Email, name, password. Inline validation. Link to log in.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="screens/04-login.html">
+        <div class="screen-preview">
+          <span class="badge-no">04</span>
+          <span class="audience audience-public">Public</span>
+          <iframe src="screens/04-login.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Log in <span class="arrow">→</span></div>
+          <div class="route">/login</div>
+          <div class="desc">Two fields, role segmented control, link to register.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="screens/05-my-bookings.html">
+        <div class="screen-preview">
+          <span class="badge-no">05</span>
+          <span class="audience audience-guest">Guest</span>
+          <iframe src="screens/05-my-bookings.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">My bookings <span class="arrow">→</span></div>
+          <div class="route">/my-bookings</div>
+          <div class="desc">List of bookings with dominant status badges. Cancel button on Pending rows only.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="screens/06-admin-spaces.html">
+        <div class="screen-preview">
+          <span class="badge-no">06</span>
+          <span class="audience audience-admin">Admin</span>
+          <iframe src="screens/06-admin-spaces.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Admin · Spaces <span class="arrow">→</span></div>
+          <div class="route">/admin/spaces</div>
+          <div class="desc">Table of all spaces with status, city, and a “New space” action.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="screens/07-admin-space-edit.html">
+        <div class="screen-preview">
+          <span class="badge-no">07</span>
+          <span class="audience audience-admin">Admin</span>
+          <iframe src="screens/07-admin-space-edit.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Admin · Edit space <span class="arrow">→</span></div>
+          <div class="route">/admin/spaces/:id</div>
+          <div class="desc">Form for space details plus an inline desk manager (add / edit / deactivate).</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="screens/08-admin-bookings.html">
+        <div class="screen-preview">
+          <span class="badge-no">08</span>
+          <span class="audience audience-admin">Admin</span>
+          <iframe src="screens/08-admin-bookings.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Admin · Bookings <span class="arrow">→</span></div>
+          <div class="route">/admin/bookings</div>
+          <div class="desc">Every booking on the platform. Pending rows get Confirm + Reject actions.</div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <div class="footnote">
+    <span>DeskHive · MVP visual design · for handoff to engineering.</span>
+    <span style="font-family:var(--font-mono);">v2 · 12 May 2026</span>
+  </div>
+
+</body>
+</html>

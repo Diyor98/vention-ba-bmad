@@ -1,0 +1,349 @@
+<!doctype html>
+<!-- Narrow widths: 2-col layout (gallery + booking rail) collapses to single column with the date picker pinned just under the hero image. Desk list rows stay full-width; the "Book this desk" button drops below its row. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Space · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13/dist/index.global.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .hero-img {
+      aspect-ratio: 16 / 9;
+      border-radius: var(--radius-2xl);
+      border: 1px solid var(--color-border);
+      width: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .breadcrumb a { color: var(--color-neutral-500); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--color-neutral-800); }
+    .date-callout {
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: 1.25rem 1.25rem 1.5rem;
+    }
+    .date-callout.is-empty {
+      border-color: var(--color-brand-200);
+      background: linear-gradient(180deg, #FFFFFF 0%, var(--color-brand-50) 100%);
+    }
+    .step-pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.25rem; height: 1.25rem;
+      border-radius: 9999px;
+      background: var(--color-primary); color: #fff;
+      font-size: 11px; font-weight: 600;
+    }
+    .desk-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 1.25rem;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      background: var(--color-neutral-0);
+      transition: border-color var(--duration-default) var(--ease-standard);
+    }
+    .desk-row:hover { border-color: var(--color-neutral-300); }
+    .desk-row .price { font-family: var(--font-mono); font-size: 13px; color: var(--color-neutral-700); }
+    .desk-row .price strong { font-family: var(--font-sans); font-weight: 600; color: var(--color-neutral-900); font-size: 15px; }
+
+    @media (max-width: 900px) { .layout-detail { grid-template-columns: 1fr !important; } }
+    @media (max-width: 640px) {
+      .desk-row { grid-template-columns: 1fr auto; row-gap: 0.75rem; }
+      .desk-row .desk-meta { grid-column: 1 / -1; }
+      .desk-row .desk-cta { grid-column: 1 / -1; }
+      .desk-row .desk-cta .btn { width: 100%; }
+    }
+    .desk-list-hint {
+      padding: 1rem 1.25rem;
+      border: 1px dashed var(--color-border-strong);
+      border-radius: var(--radius-xl);
+      background: var(--color-neutral-50);
+      color: var(--color-neutral-500);
+      font-size: 13px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body data-screen-label="02 Space Detail">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="01-landing.html" class="nav-link" aria-current="page">Browse spaces</a>
+        <a href="#" class="nav-link">How it works</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <a href="04-login.html" class="nav-link">Log in</a>
+        <a href="03-register.html" class="btn btn-primary btn-sm">Sign up</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container-content" style="padding-top: 2rem; padding-bottom: 4rem;">
+
+    <nav class="breadcrumb tnum mb-6" aria-label="Breadcrumb" style="font-size: 13px;">
+      <a href="01-landing.html">Browse spaces</a>
+      <span class="mx-1.5" style="color: var(--color-neutral-300);">/</span>
+      <span id="bc-name" style="color: var(--color-neutral-700);">—</span>
+    </nav>
+
+    <header class="mb-6">
+      <h1 class="page-h1" id="space-name">—</h1>
+      <p class="mt-1.5 muted-strong" style="font-size: 14px;" id="space-address">—</p>
+    </header>
+
+    <img class="hero-img mb-10" id="hero-img" src="" alt="" />
+
+    <div class="layout-detail" style="display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: 3rem; align-items: start;">
+
+      <section>
+        <h2 class="h2 mb-3">About this space</h2>
+        <div id="space-desc" style="color: var(--color-neutral-700); max-width: 60ch;"></div>
+
+        <h3 class="mt-8 mb-3" style="font-size: 14px; font-weight: 600; color: var(--color-neutral-700); letter-spacing: 0.005em;">Amenities</h3>
+        <ul id="space-amenities" class="grid grid-cols-2 gap-y-2 gap-x-6 max-w-md" style="font-size: 14px; color: var(--color-neutral-700);"></ul>
+      </section>
+
+      <aside style="position: sticky; top: calc(var(--layout-header-h) + 1.5rem);">
+        <div class="date-callout is-empty">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="step-pill" aria-hidden="true">1</span>
+            <span class="font-mono" style="font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-neutral-600);">Pick a date</span>
+          </div>
+          <p class="muted" style="font-size: 13px; margin-bottom: 0.75rem;">Availability and prices update for the day you choose.</p>
+          <label for="visit-date" class="sr-only">Date of visit</label>
+          <input id="visit-date" type="date" class="input tnum" min="2026-05-06" value="" style="height: 2.75rem; font-size: 1rem;" />
+        </div>
+        <p class="mt-3 muted" style="font-size: 12px; line-height: 1.5;">
+          Bookings are reviewed by the space and confirmed within a few hours.
+          You won't be charged until your booking is confirmed.
+        </p>
+      </aside>
+    </div>
+
+    <section class="mt-12">
+      <div class="flex items-baseline justify-between gap-4 mb-1">
+        <h2 class="h2 flex items-center gap-2">
+          <span class="step-pill" aria-hidden="true" style="background: var(--color-neutral-300);">2</span>
+          Desks
+        </h2>
+        <span class="muted tnum" style="font-size: 13px;" id="desk-count">—</span>
+      </div>
+      <p class="muted mb-5" style="font-size: 13px;">Pick a date above to check availability for that day.</p>
+
+      <ul id="desk-list" class="space-y-3"></ul>
+
+      <p class="mt-5 desk-list-hint" id="hint-empty">
+        Pick a date above to see which desks are available and unlock booking.
+      </p>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>© 2026 DeskHive</span>
+      <span class="font-mono" style="font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-neutral-400);">MVP · v0.1</span>
+    </div>
+  </footer>
+
+  <script>
+    // -------- Space data (id, hero, copy, desks) --------
+    const SPACES = {
+      'the-hive-riverside': {
+        name: 'The Hive — Riverside', city: 'Brooklyn, NY',
+        address: '412 Wythe Avenue, Brooklyn NY 11249',
+        photo: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=70&auto=format&fit=crop',
+        desc: ['A 6,000-sq-ft riverside coworking floor in a converted Williamsburg warehouse. Open desks, four phone booths, two small meeting rooms, and a quiet zone at the back. High-speed wifi, espresso, and an L-line stop two blocks east.',
+               'Hours are 8am–9pm weekdays, 10am–6pm weekends. Day passes include access to the shared kitchen and the rooftop in summer months.'],
+        amenities: ['Wifi (1 Gbps)','Phone booths','Espresso bar','Meeting rooms','Quiet zone','Bike storage'],
+        desks: [
+          {label:'Desk-1 · Window seat', sub:'Standing-desk-capable, near the river view', price:'$32', avail:true},
+          {label:'Desk-2 · Quiet zone',  sub:'Back of the floor, lowest noise', price:'$28', avail:true},
+          {label:'Desk-3 · Open floor',  sub:'Standard hot desk near the kitchen', price:'$28', avail:false},
+          {label:'Desk-4 · Open floor',  sub:'Standard hot desk, monitor available', price:'$28', avail:true},
+          {label:'Desk-5 · Phone-booth desk', sub:'Adjacent to call booth — good for meeting days', price:'$30', avail:true},
+        ]
+      },
+      'northgate-studios': {
+        name: 'Northgate Studios', city: 'Seattle, WA',
+        address: '1820 N 34th St, Seattle WA 98103',
+        photo: 'https://images.unsplash.com/photo-1604328698692-f76ea9498e76?w=800&q=70&auto=format&fit=crop',
+        desc: ['A bright loft above a coffee roaster in Fremont. Forty hot desks, two private offices for day-rentals, and a plant-filled atrium. Showers and bike parking in the basement.',
+               'Open 7am–8pm weekdays, 9am–5pm Saturdays. Closed Sundays.'],
+        amenities: ['Wifi (1 Gbps)','Showers','Bike parking','Phone booths','Coffee roaster downstairs','Free filtered water'],
+        desks: [
+          {label:'Desk-1 · Atrium', sub:'South-facing, lots of light', price:'$28', avail:true},
+          {label:'Desk-2 · Atrium', sub:'Across from the plant wall', price:'$28', avail:true},
+          {label:'Desk-3 · Loft',   sub:'Upstairs, quieter', price:'$24', avail:true},
+          {label:'Desk-4 · Loft',   sub:'Upstairs, near the booths', price:'$24', avail:false},
+        ]
+      },
+      'cedar-and-co': {
+        name: 'Cedar & Co.', city: 'Austin, TX',
+        address: '305 E 6th St, Austin TX 78701',
+        photo: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&q=70&auto=format&fit=crop',
+        desc: ['Warm-wood, low-key coworking on East Sixth. Built for solo deep work. The kitchen turns into a happy-hour bar on Thursdays.',
+               'Hours 8am–10pm daily. Day passes include unlimited drip coffee and a 1-hour booth booking.'],
+        amenities: ['Wifi (1 Gbps)','Phone booths','Drip coffee','Roof patio','Lockers','Pet-friendly'],
+        desks: [
+          {label:'Desk-1 · Bay window', sub:'Front of the floor, street view', price:'$26', avail:true},
+          {label:'Desk-2 · Reading nook', sub:'Quietest spot in the building', price:'$24', avail:true},
+          {label:'Desk-3 · Communal table', sub:'Long table, six-seat shared', price:'$22', avail:true},
+          {label:'Desk-4 · Communal table', sub:'Long table, six-seat shared', price:'$22', avail:false},
+        ]
+      },
+      'folk-house': {
+        name: 'Folk House', city: 'Lisbon, PT',
+        address: 'R. da Boavista 84, 1200-068 Lisboa',
+        photo: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?w=800&q=70&auto=format&fit=crop',
+        desc: ['A converted townhouse in Cais do Sodré. Three floors, mid-century furniture, and a tiled courtyard for breaks.',
+               'Open 9am–7pm weekdays. Espresso, pastéis, and excellent wifi.'],
+        amenities: ['Wifi (500 Mbps)','Courtyard','Espresso','Phone booths','Printer','English-speaking host'],
+        desks: [
+          {label:'Desk-1 · Courtyard', sub:'Tiled courtyard, near the lemon tree', price:'€18', avail:true},
+          {label:'Desk-2 · 1st floor', sub:'Communal table by the window', price:'€18', avail:false},
+          {label:'Desk-3 · 2nd floor', sub:'Quietest room', price:'€20', avail:true},
+        ]
+      },
+      'atlas-workrooms': {
+        name: 'Atlas Workrooms', city: 'Berlin, DE',
+        address: 'Skalitzer Str. 68, 10997 Berlin',
+        photo: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=800&q=70&auto=format&fit=crop',
+        desc: ['Industrial-style coworking in Kreuzberg with floor-to-ceiling windows and a rooftop in summer. Built into a former printing press.',
+               'Open 7am–11pm weekdays. 24/7 access for monthly members; day-pass holders during staffed hours.'],
+        amenities: ['Wifi (1 Gbps)','Rooftop','Phone booths','Mother\'s room','Bike parking','Showers'],
+        desks: [
+          {label:'Desk-1 · North wall', sub:'Tall windows, indirect light', price:'€20', avail:true},
+          {label:'Desk-2 · North wall', sub:'Tall windows, indirect light', price:'€20', avail:true},
+          {label:'Desk-3 · Press floor', sub:'Open floor, near the printers display', price:'€22', avail:false},
+          {label:'Desk-4 · Press floor', sub:'Open floor, near the printers display', price:'€22', avail:true},
+        ]
+      },
+      'mission-annex': {
+        name: 'Mission Annex', city: 'San Francisco, CA',
+        address: '2598 Mission St, San Francisco CA 94110',
+        photo: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&q=70&auto=format&fit=crop',
+        desc: ['A two-floor space in the Mission with a generous lounge, soundproof booths, and a small podcast studio.',
+               'Open 7am–10pm daily. The downstairs café is open to the public until 6pm.'],
+        amenities: ['Wifi (2 Gbps)','Podcast studio','Soundproof booths','Café','Showers','Lockers'],
+        desks: [
+          {label:'Desk-1 · Lounge', sub:'Sofa-style work seat', price:'$32', avail:true},
+          {label:'Desk-2 · Studio floor', sub:'Standing-desk-capable', price:'$36', avail:true},
+          {label:'Desk-3 · Studio floor', sub:'Standing-desk-capable', price:'$36', avail:false},
+          {label:'Desk-4 · Booth-side', sub:'Next to the soundproof booths', price:'$34', avail:true},
+        ]
+      },
+      'harbor-and-vine': {
+        name: 'Harbor & Vine', city: 'Boston, MA',
+        address: '141 Tremont St, Boston MA 02111',
+        photo: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800&q=70&auto=format&fit=crop',
+        desc: ['A quiet floor above a bookstore on Tremont. Ten desks, two phone booths, and a tea bar instead of espresso.',
+               'Open 8am–8pm weekdays. The bookstore downstairs gives day-pass holders a 10% discount.'],
+        amenities: ['Wifi (1 Gbps)','Tea bar','Phone booths','Reading lounge','Printer','Bookstore discount'],
+        desks: [
+          {label:'Desk-1 · Reading nook', sub:'Quietest seat', price:'$26', avail:true},
+          {label:'Desk-2 · Common table', sub:'Six-seat shared', price:'$26', avail:false},
+          {label:'Desk-3 · Window', sub:'Tremont street view', price:'$30', avail:true},
+        ]
+      },
+      'glasshouse': {
+        name: 'Glasshouse', city: 'Toronto, ON',
+        address: '460 King St W, Toronto ON M5V 1L7',
+        photo: 'https://images.unsplash.com/photo-1606857521015-7f9fcf423740?w=800&q=70&auto=format&fit=crop',
+        desc: ['A bright glass-walled coworking floor on King West. Lots of natural light and open sightlines.',
+               'Open 8am–9pm weekdays, 10am–6pm weekends.'],
+        amenities: ['Wifi (1 Gbps)','Phone booths','Espresso','Showers','Bike parking','Mother\'s room'],
+        desks: [
+          {label:'Desk-1 · Glass wall', sub:'South-facing, full daylight', price:'C$28', avail:true},
+          {label:'Desk-2 · Glass wall', sub:'South-facing, full daylight', price:'C$28', avail:true},
+          {label:'Desk-3 · Centre floor', sub:'Open floor, six-seat shared', price:'C$24', avail:false},
+          {label:'Desk-4 · Centre floor', sub:'Open floor, six-seat shared', price:'C$24', avail:true},
+        ]
+      },
+      'old-mill-coworking': {
+        name: 'Old Mill Coworking', city: 'Portland, OR',
+        address: '1216 SE Division St, Portland OR 97202',
+        photo: 'https://images.unsplash.com/photo-1564069114553-7215e1ff1890?w=800&q=70&auto=format&fit=crop',
+        desc: ['A brick-walled studio in a former flour mill on SE Division. Twelve desks, two booths, and a workshop in the back for makers.',
+               'Open 7am–10pm daily.'],
+        amenities: ['Wifi (1 Gbps)','Workshop','Phone booths','Drip coffee','Bike parking','Pet-friendly'],
+        desks: [
+          {label:'Desk-1 · Brick wall', sub:'East-facing, morning light', price:'$20', avail:true},
+          {label:'Desk-2 · Brick wall', sub:'East-facing, morning light', price:'$20', avail:false},
+          {label:'Desk-3 · Workshop side', sub:'Near the maker space', price:'$22', avail:true},
+        ]
+      },
+    };
+
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id') || 'the-hive-riverside';
+    const space = SPACES[id] || SPACES['the-hive-riverside'];
+
+    document.title = `${space.name} · DeskHive`;
+    document.getElementById('bc-name').textContent = space.name;
+    document.getElementById('space-name').textContent = space.name;
+    document.getElementById('space-address').textContent = `${space.city} · ${space.address}`;
+    const hero = document.getElementById('hero-img');
+    hero.src = space.photo;
+    hero.alt = `${space.name} — coworking space photo`;
+
+    const desc = document.getElementById('space-desc');
+    desc.innerHTML = space.desc.map((p, i) => `<p${i ? ' class="mt-4"' : ''}>${p}</p>`).join('');
+
+    const amenities = document.getElementById('space-amenities');
+    amenities.innerHTML = space.amenities.map(a => `<li>· ${a}</li>`).join('');
+
+    document.getElementById('desk-count').textContent = `${space.desks.length} desks`;
+
+    const list = document.getElementById('desk-list');
+    list.innerHTML = space.desks.map((d, i) => `
+      <li class="desk-row" data-avail="${d.avail}">
+        <div class="desk-meta">
+          <p class="font-medium" style="color: var(--color-neutral-900);">${d.label}</p>
+          <p class="muted mt-0.5" style="font-size: 13px;">${d.sub}</p>
+        </div>
+        <span class="avail avail-yes" aria-label="Availability unknown until date picked" style="opacity: 0.45;">
+          <span class="dot"></span>—
+        </span>
+        <span class="price tnum"><strong>${d.price}</strong>&nbsp;/ day</span>
+        <div class="desk-cta">
+          <button type="button" class="btn btn-primary" disabled aria-disabled="true">Book this desk</button>
+        </div>
+      </li>
+    `).join('');
+
+    // Date picker → unlock + show availability
+    const date = document.getElementById('visit-date');
+    const callout = date.closest('.date-callout');
+    const hint = document.getElementById('hint-empty');
+    date.addEventListener('change', () => {
+      if (!date.value) return;
+      callout.classList.remove('is-empty');
+      if (hint) hint.style.display = 'none';
+      document.querySelectorAll('.desk-row').forEach((row) => {
+        const av = row.dataset.avail === 'true';
+        const a = row.querySelector('.avail');
+        const btn = row.querySelector('button');
+        a.style.opacity = '1';
+        a.classList.toggle('avail-yes', av);
+        a.classList.toggle('avail-no', !av);
+        a.innerHTML = '<span class="dot"></span>' + (av ? 'Available' : 'Unavailable');
+        btn.disabled = !av;
+        btn.setAttribute('aria-disabled', String(!av));
+      });
+    });
+  </script>
+
+</body>
+</html>

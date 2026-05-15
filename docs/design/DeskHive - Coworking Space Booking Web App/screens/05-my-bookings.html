@@ -1,0 +1,491 @@
+<!doctype html>
+<!--
+  My Bookings — card layout per provided reference.
+
+  Per-card structure (top → middle → bottom, hairline-divided):
+    1. HEADER     icon-tile · title (Space · Desk N) + subtype/city  ·  status badge (right)
+    2. META       Date  ·  Time          (two columns)
+    3. FOOTER     context line (left)  ·  actions (right)
+
+  Booking unit per the brief is "one full calendar day per desk" (no hourly
+  bookings in MVP), so the Time row shows the SPACE'S OPENING HOURS as
+  context, not a user-selected window. Field is labelled "Time" to mirror
+  the reference; copy reads as building hours, never as a slot the user
+  picked. If MVP scope ever drops the field, remove the .meta row.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My bookings · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13/dist/index.global.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    /* ─────────────── Section heads ─────────────── */
+    .section-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding-bottom: 0.625rem;
+      border-bottom: 1px solid var(--color-border);
+      margin-bottom: 1rem;
+    }
+    .section-head h2 {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--color-neutral-700);
+    }
+    .section-head .count {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.04em; color: var(--color-neutral-400);
+    }
+    .section-help {
+      margin: -0.25rem 0 1rem;
+      font-size: 13px; color: var(--color-neutral-500);
+    }
+
+    /* ─────────────── Booking card ─────────────── */
+    .booking {
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-2xl);
+      overflow: hidden;
+      transition: border-color var(--duration-default) var(--ease-standard);
+    }
+    .booking + .booking { margin-top: 0.875rem; }
+    .booking:hover { border-color: var(--color-neutral-300); }
+
+    /* HEADER row — icon tile + identity on left, status on right */
+    .booking-header {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      column-gap: 1rem;
+      align-items: start;
+      padding: 1.25rem 1.5rem;
+    }
+    .booking-icon {
+      width: 44px; height: 44px;
+      border-radius: var(--radius-lg);
+      background: var(--color-neutral-100);
+      display: grid; place-items: center;
+      color: var(--color-neutral-500);
+      flex: none;
+    }
+    .booking-icon svg { width: 22px; height: 22px; }
+
+    .booking-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--color-neutral-900);
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+    }
+    .booking-sub {
+      margin-top: 0.125rem;
+      font-size: 13px;
+      color: var(--color-neutral-500);
+    }
+
+    /* META row — Date | Time, hairline above */
+    .booking-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 1.5rem;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--color-border);
+    }
+    .meta-label {
+      font-size: 12px;
+      color: var(--color-neutral-500);
+      margin-bottom: 0.25rem;
+    }
+    .meta-value {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-neutral-900);
+      letter-spacing: -0.005em;
+    }
+
+    /* FOOTER row — context line + actions, hairline above */
+    .booking-footer {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 1rem;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--color-border);
+    }
+    .booking-context {
+      font-size: 13px;
+      color: var(--color-neutral-500);
+      line-height: 1.4;
+    }
+    .booking-actions {
+      display: flex; align-items: center; gap: 0.5rem;
+      justify-self: end;
+    }
+    /* Footer with no actions: still show context, just don't reserve action column */
+    .booking-footer.no-actions {
+      grid-template-columns: 1fr;
+    }
+    /* If footer has neither context nor actions, hide it so cards stay tight */
+    .booking-footer.empty { display: none; }
+
+    /* ─────────────── Section flavours (kept subtle, flat) ─────────────── */
+    .section-archived .booking { background: var(--color-neutral-50); }
+    .section-archived .booking-title { color: var(--color-neutral-700); }
+    .section-archived .booking-icon { background: var(--color-neutral-100); opacity: 0.7; }
+
+    /* ─────────────── Responsive ─────────────── */
+    @media (max-width: 640px) {
+      .booking-header,
+      .booking-meta,
+      .booking-footer { padding-left: 1.25rem; padding-right: 1.25rem; }
+
+      /* Header: keep icon + title together; status drops below */
+      .booking-header {
+        grid-template-columns: auto minmax(0, 1fr);
+        row-gap: 0.75rem;
+      }
+      .booking-status {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-self: start;
+      }
+
+      /* Footer stacks */
+      .booking-footer {
+        grid-template-columns: 1fr;
+        row-gap: 0.75rem;
+      }
+      .booking-actions {
+        justify-self: stretch;
+        width: 100%;
+      }
+      .booking-actions .btn,
+      .booking-actions .btn-ghost {
+        flex: 1;
+        text-align: center;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .user-pill .username { display: none; }
+    }
+
+    /* Ghost button — for quieter "View details" alongside Cancel/Book again.
+       Visually flat: no border, neutral foreground, soft hover. */
+    .btn-ghost {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 0.375rem;
+      height: 2.5rem;
+      padding: 0 1rem;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-neutral-700);
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color var(--duration-fast) var(--ease-standard),
+                  background var(--duration-fast) var(--ease-standard);
+    }
+    .btn-ghost:hover { border-color: var(--color-neutral-400); background: var(--color-neutral-50); }
+  </style>
+</head>
+<body data-screen-label="05 My Bookings">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="01-landing.html" class="nav-link">Browse spaces</a>
+        <a href="05-my-bookings.html" class="nav-link" aria-current="page">My bookings</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <span class="user-pill">
+          <span class="user-avatar" aria-hidden="true">MA</span>
+          <span class="username text-[13px] font-medium">Makhbuba</span>
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm">Log out</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Reusable inline SVG: simple desk glyph used in card icon tiles -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-desk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 8h18"/>
+      <path d="M5 8v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/>
+      <path d="M7 13v6"/>
+      <path d="M17 13v6"/>
+    </symbol>
+  </svg>
+
+  <main class="container-content" style="padding-top: 3rem; padding-bottom: 4rem;">
+
+    <header class="mb-8">
+      <h1 class="page-h1">My bookings</h1>
+      <p class="mt-1.5 muted-strong" style="font-size: 14px;">
+        Your day-pass bookings, grouped by what needs your attention.
+      </p>
+    </header>
+
+    <!-- ─────────── 1. AWAITING — Pending only ─────────── -->
+    <section aria-labelledby="sec-awaiting">
+      <div class="section-head">
+        <h2 id="sec-awaiting">Awaiting confirmation</h2>
+        <span class="count tnum">2</span>
+      </div>
+      <p class="section-help">
+        Each space reviews its own bookings and confirms within a few hours. You won't be charged until confirmation.
+      </p>
+
+      <ul class="list-none p-0 m-0">
+
+        <li class="booking">
+          <div class="booking-header">
+            <div class="booking-icon" aria-hidden="true"><svg><use href="#i-desk"/></svg></div>
+            <div class="min-w-0">
+              <p class="booking-title">Northgate Studios · Desk 3</p>
+              <p class="booking-sub">Hot desk · Seattle, WA</p>
+            </div>
+            <div class="booking-status">
+              <span class="badge badge-lg badge-pending"><span class="dot"></span>Pending</span>
+            </div>
+          </div>
+          <div class="booking-meta">
+            <div>
+              <p class="meta-label">Date</p>
+              <p class="meta-value tnum">Thu, May 14</p>
+            </div>
+            <div>
+              <p class="meta-label">Time</p>
+              <p class="meta-value tnum">9:00 AM – 6:00 PM</p>
+            </div>
+          </div>
+          <div class="booking-footer">
+            <p class="booking-context">Requested 2 days ago · usually responds within 24h</p>
+            <div class="booking-actions">
+              <a href="02-space-detail.html?id=northgate-studios" class="btn-ghost">View details</a>
+              <button type="button" class="btn-ghost">Cancel request</button>
+            </div>
+          </div>
+        </li>
+
+        <li class="booking">
+          <div class="booking-header">
+            <div class="booking-icon" aria-hidden="true"><svg><use href="#i-desk"/></svg></div>
+            <div class="min-w-0">
+              <p class="booking-title">Mission Annex · Desk 12</p>
+              <p class="booking-sub">Hot desk · San Francisco, CA</p>
+            </div>
+            <div class="booking-status">
+              <span class="badge badge-lg badge-pending"><span class="dot"></span>Pending</span>
+            </div>
+          </div>
+          <div class="booking-meta">
+            <div>
+              <p class="meta-label">Date</p>
+              <p class="meta-value tnum">Mon, May 18</p>
+            </div>
+            <div>
+              <p class="meta-label">Time</p>
+              <p class="meta-value tnum">8:00 AM – 8:00 PM</p>
+            </div>
+          </div>
+          <div class="booking-footer">
+            <p class="booking-context">Requested 4 hours ago · usually responds within 24h</p>
+            <div class="booking-actions">
+              <a href="02-space-detail.html?id=mission-annex" class="btn-ghost">View details</a>
+              <button type="button" class="btn-ghost">Cancel request</button>
+            </div>
+          </div>
+        </li>
+
+      </ul>
+    </section>
+
+    <!-- ─────────── 2. UPCOMING — Confirmed, future ─────────── -->
+    <section class="mt-12" aria-labelledby="sec-upcoming">
+      <div class="section-head">
+        <h2 id="sec-upcoming">Upcoming</h2>
+        <span class="count tnum">2</span>
+      </div>
+
+      <ul class="list-none p-0 m-0">
+
+        <li class="booking">
+          <div class="booking-header">
+            <div class="booking-icon" aria-hidden="true"><svg><use href="#i-desk"/></svg></div>
+            <div class="min-w-0">
+              <p class="booking-title">The Hive — Riverside · Desk 7</p>
+              <p class="booking-sub">Hot desk · Brooklyn, NY</p>
+            </div>
+            <div class="booking-status">
+              <span class="badge badge-lg badge-confirmed"><span class="dot"></span>Confirmed</span>
+            </div>
+          </div>
+          <div class="booking-meta">
+            <div>
+              <p class="meta-label">Date</p>
+              <p class="meta-value tnum">Tue, May 12</p>
+            </div>
+            <div>
+              <p class="meta-label">Time</p>
+              <p class="meta-value tnum">9:00 AM – 7:00 PM</p>
+            </div>
+          </div>
+          <div class="booking-footer">
+            <p class="booking-context">Confirmed Apr 30 · check-in at the front desk</p>
+            <div class="booking-actions">
+              <a href="02-space-detail.html?id=the-hive-riverside" class="btn-ghost">View details</a>
+            </div>
+          </div>
+        </li>
+
+        <li class="booking">
+          <div class="booking-header">
+            <div class="booking-icon" aria-hidden="true"><svg><use href="#i-desk"/></svg></div>
+            <div class="min-w-0">
+              <p class="booking-title">Folk House · Desk 1</p>
+              <p class="booking-sub">Hot desk · Lisbon, PT</p>
+            </div>
+            <div class="booking-status">
+              <span class="badge badge-lg badge-confirmed"><span class="dot"></span>Confirmed</span>
+            </div>
+          </div>
+          <div class="booking-meta">
+            <div>
+              <p class="meta-label">Date</p>
+              <p class="meta-value tnum">Fri, May 22</p>
+            </div>
+            <div>
+              <p class="meta-label">Time</p>
+              <p class="meta-value tnum">8:30 AM – 6:30 PM</p>
+            </div>
+          </div>
+          <div class="booking-footer">
+            <p class="booking-context">Confirmed May 2 · check-in at the front desk</p>
+            <div class="booking-actions">
+              <a href="02-space-detail.html?id=folk-house" class="btn-ghost">View details</a>
+            </div>
+          </div>
+        </li>
+
+      </ul>
+    </section>
+
+    <!-- ─────────── 3. PAST & ARCHIVED ─────────── -->
+    <section class="section-archived mt-12" aria-labelledby="sec-archived">
+      <div class="section-head">
+        <h2 id="sec-archived">Past &amp; archived</h2>
+        <span class="count tnum">3</span>
+      </div>
+
+      <ul class="list-none p-0 m-0">
+
+        <li class="booking">
+          <div class="booking-header">
+            <div class="booking-icon" aria-hidden="true"><svg><use href="#i-desk"/></svg></div>
+            <div class="min-w-0">
+              <p class="booking-title">Cedar &amp; Co. · Desk 1</p>
+              <p class="booking-sub">Hot desk · Austin, TX</p>
+            </div>
+            <div class="booking-status">
+              <span class="badge badge-lg badge-rejected"><span class="dot"></span>Rejected</span>
+            </div>
+          </div>
+          <div class="booking-meta">
+            <div>
+              <p class="meta-label">Date</p>
+              <p class="meta-value tnum">Sat, May 16</p>
+            </div>
+            <div>
+              <p class="meta-label">Time</p>
+              <p class="meta-value tnum">9:00 AM – 6:00 PM</p>
+            </div>
+          </div>
+          <div class="booking-footer">
+            <p class="booking-context">Space was fully booked for that date</p>
+            <div class="booking-actions">
+              <a href="02-space-detail.html?id=cedar-and-co" class="btn-ghost">Book again</a>
+            </div>
+          </div>
+        </li>
+
+        <li class="booking">
+          <div class="booking-header">
+            <div class="booking-icon" aria-hidden="true"><svg><use href="#i-desk"/></svg></div>
+            <div class="min-w-0">
+              <p class="booking-title">The Hive — Riverside · Desk 2</p>
+              <p class="booking-sub">Hot desk · Brooklyn, NY</p>
+            </div>
+            <div class="booking-status">
+              <span class="badge badge-lg badge-cancelled"><span class="dot"></span>Cancelled</span>
+            </div>
+          </div>
+          <div class="booking-meta">
+            <div>
+              <p class="meta-label">Date</p>
+              <p class="meta-value tnum">Mon, May 4</p>
+            </div>
+            <div>
+              <p class="meta-label">Time</p>
+              <p class="meta-value tnum">9:00 AM – 7:00 PM</p>
+            </div>
+          </div>
+          <div class="booking-footer no-actions">
+            <p class="booking-context">You cancelled this request on May 2</p>
+          </div>
+        </li>
+
+        <li class="booking">
+          <div class="booking-header">
+            <div class="booking-icon" aria-hidden="true"><svg><use href="#i-desk"/></svg></div>
+            <div class="min-w-0">
+              <p class="booking-title">Atlas Workrooms · Desk 4</p>
+              <p class="booking-sub">Hot desk · Berlin, DE</p>
+            </div>
+            <div class="booking-status">
+              <span class="badge badge-lg badge-confirmed"><span class="dot"></span>Confirmed</span>
+            </div>
+          </div>
+          <div class="booking-meta">
+            <div>
+              <p class="meta-label">Date</p>
+              <p class="meta-value tnum">Wed, Apr 29</p>
+            </div>
+            <div>
+              <p class="meta-label">Time</p>
+              <p class="meta-value tnum">9:00 AM – 6:00 PM</p>
+            </div>
+          </div>
+          <div class="booking-footer no-actions">
+            <p class="booking-context">Visit complete</p>
+          </div>
+        </li>
+
+      </ul>
+    </section>
+
+    <!-- Empty-state reference (hidden but documented for the dev). Show this when there are zero bookings. -->
+    <template id="empty-state-template">
+      <section style="border:1px dashed var(--color-border-strong); border-radius: var(--radius-2xl); background: var(--color-neutral-0); padding: 3rem 2rem; text-align: center;">
+        <div class="logo-mark mx-auto" aria-hidden="true" style="width: 32px; height: 32px; opacity: 0.6;"></div>
+        <h2 class="mt-4 page-h1" style="font-size: 1.25rem;">No bookings yet</h2>
+        <p class="mt-2 muted-strong" style="font-size: 14px;">
+          You haven't booked anything yet. Browse spaces to get started.
+        </p>
+        <a href="01-landing.html" class="btn btn-primary mt-5">Browse spaces</a>
+      </section>
+    </template>
+
+  </main>
+
+</body>
+</html>

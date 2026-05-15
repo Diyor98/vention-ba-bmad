@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DeskHive — MVP + Phase 2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="screens/shared.css">
+  <link rel="stylesheet" href="screens/phase2.css">
+  <style>
+    body { background: var(--color-neutral-50); }
+
+    /* ── Top hero ─────────────────────────────────── */
+    .hero {
+      max-width: var(--container-content);
+      margin: 0 auto;
+      padding: 3.5rem var(--layout-gutter-lg) 1.75rem;
+    }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .eyebrow .dot { width: 6px; height: 6px; border-radius: 9999px; background: var(--color-primary); }
+    .hero h1 {
+      font-size: 2.75rem;
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+      font-weight: 600;
+      color: var(--color-neutral-900);
+      max-width: 36rem;
+      text-wrap: pretty;
+    }
+    .hero p.sub {
+      margin-top: 1rem;
+      font-size: 1.0625rem;
+      line-height: 1.55;
+      color: var(--color-neutral-600);
+      max-width: 40rem;
+    }
+    .hero-meta {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem 2.25rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--color-border);
+    }
+    .hero-meta dt {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-neutral-500);
+      margin-bottom: 0.25rem;
+    }
+    .hero-meta dd { font-size: 14px; color: var(--color-neutral-900); font-weight: 500; }
+
+    /* ── Filter bar ────────────────────────────────── */
+    .filter-shell {
+      position: sticky;
+      top: 56px;
+      z-index: 10;
+      background: color-mix(in oklab, var(--color-neutral-50) 92%, transparent);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .filter-bar {
+      max-width: var(--container-content);
+      margin: 0 auto;
+      padding: 0.875rem var(--layout-gutter-lg);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem;
+    }
+    .seg {
+      display: inline-flex;
+      padding: 3px;
+      background: var(--color-neutral-100);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+    }
+    .seg button {
+      appearance: none;
+      background: transparent;
+      border: 0;
+      padding: 6px 12px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-neutral-600);
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 120ms, color 120ms;
+    }
+    .seg button .n {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-neutral-500);
+      padding: 1px 5px;
+      background: var(--color-neutral-0);
+      border-radius: 9999px;
+      border: 1px solid var(--color-border);
+    }
+    .seg button:hover { color: var(--color-neutral-900); }
+    .seg button[aria-pressed="true"] {
+      background: var(--color-neutral-0);
+      color: var(--color-neutral-900);
+      box-shadow: var(--shadow-sm);
+    }
+    .seg button[aria-pressed="true"] .n {
+      background: var(--color-brand-50);
+      color: var(--color-brand-700);
+      border-color: var(--color-brand-100);
+    }
+
+    .role-filter { display: flex; gap: 0.375rem; align-items: center; flex-wrap: wrap; }
+    .role-chip {
+      appearance: none;
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      padding: 5px 10px;
+      border-radius: 9999px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-neutral-700);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 120ms, background 120ms, color 120ms;
+    }
+    .role-chip i {
+      width: 7px; height: 7px; border-radius: 9999px; display: inline-block;
+    }
+    .role-chip:hover { border-color: var(--color-neutral-300); }
+    .role-chip[aria-pressed="true"] {
+      background: var(--color-neutral-900);
+      color: #fff;
+      border-color: var(--color-neutral-900);
+    }
+    .role-chip[aria-pressed="true"] i { background: #fff !important; }
+    .role-chip.r-public i { background: var(--color-brand-600); }
+    .role-chip.r-guest  i { background: #16A34A; }
+    .role-chip.r-host   i { background: #6366F1; }
+    .role-chip.r-admin  i { background: var(--color-neutral-900); border: 1px solid var(--color-neutral-400); }
+    .role-chip.r-system i { background: #F59E0B; }
+
+    .filter-spacer { flex: 1; }
+
+    .search-wrap { position: relative; }
+    .search-wrap input {
+      width: 220px;
+      padding: 7px 12px 7px 30px;
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font: inherit;
+      font-size: 13px;
+      color: var(--color-neutral-900);
+    }
+    .search-wrap input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: var(--shadow-focus);
+    }
+    .search-wrap svg {
+      position: absolute;
+      left: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px; height: 14px;
+      color: var(--color-neutral-400);
+    }
+
+    /* ── Section blocks ─────────────────────────────── */
+    section.block {
+      max-width: var(--container-content);
+      margin: 0 auto;
+      padding: 2.25rem var(--layout-gutter-lg);
+    }
+    .phase-heading {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+      margin-bottom: 0.25rem;
+    }
+    .phase-heading h2 {
+      font-size: 1.5rem; letter-spacing: -0.015em; font-weight: 600;
+      color: var(--color-neutral-900);
+      display: flex; align-items: center; gap: 0.625rem;
+    }
+    .phase-heading h2 .tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-weight: 500;
+    }
+    .phase-heading h2 .tag.p1 {
+      background: var(--color-neutral-100);
+      color: var(--color-neutral-700);
+      border: 1px solid var(--color-border);
+    }
+    .phase-heading h2 .tag.p2 {
+      background: var(--color-brand-50);
+      color: var(--color-brand-700);
+      border: 1px solid var(--color-brand-100);
+    }
+    .phase-heading .lede {
+      font-size: 14px;
+      color: var(--color-neutral-600);
+      max-width: 32rem;
+    }
+    .theme-label {
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-neutral-500);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .theme-label::before {
+      content: "";
+      width: 6px; height: 6px; border-radius: 9999px;
+      background: currentColor;
+    }
+
+    /* ── Screen grid + cards ────────────────────────── */
+    .screen-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
+    @media (max-width: 960px) { .screen-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 600px) { .screen-grid { grid-template-columns: 1fr; } }
+
+    .screen-card {
+      display: block;
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color var(--duration-default) var(--ease-standard),
+                  box-shadow var(--duration-default) var(--ease-standard),
+                  transform var(--duration-default) var(--ease-standard);
+    }
+    .screen-card:hover { border-color: var(--color-neutral-300); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .screen-card:focus-visible { outline: none; border-color: var(--color-primary); box-shadow: var(--shadow-focus); }
+
+    .screen-preview {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      background: var(--color-neutral-100);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .screen-preview iframe {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1440px;
+      height: 1080px;
+      transform-origin: top left;
+      transform: scale(0.295);
+      border: 0;
+      pointer-events: none;
+      background: var(--color-neutral-0);
+    }
+    .badge-no {
+      position: absolute;
+      top: 0.75rem; left: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--color-neutral-700);
+      background: rgba(255,255,255,0.94);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--color-border);
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      z-index: 2;
+    }
+    .audience {
+      position: absolute;
+      top: 0.75rem; right: 0.75rem;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      z-index: 2;
+    }
+    .au-public { background: var(--color-brand-100); color: var(--color-brand-700); }
+    .au-guest  { background: #DCFCE7; color: #14532D; }
+    .au-host   { background: #E0E7FF; color: #3730A3; }
+    .au-admin  { background: var(--color-neutral-900); color: #fff; }
+    .au-system { background: #FEF3C7; color: #78350F; }
+
+    .screen-meta { padding: 1rem 1.125rem 1.125rem; }
+    .screen-meta .title {
+      font-size: 0.9375rem; font-weight: 600; color: var(--color-neutral-900);
+      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+    }
+    .screen-meta .route {
+      margin-top: 0.25rem;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--color-neutral-500);
+    }
+    .screen-meta .desc { margin-top: 0.625rem; font-size: 13px; color: var(--color-neutral-600); line-height: 1.5; }
+    .arrow { color: var(--color-neutral-400); transition: color var(--duration-fast); }
+    .screen-card:hover .arrow { color: var(--color-primary); }
+
+    /* Empty state when filter matches nothing */
+    .empty {
+      padding: 3rem 1rem;
+      text-align: center;
+      color: var(--color-neutral-500);
+      font-size: 14px;
+      border: 1px dashed var(--color-border-strong);
+      border-radius: var(--radius-xl);
+      background: var(--color-neutral-0);
+    }
+    .empty .k { font-family: var(--font-mono); font-size: 12px; color: var(--color-neutral-400); margin-top: 6px; }
+
+    /* hide/show classes driven by JS */
+    [data-card][hidden] { display: none !important; }
+    [data-section][hidden] { display: none !important; }
+
+    /* ── Roadmap strip ─────────────────────────────── */
+    .roadmap {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    @media (max-width: 800px) { .roadmap { grid-template-columns: 1fr; } }
+    .lane {
+      padding: 1.25rem 1.375rem;
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+    }
+    .lane .lane-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+      margin-bottom: 0.625rem;
+    }
+    .lane .tag {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--color-neutral-500);
+    }
+    .lane .tag::before { content: ""; width: 8px; height: 8px; border-radius: 9999px; }
+    .lane.l-p1 .tag::before { background: var(--color-neutral-500); }
+    .lane.l-pa .tag::before { background: var(--color-brand-600); }
+    .lane.l-pb .tag::before { background: #16A34A; }
+    .lane.l-pc .tag::before { background: #F59E0B; }
+    .lane h3 { font-size: 1rem; font-weight: 600; color: var(--color-neutral-900); }
+    .lane p { margin-top: 0.375rem; font-size: 13px; color: var(--color-neutral-600); line-height: 1.55; }
+    .lane .status {
+      font-family: var(--font-mono); font-size: 11px;
+      letter-spacing: 0.04em;
+      padding: 2px 7px; border-radius: 9999px;
+      border: 1px solid currentColor;
+    }
+    .lane .status.shipped { color: #15803D; }
+    .lane .status.design  { color: var(--color-primary); }
+    .lane .status.next    { color: var(--color-neutral-500); }
+
+    .lane ul { margin-top: 0.875rem; padding-left: 1rem; font-size: 13px; color: var(--color-neutral-700); }
+    .lane ul li { margin: 3px 0; }
+
+    /* ── Footnote ──────────────────────────────────── */
+    .footnote {
+      max-width: var(--container-content);
+      margin: 0 auto;
+      padding: 1rem var(--layout-gutter-lg) 4rem;
+      font-size: 12px;
+      color: var(--color-neutral-500);
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+    }
+  </style>
+</head>
+<body data-screen-label="00 DeskHive App">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="DeskHive.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="DeskHive.html" class="nav-link" aria-current="page">All screens</a>
+        <a href="Index.html" class="nav-link">MVP overview</a>
+        <a href="screens/p2-00-overview.html" class="nav-link">Phase 2 overview</a>
+        <a href="components/gallery.html" class="nav-link">Components</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ───────── Hero ───────── -->
+  <section class="hero" data-screen-label="01 Hero">
+    <div class="eyebrow"><span class="dot"></span>One app · Two phases · 20 screens</div>
+    <h1>The complete DeskHive design — MVP plus Phase 2.</h1>
+    <p class="sub">Every shipped screen and every new screen in one navigable index. Phase 1 is the booking baseline; Phase 2 layers in multi-tenant hosting, Stripe payments, and transactional email — without touching the existing tokens.</p>
+    <dl class="hero-meta">
+      <div><dt>Screens</dt><dd>8 MVP · 12 Phase 2</dd></div>
+      <div><dt>Roles</dt><dd>Guest · Host · Admin</dd></div>
+      <div><dt>Design system</dt><dd>shared.css + phase2.css</dd></div>
+      <div><dt>Stack</dt><dd>Next.js 16 · Tailwind v4 · Stripe · Resend</dd></div>
+      <div><dt>Status</dt><dd style="color: #15803D;">● MVP shipped · Phase 2 design complete</dd></div>
+    </dl>
+  </section>
+
+  <!-- ───────── Filter / search bar ───────── -->
+  <div class="filter-shell" data-screen-label="02 Filter Bar">
+    <div class="filter-bar">
+      <div class="seg" role="tablist" aria-label="Phase filter">
+        <button type="button" data-phase="all" aria-pressed="true">All <span class="n" data-n-all>20</span></button>
+        <button type="button" data-phase="p1"  aria-pressed="false">MVP <span class="n" data-n-p1>8</span></button>
+        <button type="button" data-phase="p2"  aria-pressed="false">Phase 2 <span class="n" data-n-p2>12</span></button>
+      </div>
+
+      <div class="role-filter" role="group" aria-label="Audience filter">
+        <button type="button" class="role-chip r-public" data-role="public" aria-pressed="false"><i></i>Public</button>
+        <button type="button" class="role-chip r-guest"  data-role="guest"  aria-pressed="false"><i></i>Guest</button>
+        <button type="button" class="role-chip r-host"   data-role="host"   aria-pressed="false"><i></i>Host</button>
+        <button type="button" class="role-chip r-admin"  data-role="admin"  aria-pressed="false"><i></i>Admin</button>
+        <button type="button" class="role-chip r-system" data-role="system" aria-pressed="false"><i></i>System</button>
+      </div>
+
+      <div class="filter-spacer"></div>
+
+      <div class="search-wrap">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="m13 13-2.5-2.5"/></svg>
+        <input type="search" placeholder="Search screens or routes…" id="search-input" aria-label="Search screens" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ───────── Roadmap lanes ───────── -->
+  <section class="block" data-screen-label="03 Roadmap">
+    <div class="phase-heading">
+      <div>
+        <h2>Build sequence</h2>
+        <p class="lede">Four lanes shipping in order. Theme A is the gate for B &amp; C — without Owners there's no one to pay out, no one to email.</p>
+      </div>
+    </div>
+    <div class="roadmap" style="margin-top: 1rem;">
+      <div class="lane l-p1">
+        <div class="lane-head">
+          <span class="tag">MVP · booking baseline</span>
+          <span class="status shipped">● Shipped</span>
+        </div>
+        <h3>Browse, book, manage</h3>
+        <p>The pre-Phase-2 product: a guest signs up, finds a desk, books it. An admin manages everything centrally.</p>
+        <ul>
+          <li>Landing &amp; space detail</li>
+          <li>Register · Login · My bookings</li>
+          <li>Admin: spaces, bookings, edits</li>
+        </ul>
+      </div>
+      <div class="lane l-pa">
+        <div class="lane-head">
+          <span class="tag">Theme A · multi-tenant</span>
+          <span class="status design">● Design complete</span>
+        </div>
+        <h3>Hosts become first-class</h3>
+        <p>A new "Space Owner" role with its own dashboard, spaces, and bookings — plus an admin review queue for applications.</p>
+        <ul>
+          <li>Become-a-host application</li>
+          <li>Admin review queue + detail</li>
+          <li>Owner dashboard · spaces · bookings</li>
+        </ul>
+      </div>
+      <div class="lane l-pb">
+        <div class="lane-head">
+          <span class="tag">Theme B · payments</span>
+          <span class="status design">● Design complete</span>
+        </div>
+        <h3>Money moves on rails</h3>
+        <p>Stripe Checkout in the booking flow, Stripe Connect for hosts, a 15% platform fee, and a 24-hour refund window.</p>
+        <ul>
+          <li>Payment summary on space detail</li>
+          <li>Cancel &amp; refund flow</li>
+          <li>Payouts &amp; payout settings</li>
+        </ul>
+      </div>
+      <div class="lane l-pc">
+        <div class="lane-head">
+          <span class="tag">Theme C · email</span>
+          <span class="status design">● Design complete</span>
+        </div>
+        <h3>One wrapper, 13 templates</h3>
+        <p>Transactional email via Resend, signed with SPF + DKIM. Plain-text fallback on every template.</p>
+        <ul>
+          <li>Shared 600 px email wrapper</li>
+          <li>"Booking confirmed" reference sample</li>
+          <li>Header variants &amp; sign-off</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── Screen sections ───────── -->
+
+  <!-- Phase 1 — MVP -->
+  <section class="block" data-section="p1" data-screen-label="04 Phase 1 Screens">
+    <div class="phase-heading">
+      <div>
+        <h2><span class="tag p1">MVP</span> Booking baseline</h2>
+        <p class="lede">Eight screens shipped in Phase 1. Two public roles (visitor, signed-in guest), one admin role.</p>
+      </div>
+    </div>
+
+    <div class="theme-label" style="color: var(--color-neutral-700);">Phase 1 · 8 screens</div>
+    <div class="screen-grid">
+
+      <a class="screen-card" data-card data-phase="p1" data-roles="public" data-search="landing browse home /" href="screens/01-landing.html">
+        <div class="screen-preview">
+          <span class="badge-no">P1 · 01</span>
+          <span class="audience au-public">Public</span>
+          <iframe src="screens/01-landing.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Landing / Browse <span class="arrow">→</span></div>
+          <div class="route">/</div>
+          <div class="desc">Search field + grid of space cards. Photo, name, city, amenities, price.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p1" data-roles="public" data-search="space detail desks book" href="screens/02-space-detail.html">
+        <div class="screen-preview">
+          <span class="badge-no">P1 · 02</span>
+          <span class="audience au-public">Public</span>
+          <iframe src="screens/02-space-detail.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Space detail <span class="arrow">→</span></div>
+          <div class="route">/spaces/:id</div>
+          <div class="desc">Hero image, native date picker, desk list with availability + per-desk Book buttons.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p1" data-roles="public" data-search="register signup account" href="screens/03-register.html">
+        <div class="screen-preview">
+          <span class="badge-no">P1 · 03</span>
+          <span class="audience au-public">Public</span>
+          <iframe src="screens/03-register.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Register <span class="arrow">→</span></div>
+          <div class="route">/register</div>
+          <div class="desc">Email, name, password. Inline validation. Link to log in.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p1" data-roles="public" data-search="login signin auth" href="screens/04-login.html">
+        <div class="screen-preview">
+          <span class="badge-no">P1 · 04</span>
+          <span class="audience au-public">Public</span>
+          <iframe src="screens/04-login.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Log in <span class="arrow">→</span></div>
+          <div class="route">/login</div>
+          <div class="desc">Two fields, role segmented control, link to register.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p1" data-roles="guest" data-search="my bookings cancel pending guest" href="screens/05-my-bookings.html">
+        <div class="screen-preview">
+          <span class="badge-no">P1 · 05</span>
+          <span class="audience au-guest">Guest</span>
+          <iframe src="screens/05-my-bookings.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">My bookings <span class="arrow">→</span></div>
+          <div class="route">/my-bookings</div>
+          <div class="desc">List of bookings with dominant status badges. Cancel button on Pending rows only.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p1" data-roles="admin" data-search="admin spaces list table" href="screens/06-admin-spaces.html">
+        <div class="screen-preview">
+          <span class="badge-no">P1 · 06</span>
+          <span class="audience au-admin">Admin</span>
+          <iframe src="screens/06-admin-spaces.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Admin · Spaces <span class="arrow">→</span></div>
+          <div class="route">/admin/spaces</div>
+          <div class="desc">Table of all spaces with status, city, and a "New space" action.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p1" data-roles="admin" data-search="admin edit space desks form" href="screens/07-admin-space-edit.html">
+        <div class="screen-preview">
+          <span class="badge-no">P1 · 07</span>
+          <span class="audience au-admin">Admin</span>
+          <iframe src="screens/07-admin-space-edit.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Admin · Edit space <span class="arrow">→</span></div>
+          <div class="route">/admin/spaces/:id</div>
+          <div class="desc">Form for space details plus an inline desk manager (add / edit / deactivate).</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p1" data-roles="admin" data-search="admin bookings approve reject pending" href="screens/08-admin-bookings.html">
+        <div class="screen-preview">
+          <span class="badge-no">P1 · 08</span>
+          <span class="audience au-admin">Admin</span>
+          <iframe src="screens/08-admin-bookings.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Admin · Bookings <span class="arrow">→</span></div>
+          <div class="route">/admin/bookings</div>
+          <div class="desc">Every booking on the platform. Pending rows get Confirm + Reject actions.</div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- Phase 2 — Theme A · Multi-tenant -->
+  <section class="block" data-section="p2" data-screen-label="05 Phase 2 — Multi-tenant">
+    <div class="phase-heading">
+      <div>
+        <h2><span class="tag p2">Phase 2</span> Multi-tenant marketplace</h2>
+        <p class="lede">A new Space Owner role and the admin queue that lets it exist. Same chrome, new states.</p>
+      </div>
+    </div>
+
+    <div class="theme-label" style="color: var(--color-brand-700);">Theme A · 6 screens</div>
+    <div class="screen-grid">
+
+      <a class="screen-card" data-card data-phase="p2" data-roles="guest" data-search="become host application apply" href="screens/p2-01-become-a-host.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 01</span>
+          <span class="audience au-guest">Guest</span>
+          <iframe src="screens/p2-01-become-a-host.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Become a Space Owner <span class="arrow">→</span></div>
+          <div class="route">/become-a-host</div>
+          <div class="desc">Landing + 5-field application form. Sticky CTA bar. Process timeline aside.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p2" data-roles="admin" data-search="admin applications queue pending review" href="screens/p2-02-admin-applications.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 02</span>
+          <span class="audience au-admin">Admin</span>
+          <iframe src="screens/p2-02-admin-applications.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Applications · list <span class="arrow">→</span></div>
+          <div class="route">/admin/applications</div>
+          <div class="desc">Sub-nav adds Applications tab. Inline Approve / Reject on Pending rows.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p2" data-roles="admin" data-search="admin application detail approve reject modal" href="screens/p2-03-admin-application-detail.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 03</span>
+          <span class="audience au-admin">Admin</span>
+          <iframe src="screens/p2-03-admin-application-detail.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Application · detail <span class="arrow">→</span></div>
+          <div class="route">/admin/applications/[id]</div>
+          <div class="desc">Read-only fields, Approve / Reject. Reject opens a modal with an optional note.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p2" data-roles="host" data-search="host dashboard owner stats stripe banner" href="screens/p2-04-owner-dashboard.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 04</span>
+          <span class="audience au-host">Host</span>
+          <iframe src="screens/p2-04-owner-dashboard.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Host dashboard <span class="arrow">→</span></div>
+          <div class="route">/owner</div>
+          <div class="desc">Stats · Stripe onboarding banner · pending bookings · quick links.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p2" data-roles="host" data-search="host owner spaces my" href="screens/p2-05-owner-spaces.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 05</span>
+          <span class="audience au-host">Host</span>
+          <iframe src="screens/p2-05-owner-spaces.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">My spaces <span class="arrow">→</span></div>
+          <div class="route">/owner/spaces</div>
+          <div class="desc">Phase 1 spaces table, filtered to host's own spaces.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p2" data-roles="host" data-search="host owner bookings earnings fee net" href="screens/p2-06-owner-bookings.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 06</span>
+          <span class="audience au-host">Host</span>
+          <iframe src="screens/p2-06-owner-bookings.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Host bookings <span class="arrow">→</span></div>
+          <div class="route">/owner/bookings</div>
+          <div class="desc">Adds "You earn" column showing net after 15% fee. Confirm / Reject inline.</div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- Phase 2 — Theme B · Payments -->
+  <section class="block" data-section="p2b" data-screen-label="06 Phase 2 — Payments">
+    <div class="phase-heading">
+      <div>
+        <h2><span class="tag p2">Phase 2</span> Stripe payments &amp; refunds</h2>
+        <p class="lede">Stripe Checkout in the booking flow, Connect for hosts, a 15% fee, a 24-hour refund window.</p>
+      </div>
+    </div>
+
+    <div class="theme-label" style="color: #15803D;">Theme B · 4 screens</div>
+    <div class="screen-grid">
+
+      <a class="screen-card" data-card data-phase="p2" data-roles="host" data-search="payouts host owner stripe history" href="screens/p2-07-owner-payouts.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 07</span>
+          <span class="audience au-host">Host</span>
+          <iframe src="screens/p2-07-owner-payouts.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Payouts <span class="arrow">→</span></div>
+          <div class="route">/owner/payouts</div>
+          <div class="desc">Lifetime, pending, held totals + payout history with Stripe reference IDs.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p2" data-roles="host" data-search="payout settings stripe connect onboarding" href="screens/p2-08-owner-settings.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 08</span>
+          <span class="audience au-host">Host</span>
+          <iframe src="screens/p2-08-owner-settings.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Payout settings <span class="arrow">→</span></div>
+          <div class="route">/owner/settings</div>
+          <div class="desc">Stripe Connect onboarding — three states (not started · in progress · done).</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p2" data-roles="guest" data-search="payment space detail checkout pay fee" href="screens/p2-09-space-detail-payment.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 09</span>
+          <span class="audience au-guest">Guest</span>
+          <iframe src="screens/p2-09-space-detail-payment.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Space detail · payment <span class="arrow">→</span></div>
+          <div class="route">/spaces/[id]</div>
+          <div class="desc">Payment summary card (with fee), "Pay &amp; request" CTA, post-checkout toast.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p2" data-roles="guest" data-search="cancel refund modal 24 hour window" href="screens/p2-10-my-bookings-cancel.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 10</span>
+          <span class="audience au-guest">Guest</span>
+          <iframe src="screens/p2-10-my-bookings-cancel.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Cancel &amp; refund <span class="arrow">→</span></div>
+          <div class="route">/my-bookings</div>
+          <div class="desc">24-hour refund window. Disabled button + tooltip outside the window. Modal with breakdown.</div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- Phase 2 — Theme C · Email & sign-off -->
+  <section class="block" data-section="p2c" data-screen-label="07 Phase 2 — Email">
+    <div class="phase-heading">
+      <div>
+        <h2><span class="tag p2">Phase 2</span> Email &amp; component sign-off</h2>
+        <p class="lede">The shared email wrapper, one filled sample, and the header-variants sheet for visual sign-off.</p>
+      </div>
+    </div>
+
+    <div class="theme-label" style="color: #78350F;">Theme C · 2 screens</div>
+    <div class="screen-grid">
+
+      <a class="screen-card" data-card data-phase="p2" data-roles="system" data-search="email template booking confirmed resend wrapper" href="screens/p2-11-email-template.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 11</span>
+          <span class="audience au-system">System</span>
+          <iframe src="screens/p2-11-email-template.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Email · Booking confirmed <span class="arrow">→</span></div>
+          <div class="route">resend://booking.confirmed</div>
+          <div class="desc">Shared wrapper, one filled example, plain-text fallback. All 13 templates listed.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" data-card data-phase="p2" data-roles="system" data-search="header variants dropdown user pill sign off" href="screens/p2-12-header-variants.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 12</span>
+          <span class="audience au-system">System</span>
+          <iframe src="screens/p2-12-header-variants.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Header variants + dropdown <span class="arrow">→</span></div>
+          <div class="route">/* component sign-off */</div>
+          <div class="desc">All five user states + the user-pill menu open at each role. Visual sign-off for Story 7-1.</div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- Empty state -->
+  <section class="block" id="empty-block" hidden>
+    <div class="empty">
+      <div>No screens match this filter.</div>
+      <div class="k">Try clearing your search or selecting "All".</div>
+    </div>
+  </section>
+
+  <div class="footnote">
+    <span>DeskHive · Combined MVP + Phase 2 visual design.</span>
+    <span style="font-family: var(--font-mono);">v1.0 · 12 May 2026 · 20 screens</span>
+  </div>
+
+  <script>
+    (function () {
+      const cards = Array.from(document.querySelectorAll('[data-card]'));
+      const sections = Array.from(document.querySelectorAll('[data-section]'));
+      const emptyBlock = document.getElementById('empty-block');
+      const phaseButtons = Array.from(document.querySelectorAll('.seg button[data-phase]'));
+      const roleButtons = Array.from(document.querySelectorAll('.role-chip[data-role]'));
+      const searchInput = document.getElementById('search-input');
+
+      const state = {
+        phase: 'all',
+        roles: new Set(),
+        query: ''
+      };
+
+      function applyFilters() {
+        let visible = 0;
+        cards.forEach(card => {
+          const cardPhase = card.dataset.phase;
+          const cardRoles = (card.dataset.roles || '').split(/\s+/).filter(Boolean);
+          const cardSearch = (card.dataset.search || '').toLowerCase()
+            + ' ' + card.querySelector('.title')?.textContent.toLowerCase()
+            + ' ' + card.querySelector('.route')?.textContent.toLowerCase();
+
+          const phaseOk = state.phase === 'all' || cardPhase === state.phase;
+          const roleOk  = state.roles.size === 0 || cardRoles.some(r => state.roles.has(r));
+          const queryOk = !state.query || cardSearch.includes(state.query);
+
+          const shown = phaseOk && roleOk && queryOk;
+          card.hidden = !shown;
+          if (shown) visible++;
+        });
+
+        // hide sections with no visible cards
+        sections.forEach(section => {
+          const anyVisible = section.querySelectorAll('[data-card]:not([hidden])').length > 0;
+          section.hidden = !anyVisible;
+        });
+
+        emptyBlock.hidden = visible !== 0;
+      }
+
+      phaseButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.phase = btn.dataset.phase;
+          phaseButtons.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
+          applyFilters();
+        });
+      });
+
+      roleButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const role = btn.dataset.role;
+          if (state.roles.has(role)) {
+            state.roles.delete(role);
+            btn.setAttribute('aria-pressed', 'false');
+          } else {
+            state.roles.add(role);
+            btn.setAttribute('aria-pressed', 'true');
+          }
+          applyFilters();
+        });
+      });
+
+      searchInput.addEventListener('input', (e) => {
+        state.query = e.target.value.trim().toLowerCase();
+        applyFilters();
+      });
+    })();
+  </script>
+
+</body>
+</html>

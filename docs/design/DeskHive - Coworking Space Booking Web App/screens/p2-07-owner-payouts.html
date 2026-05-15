@@ -1,0 +1,213 @@
+<!doctype html>
+<!--
+  Phase 2 · Theme B · Story 5.7
+  /owner/payouts — Stripe Connect payout history
+
+  Top: 3 totals (total paid · pending · failed)
+  Table: Date · Reference · Bookings included · Amount · Status
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Payouts · Hosting · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="phase2.css">
+</head>
+<body data-screen-label="P2·07 Owner · Payouts">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+        <span class="mode-pill mode-host"><span class="dot"></span>Hosting</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="p2-04-owner-dashboard.html" class="nav-link">Dashboard</a>
+        <a href="p2-05-owner-spaces.html" class="nav-link">My spaces</a>
+        <a href="p2-06-owner-bookings.html" class="nav-link">Bookings</a>
+        <a href="p2-07-owner-payouts.html" class="nav-link" aria-current="page">Payouts</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <span class="user-pill">
+          <span class="user-avatar" aria-hidden="true">EN</span>
+          <span class="username text-[13px] font-medium">Elena</span>
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm">Log out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container-content admin-page">
+
+    <div class="admin-page-head">
+      <div>
+        <h1>Payouts</h1>
+        <p class="sub">What DeskHive has sent to your bank via Stripe Connect. Payouts run 2 business days after each guest visit.</p>
+      </div>
+      <div class="admin-actions">
+        <a href="p2-08-owner-settings.html" class="btn btn-secondary btn-sm">Payout settings</a>
+        <button class="btn btn-secondary btn-sm">Download statement</button>
+      </div>
+    </div>
+
+    <!-- ── Summary totals ── -->
+    <section class="stat-grid mb-6">
+      <div class="stat-card">
+        <div class="stat-head">
+          <span class="stat-label">Lifetime paid</span>
+          <span class="stat-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+        </div>
+        <p class="stat-value">$8,624<span class="unit">.40</span></p>
+        <p class="stat-foot">across 18 payouts · since Mar 2026</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-head">
+          <span class="stat-label">Pending</span>
+          <span class="stat-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </span>
+        </div>
+        <p class="stat-value">$214<span class="unit">.20</span></p>
+        <p class="stat-foot">next payout · <strong style="color: var(--color-neutral-900);">Thu, May 14</strong></p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-head">
+          <span class="stat-label">Held for review</span>
+          <span class="stat-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+          </span>
+        </div>
+        <p class="stat-value">$0<span class="unit">.00</span></p>
+        <p class="stat-foot">no holds · everything healthy</p>
+      </div>
+    </section>
+
+    <!-- ── Toolbar ── -->
+    <div class="admin-toolbar">
+      <div class="admin-toolbar-left">
+        <div class="flex items-center gap-1.5" role="group" aria-label="Status filter">
+          <button class="chip" aria-pressed="true">All <span class="count">20</span></button>
+          <button class="chip">Paid <span class="count">18</span></button>
+          <button class="chip">Pending <span class="count">2</span></button>
+          <button class="chip">Failed <span class="count">0</span></button>
+        </div>
+      </div>
+      <div class="admin-toolbar-right">
+        <select class="select" aria-label="Range">
+          <option>This year</option>
+          <option>Last 12 months</option>
+          <option>All time</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="sortable">Date <span class="sort-arrow">↓</span></th>
+            <th>Reference</th>
+            <th class="num">Bookings</th>
+            <th class="num">Gross</th>
+            <th class="num">Fee</th>
+            <th class="num">Net to you</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="tnum">Thu, May 14 · 09:00 UTC</td>
+            <td class="cell-id">po_1NbT2K…0214</td>
+            <td class="num tnum">8</td>
+            <td class="num tnum">$252.00</td>
+            <td class="num tnum muted">−$37.80</td>
+            <td class="num tnum"><strong>$214.20</strong></td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+          </tr>
+          <tr>
+            <td class="tnum">Thu, May 07 · 09:00 UTC</td>
+            <td class="cell-id">po_1NbR4X…01a8</td>
+            <td class="num tnum">14</td>
+            <td class="num tnum">$420.00</td>
+            <td class="num tnum muted">−$63.00</td>
+            <td class="num tnum"><strong>$357.00</strong></td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Paid</span></td>
+          </tr>
+          <tr>
+            <td class="tnum">Thu, Apr 30 · 09:00 UTC</td>
+            <td class="cell-id">po_1NbN9Q…00f3</td>
+            <td class="num tnum">11</td>
+            <td class="num tnum">$320.00</td>
+            <td class="num tnum muted">−$48.00</td>
+            <td class="num tnum"><strong>$272.00</strong></td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Paid</span></td>
+          </tr>
+          <tr>
+            <td class="tnum">Thu, Apr 23 · 09:00 UTC</td>
+            <td class="cell-id">po_1NbK1B…0085</td>
+            <td class="num tnum">9</td>
+            <td class="num tnum">$252.00</td>
+            <td class="num tnum muted">−$37.80</td>
+            <td class="num tnum"><strong>$214.20</strong></td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Paid</span></td>
+          </tr>
+          <tr>
+            <td class="tnum">Thu, Apr 16 · 09:00 UTC</td>
+            <td class="cell-id">po_1NbG5L…0040</td>
+            <td class="num tnum">12</td>
+            <td class="num tnum">$340.00</td>
+            <td class="num tnum muted">−$51.00</td>
+            <td class="num tnum"><strong>$289.00</strong></td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Paid</span></td>
+          </tr>
+          <tr>
+            <td class="tnum">Thu, Apr 09 · 09:00 UTC</td>
+            <td class="cell-id">po_1NbD8N…0021</td>
+            <td class="num tnum">7</td>
+            <td class="num tnum">$190.00</td>
+            <td class="num tnum muted">−$28.50</td>
+            <td class="num tnum"><strong>$161.50</strong></td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Paid</span></td>
+          </tr>
+          <tr>
+            <td class="tnum">Thu, Apr 02 · 09:00 UTC</td>
+            <td class="cell-id">po_1NbA3M…000c</td>
+            <td class="num tnum">5</td>
+            <td class="num tnum">$120.00</td>
+            <td class="num tnum muted">−$18.00</td>
+            <td class="num tnum"><strong>$102.00</strong></td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Paid</span></td>
+          </tr>
+          <tr>
+            <td class="tnum">Thu, Mar 26 · 09:00 UTC</td>
+            <td class="cell-id">po_1Nb71Q…0001</td>
+            <td class="num tnum">3</td>
+            <td class="num tnum">$70.00</td>
+            <td class="num tnum muted">−$10.50</td>
+            <td class="num tnum"><strong>$59.50</strong></td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Paid</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="table-footer">
+        <span>Showing <strong>8</strong> of <strong>20</strong> payouts</span>
+        <span class="muted" style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em;">to <strong>Bank of America · ••6210</strong></span>
+      </div>
+    </div>
+
+    <p class="muted mt-3" style="font-size: 12px;">
+      Each payout batches every guest visit whose confirmation date falls within Stripe's standard 2-day clearing window.
+    </p>
+
+  </main>
+
+</body>
+</html>

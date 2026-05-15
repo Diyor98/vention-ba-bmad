@@ -1,0 +1,6 @@
+# Workspace-root .gitignore — covers files outside the deskhive/ app
+# subfolder. The deskhive/ subfolder has its own .gitignore for app-
+# specific artifacts (node_modules, .next, etc.).
+
+# Claude Code local permissions (machine-specific)
+.claude/settings.local.json

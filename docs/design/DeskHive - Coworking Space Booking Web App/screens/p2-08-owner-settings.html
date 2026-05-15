@@ -1,0 +1,253 @@
+<!doctype html>
+<!--
+  Phase 2 · Theme B · Story 5.8
+  /owner/settings — Stripe Connect onboarding status
+
+  Three states to design (per PRD):
+    a) NOT STARTED  · big CTA "Set up payouts with Stripe"
+    b) IN PROGRESS  · "Continue Stripe onboarding" + remaining steps
+    c) COMPLETED    · green checks (Charges enabled, Payouts enabled) + Manage link
+
+  Toggle the three states with the tabs below. The connect-card pattern is
+  shared (see phase2.css) so the dev can branch on the API status enum.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Payout settings · Hosting · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="phase2.css">
+  <style>
+    .state-tabs {
+      display: inline-flex; gap: 0.25rem;
+      padding: 0.25rem;
+      background: var(--color-neutral-100);
+      border-radius: var(--radius-md);
+      margin-bottom: 1.5rem;
+    }
+    .state-tabs button {
+      height: 1.875rem;
+      padding: 0 0.875rem;
+      font-size: 12px;
+      font-weight: var(--font-weight-medium);
+      color: var(--color-neutral-600);
+      background: transparent;
+      border: 0;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .state-tabs button[aria-pressed="true"] {
+      background: var(--color-neutral-0);
+      color: var(--color-neutral-900);
+      box-shadow: var(--shadow-xs);
+    }
+    .state-pane { display: none; }
+    .state-pane[data-active] { display: block; }
+  </style>
+</head>
+<body data-screen-label="P2·08 Owner · Stripe settings">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+        <span class="mode-pill mode-host"><span class="dot"></span>Hosting</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="p2-04-owner-dashboard.html" class="nav-link">Dashboard</a>
+        <a href="p2-05-owner-spaces.html" class="nav-link">My spaces</a>
+        <a href="p2-06-owner-bookings.html" class="nav-link">Bookings</a>
+        <a href="p2-07-owner-payouts.html" class="nav-link">Payouts</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <span class="user-pill">
+          <span class="user-avatar" aria-hidden="true">EN</span>
+          <span class="username text-[13px] font-medium">Elena</span>
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm">Log out</button>
+      </nav>
+    </div>
+  </header>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="i-dot" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/></symbol>
+    <symbol id="i-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></symbol>
+  </svg>
+
+  <main class="container-content admin-page" style="max-width: 48rem;">
+
+    <div class="admin-page-head">
+      <div>
+        <h1>Payout settings</h1>
+        <p class="sub">DeskHive uses Stripe Connect to collect from guests and pay you. Funds always move through your Stripe account, not ours.</p>
+      </div>
+    </div>
+
+    <!-- State picker (illustrative — not a real product control) -->
+    <div class="state-tabs" role="tablist" aria-label="Onboarding state">
+      <button type="button" aria-pressed="false" data-state="a">a · Not started</button>
+      <button type="button" aria-pressed="true" data-state="b">b · In progress</button>
+      <button type="button" aria-pressed="false" data-state="c">c · Completed</button>
+    </div>
+
+    <!-- ─────────── State A: not started ─────────── -->
+    <section class="state-pane" data-pane="a">
+      <div class="connect-card" style="text-align: center; padding: 2.5rem 1.5rem 2.5rem;">
+        <div style="margin: 0 auto 1.25rem; width: 56px; height: 56px; border-radius: var(--radius-lg); background: linear-gradient(180deg, #635BFF 0%, #4F46E5 100%); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 24px; letter-spacing: -0.02em;">S</div>
+        <h2 style="font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; color: var(--color-neutral-900);">Set up payouts with Stripe</h2>
+        <p class="muted-strong" style="margin-top: 0.5rem; font-size: 14px; max-width: 28rem; margin-left: auto; margin-right: auto;">
+          You'll add a bank account, confirm your business identity, and verify your tax ID. Takes about 4 minutes — Stripe owns the form.
+        </p>
+        <a href="#" class="btn btn-primary mt-5">Start Stripe onboarding <svg style="width: 12px; height: 12px;"><use href="#i-ext"/></svg></a>
+        <p class="muted mt-3" style="font-size: 12px;">You can confirm bookings now, but money won't move until this is done.</p>
+      </div>
+    </section>
+
+    <!-- ─────────── State B: in progress (default) ─────────── -->
+    <section class="state-pane" data-pane="b" data-active>
+      <div class="banner banner-info mb-4">
+        <div class="banner-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </div>
+        <div class="banner-body">
+          <h3>Resume where you left off</h3>
+          <p>Stripe still needs a couple of things from you before payouts can run.</p>
+        </div>
+        <div class="banner-actions">
+          <a href="#" class="btn btn-primary btn-sm">Continue onboarding <svg style="width: 12px; height: 12px;"><use href="#i-ext"/></svg></a>
+        </div>
+      </div>
+
+      <div class="connect-card">
+        <div class="connect-head">
+          <div class="connect-brand">
+            <span class="logo-stripe">S</span>
+            <span>Stripe Connect · Express</span>
+          </div>
+          <span class="connect-status" style="color: #B45309;">
+            <span style="width: 6px; height: 6px; border-radius: 9999px; background: #F59E0B;"></span>
+            3 of 5 complete
+          </span>
+        </div>
+        <ol class="connect-body" style="list-style: none; padding: 0; margin: 0;">
+          <li class="connect-step done">
+            <span class="pill" aria-hidden="true"><svg><use href="#i-check"/></svg></span>
+            <div>
+              <div class="name">Account created</div>
+              <div class="sub">Connect ID acct_1OqB…74Pa</div>
+            </div>
+            <span class="right">Done</span>
+          </li>
+          <li class="connect-step done">
+            <span class="pill" aria-hidden="true"><svg><use href="#i-check"/></svg></span>
+            <div>
+              <div class="name">Business details</div>
+              <div class="sub">Legal name &amp; address verified</div>
+            </div>
+            <span class="right">Done</span>
+          </li>
+          <li class="connect-step done">
+            <span class="pill" aria-hidden="true"><svg><use href="#i-check"/></svg></span>
+            <div>
+              <div class="name">Tax ID submitted</div>
+              <div class="sub">87-4029315 · US EIN</div>
+            </div>
+            <span class="right">Done</span>
+          </li>
+          <li class="connect-step todo">
+            <span class="pill" aria-hidden="true"><svg><use href="#i-dot"/></svg></span>
+            <div>
+              <div class="name">Bank account</div>
+              <div class="sub">Where Stripe will send your payouts</div>
+            </div>
+            <span class="right warn">Action needed</span>
+          </li>
+          <li class="connect-step todo">
+            <span class="pill" aria-hidden="true"><svg><use href="#i-dot"/></svg></span>
+            <div>
+              <div class="name">Identity verification</div>
+              <div class="sub">Photo of a government ID</div>
+            </div>
+            <span class="right warn">Action needed</span>
+          </li>
+        </ol>
+      </div>
+
+      <p class="muted mt-3" style="font-size: 12px;">
+        Stripe owns the actual onboarding screens. We just deep-link you back into your account.
+      </p>
+    </section>
+
+    <!-- ─────────── State C: completed ─────────── -->
+    <section class="state-pane" data-pane="c">
+      <div class="banner banner-success mb-4">
+        <div class="banner-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="banner-body">
+          <h3>Your account is good to go</h3>
+          <p>Stripe is sending your payouts to Bank of America ••6210. Next payout: Thu, May 14.</p>
+        </div>
+        <div class="banner-actions">
+          <a href="#" class="btn btn-secondary btn-sm">Manage on Stripe <svg style="width: 12px; height: 12px;"><use href="#i-ext"/></svg></a>
+        </div>
+      </div>
+
+      <div class="connect-card">
+        <div class="connect-head">
+          <div class="connect-brand">
+            <span class="logo-stripe">S</span>
+            <span>Stripe Connect · Express</span>
+          </div>
+          <span class="connect-status" style="color: #15803D;">
+            <span style="width: 6px; height: 6px; border-radius: 9999px; background: #15803D;"></span>
+            All checks passed
+          </span>
+        </div>
+        <ol class="connect-body" style="list-style: none; padding: 0; margin: 0;">
+          <li class="connect-step done">
+            <span class="pill"><svg><use href="#i-check"/></svg></span>
+            <div><div class="name">Charges enabled</div><div class="sub">Guests can pay through your account</div></div>
+            <span class="right">Enabled</span>
+          </li>
+          <li class="connect-step done">
+            <span class="pill"><svg><use href="#i-check"/></svg></span>
+            <div><div class="name">Payouts enabled</div><div class="sub">Net funds release 2 business days after each visit</div></div>
+            <span class="right">Enabled</span>
+          </li>
+          <li class="connect-step done">
+            <span class="pill"><svg><use href="#i-check"/></svg></span>
+            <div><div class="name">Bank verified</div><div class="sub">Bank of America · ••6210</div></div>
+            <span class="right">Verified</span>
+          </li>
+          <li class="connect-step done">
+            <span class="pill"><svg><use href="#i-check"/></svg></span>
+            <div><div class="name">Identity verified</div><div class="sub">ID on file with Stripe</div></div>
+            <span class="right">Verified</span>
+          </li>
+        </ol>
+      </div>
+
+      <p class="muted mt-3" style="font-size: 12px;">
+        Changes to your bank or business details happen on Stripe — we just listen for the update.
+      </p>
+    </section>
+
+  </main>
+
+  <script>
+    const tabs = document.querySelectorAll('.state-tabs button');
+    const panes = document.querySelectorAll('.state-pane');
+    tabs.forEach(btn => btn.addEventListener('click', () => {
+      tabs.forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
+      panes.forEach(p => p.dataset.pane === btn.dataset.state ? p.setAttribute('data-active', '') : p.removeAttribute('data-active'));
+    }));
+  </script>
+</body>
+</html>

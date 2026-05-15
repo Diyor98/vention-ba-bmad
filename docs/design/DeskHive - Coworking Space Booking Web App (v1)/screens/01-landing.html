@@ -1,0 +1,444 @@
+<!doctype html>
+<!--
+  Landing — space cards rebuilt to match provided reference.
+
+  Card anatomy (top → bottom):
+    • photo with rounded corners + pagination dots overlay (no heart per spec)
+    • title row: name (left) · ★ rating (right)
+    • subtitle: neighborhood · short descriptor
+    • amenities row: Wi-Fi · 24/7 · Coffee (small inline icons)
+    • price row: $X/day (left) · • N spots left (amber, right)
+
+  New per-space fields used: neighborhood, blurb, rating, priceShort,
+  amenities[], spotsLeft. Photo array kept short for the dots overlay
+  (decorative only — not a working carousel in MVP).
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DeskHive — Browse spaces</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13/dist/index.global.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <style>
+    /* ─────────── Mood themes (override neutrals / surfaces) ─────────── */
+    body[data-mood="daylight"] {
+      background: var(--color-neutral-50);
+      color: var(--color-neutral-900);
+      --surface: var(--color-neutral-0);
+      --surface-2: var(--color-neutral-50);
+      --muted-fg: var(--color-neutral-600);
+      --muted-2-fg: var(--color-neutral-500);
+      --hairline: var(--color-border);
+    }
+    body[data-mood="dusk"] {
+      background: #0E0F1A;
+      color: #E7E7EE;
+      --color-border: #23253A;
+      --color-border-strong: #2C2E47;
+      --surface: #14162A;
+      --surface-2: #181A33;
+      --muted-fg: #9A9CB6;
+      --muted-2-fg: #6F7196;
+      --hairline: #2A2C45;
+    }
+    body[data-mood="dusk"] .site-header {
+      background: rgba(14,15,26,.72);
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      border-bottom-color: var(--hairline);
+    }
+    body[data-mood="dusk"] .site-header .nav-link { color: #B8BAD8; }
+    body[data-mood="dusk"] .site-header .nav-link[aria-current] { color: #fff; }
+    body[data-mood="dusk"] .site-footer {
+      background: transparent;
+      color: var(--muted-2-fg);
+      border-top-color: var(--hairline);
+    }
+    body[data-mood="dusk"] .input {
+      background: var(--surface);
+      color: #E7E7EE;
+      border-color: var(--hairline);
+    }
+    body[data-mood="dusk"] .input::placeholder { color: var(--muted-2-fg); }
+    body[data-mood="dusk"] .glyph { color: var(--muted-2-fg); }
+    body[data-mood="dusk"] .logo { color: #fff; }
+    body[data-mood="dusk"] h1, body[data-mood="dusk"] h2 { color: #F0F0F8; }
+
+    body[data-mood="paper"] {
+      background: #F4EFE6;
+      color: #2A1F14;
+      --color-border: #DCD2BF;
+      --color-border-strong: #C8BBA0;
+      --surface: #FBF7EF;
+      --surface-2: #F0E9D8;
+      --muted-fg: #6E5F47;
+      --muted-2-fg: #8C7C61;
+      --hairline: #DCD2BF;
+    }
+    body[data-mood="paper"] .site-header { background: #F4EFE6; border-bottom-color: var(--hairline); }
+    body[data-mood="paper"] .site-footer { background: transparent; border-top-color: var(--hairline); }
+    body[data-mood="paper"] .input {
+      background: var(--surface); color: #2A1F14; border-color: var(--hairline);
+    }
+    body[data-mood="paper"] .input::placeholder { color: var(--muted-2-fg); }
+    body[data-mood="paper"] .glyph { color: var(--muted-2-fg); }
+
+    /* ─────────── Hero ─────────── */
+    .hero-display {
+      font-size: clamp(2.25rem, 4.5vw, 3.5rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      font-weight: 700;
+    }
+    .hero-sub { color: var(--muted-fg); font-size: 1rem; max-width: 36rem; }
+
+    /* ─────────── Search input ─────────── */
+    .search-wrap { position: relative; }
+    .search-wrap .input { padding-left: 2.5rem; height: 2.75rem; font-size: 15px; }
+    .search-wrap .glyph {
+      position: absolute; left: 0.875rem; top: 50%; transform: translateY(-50%);
+      font-family: var(--font-mono); font-size: 14px;
+    }
+    .results-meta { font-size: 13px; color: var(--muted-2-fg); }
+    .h2-section { font-weight: 600; font-size: 1.25rem; letter-spacing: -0.01em; }
+
+    /* ─────────── Grid ─────────── */
+    .grid-spaces { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
+    @media (max-width: 900px) { .grid-spaces { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 600px) { .grid-spaces { grid-template-columns: 1fr; } }
+
+    /* ─────────── Card ─────────── */
+    .card-link { display: block; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: border-color .15s ease, transform .2s ease;
+    }
+    .card-link:hover .card { border-color: var(--color-border-strong); transform: translateY(-1px); }
+
+    /* Photo with inset rounded photo + dots overlay */
+    .card-media {
+      position: relative;
+      padding: 8px;
+    }
+    .card-photo {
+      display: block; width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      background: var(--surface-2);
+      border-radius: 14px;
+    }
+    .card-dots {
+      position: absolute;
+      bottom: 22px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 6px;
+      pointer-events: none;
+    }
+    .card-dots .dot {
+      width: 6px; height: 6px; border-radius: 999px;
+      background: rgba(255, 255, 255, 0.55);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.04);
+    }
+    .card-dots .dot.is-active { background: #fff; }
+
+    /* Body */
+    .card-body { padding: 14px 18px 18px; }
+
+    .card-title-row {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 12px;
+    }
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+      color: inherit;
+      min-width: 0;
+    }
+    .card-rating {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      color: inherit;
+      flex: none;
+    }
+    .card-rating svg { width: 14px; height: 14px; }
+
+    .card-sub {
+      margin-top: 4px;
+      font-size: 14px;
+      color: var(--muted-fg);
+      line-height: 1.4;
+    }
+
+    /* Amenities */
+    .card-amenities {
+      margin-top: 14px;
+      display: flex; align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .amenity {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 14px;
+      color: var(--muted-fg);
+    }
+    .amenity svg { width: 16px; height: 16px; flex: none; }
+
+    /* Footer / price row */
+    .card-foot {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--hairline);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+    }
+    .price {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: inherit;
+    }
+    .price .per {
+      font-weight: 400;
+      color: var(--muted-fg);
+      font-size: 15px;
+    }
+    .spots {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-status-pending-fg);
+    }
+    .spots .pip {
+      width: 7px; height: 7px; border-radius: 999px;
+      background: var(--color-status-pending-fg);
+      flex: none;
+    }
+    .spots.is-low { color: #B45309; } /* amber-700 */
+    .spots.is-low .pip { background: #B45309; }
+    .spots.is-full { color: var(--muted-2-fg); }
+    .spots.is-full .pip { background: var(--muted-2-fg); }
+  </style>
+</head>
+<body data-screen-label="01 Landing / Browse Spaces">
+  <div id="app"></div>
+
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "mood": "daylight"
+    }/*EDITMODE-END*/;
+
+    /* ─── Inline icon set ─── */
+    const Icon = {
+      star:   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.92 6.04 6.58.93-4.78 4.62 1.14 6.5L12 17.6l-5.86 3 1.14-6.5L2.5 9.47l6.58-.93L12 2.5z"/></svg>,
+      wifi:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/></svg>,
+      clock:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,
+      coffee: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8z"/><path d="M17 9h2a3 3 0 0 1 0 6h-2"/><path d="M7 3v2"/><path d="M11 3v2"/><path d="M15 3v2"/></svg>,
+      desk:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 8h18"/><path d="M5 8v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><path d="M7 13v6"/><path d="M17 13v6"/></svg>,
+      monitor:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M12 16v4"/></svg>,
+      print:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="9" rx="2"/><rect x="7" y="14" width="10" height="6"/></svg>,
+    };
+
+    const AMENITY_DEF = {
+      wifi:    { icon: Icon.wifi,    label: 'Wi-Fi' },
+      hours:   { icon: Icon.clock,   label: '24/7' },
+      coffee:  { icon: Icon.coffee,  label: 'Coffee' },
+      monitor: { icon: Icon.monitor, label: 'Monitor' },
+      print:   { icon: Icon.print,   label: 'Print' },
+      desk:    { icon: Icon.desk,    label: 'Standing desk' },
+    };
+
+    const SPACES = [
+      { id: 'northgate-studios', name: 'Northgate Studios', neighborhood: 'Capitol Hill', blurb: 'Bright open studio',
+        rating: 4.6, price: 24, currency: '$', amenities: ['wifi','hours','coffee'], spotsLeft: 2,
+        img: 'https://images.unsplash.com/photo-1604328698692-f76ea9498e76?w=800&q=70&auto=format&fit=crop',
+        alt: 'Bright loft workspace with plants and laptops' },
+      { id: 'the-hive-riverside', name: 'The Hive — Riverside', neighborhood: 'Williamsburg', blurb: 'Riverside coworking floor',
+        rating: 4.8, price: 28, currency: '$', amenities: ['wifi','coffee','monitor'], spotsLeft: 5,
+        img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=70&auto=format&fit=crop',
+        alt: 'Open coworking floor with long shared desks' },
+      { id: 'cedar-and-co', name: 'Cedar & Co.', neighborhood: 'East Austin', blurb: 'Warm wood-toned studio',
+        rating: 4.4, price: 22, currency: '$', amenities: ['wifi','hours','print'], spotsLeft: 1,
+        img: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&q=70&auto=format&fit=crop',
+        alt: 'Modern coworking space with warm wood tones' },
+      { id: 'folk-house', name: 'Folk House', neighborhood: 'Príncipe Real', blurb: 'Sunlit mid-century space',
+        rating: 4.9, price: 18, currency: '€', amenities: ['wifi','coffee','desk'], spotsLeft: 4,
+        img: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?w=800&q=70&auto=format&fit=crop',
+        alt: 'Sunlit workspace with mid-century chairs' },
+      { id: 'atlas-workrooms', name: 'Atlas Workrooms', neighborhood: 'Kreuzberg', blurb: 'Industrial loft, big windows',
+        rating: 4.5, price: 20, currency: '€', amenities: ['wifi','hours','monitor'], spotsLeft: 0,
+        img: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=800&q=70&auto=format&fit=crop',
+        alt: 'Industrial-style office with large windows' },
+      { id: 'mission-annex', name: 'Mission Annex', neighborhood: 'Mission District', blurb: 'Lounge-style coworking',
+        rating: 4.3, price: 32, currency: '$', amenities: ['wifi','coffee','print'], spotsLeft: 6,
+        img: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&q=70&auto=format&fit=crop',
+        alt: 'Coworking lounge with sofas and laptops' },
+      { id: 'harbor-and-vine', name: 'Harbor & Vine', neighborhood: 'Seaport', blurb: 'Quiet study room',
+        rating: 4.7, price: 26, currency: '$', amenities: ['wifi','hours','coffee'], spotsLeft: 3,
+        img: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800&q=70&auto=format&fit=crop',
+        alt: 'Quiet study room with shared desks' },
+      { id: 'glasshouse', name: 'Glasshouse', neighborhood: 'King West', blurb: 'Glass-walled studio',
+        rating: 4.5, price: 24, currency: 'C$', amenities: ['wifi','coffee','desk'], spotsLeft: 8,
+        img: 'https://images.unsplash.com/photo-1606857521015-7f9fcf423740?w=800&q=70&auto=format&fit=crop',
+        alt: 'Bright glass-walled coworking room' },
+      { id: 'old-mill-coworking', name: 'Old Mill Coworking', neighborhood: 'Pearl District', blurb: 'Brick-walled studio',
+        rating: 4.6, price: 20, currency: '$', amenities: ['wifi','hours','print'], spotsLeft: 2,
+        img: 'https://images.unsplash.com/photo-1564069114553-7215e1ff1890?w=800&q=70&auto=format&fit=crop',
+        alt: 'Brick-walled coworking studio with desks' },
+    ];
+
+    function Spots({ n }) {
+      if (n === 0) return <span className="spots is-full"><span className="pip"></span>Fully booked</span>;
+      const cls = n <= 2 ? 'spots is-low' : 'spots';
+      return <span className={cls}><span className="pip"></span>{n} {n === 1 ? 'spot' : 'spots'} left</span>;
+    }
+
+    function SpaceCard({ s }) {
+      // Decorative dots: 4 dots, first active. Not a working carousel in MVP.
+      return (
+        <a href={`02-space-detail.html?id=${s.id}`} className="card-link">
+          <article className="card">
+            <div className="card-media">
+              <img className="card-photo" src={s.img} alt={s.alt} loading="lazy" />
+              <div className="card-dots" aria-hidden="true">
+                <span className="dot is-active"></span>
+                <span className="dot"></span>
+                <span className="dot"></span>
+                <span className="dot"></span>
+              </div>
+            </div>
+            <div className="card-body">
+              <div className="card-title-row">
+                <h3 className="card-title">{s.name}</h3>
+                <span className="card-rating tnum" aria-label={`Rating ${s.rating} out of 5`}>
+                  {Icon.star}{s.rating.toFixed(1)}
+                </span>
+              </div>
+              <p className="card-sub">{s.neighborhood} · {s.blurb}</p>
+
+              <div className="card-amenities" aria-label="Amenities">
+                {s.amenities.map(key => {
+                  const a = AMENITY_DEF[key];
+                  if (!a) return null;
+                  return (
+                    <span key={key} className="amenity">
+                      {a.icon}
+                      <span>{a.label}</span>
+                    </span>
+                  );
+                })}
+              </div>
+
+              <div className="card-foot">
+                <span className="price tnum">
+                  {s.currency}{s.price}<span className="per">/day</span>
+                </span>
+                <Spots n={s.spotsLeft} />
+              </div>
+            </div>
+          </article>
+        </a>
+      );
+    }
+
+    function App() {
+      const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const [query, setQuery] = React.useState('');
+
+      React.useEffect(() => {
+        document.body.dataset.mood = t.mood;
+      }, [t.mood]);
+
+      const filtered = SPACES.filter(s =>
+        !query.trim() || (s.neighborhood + ' ' + s.name).toLowerCase().includes(query.trim().toLowerCase())
+      );
+
+      return (
+        <>
+          <header className="site-header">
+            <div className="site-header-inner">
+              <a href="01-landing.html" className="logo">
+                <span className="logo-mark" aria-hidden="true"></span>
+                <span>DeskHive</span>
+              </a>
+              <nav className="flex items-center gap-1">
+                <a href="01-landing.html" className="nav-link" aria-current="page">Browse spaces</a>
+                <a href="#" className="nav-link">How it works</a>
+                <span className="mx-2 h-5 w-px" style={{ background: 'var(--hairline)' }}></span>
+                <a href="04-login.html" className="nav-link">Log in</a>
+                <a href="03-register.html" className="btn btn-primary btn-sm">Sign up</a>
+              </nav>
+            </div>
+          </header>
+
+          <main className="container-content" style={{ paddingTop: '3.5rem', paddingBottom: '4rem' }}>
+            <section style={{ maxWidth: '40rem' }}>
+              <h1 className="hero-display">Find a desk for the day.</h1>
+              <p className="hero-sub" style={{ marginTop: '1rem' }}>
+                Coworking spaces you can book by the day — pick a city, pick a date, show up.
+              </p>
+            </section>
+
+            <section style={{ marginTop: '2rem' }}>
+              <form role="search" aria-label="Filter spaces" className="flex flex-col sm:flex-row gap-3" style={{ maxWidth: '40rem' }}>
+                <div className="search-wrap flex-1">
+                  <span className="glyph" aria-hidden="true">⌕</span>
+                  <label htmlFor="city-search" className="sr-only">City or space</label>
+                  <input
+                    id="city-search" type="search" className="input"
+                    placeholder="Search by city or neighborhood — e.g. Capitol Hill"
+                    value={query} onChange={(e) => setQuery(e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+              </form>
+            </section>
+
+            <section className="flex items-baseline justify-between gap-4" style={{ marginTop: '2.5rem' }}>
+              <h2 className="h2-section">{query ? 'Matching spaces' : 'All spaces'}</h2>
+              <p className="results-meta tnum">{filtered.length} {filtered.length === 1 ? 'space' : 'spaces'}</p>
+            </section>
+
+            <section className="grid-spaces" style={{ marginTop: '1.25rem' }}>
+              {filtered.map(s => <SpaceCard key={s.id} s={s} />)}
+            </section>
+          </main>
+
+          <footer className="site-footer">
+            <div className="site-footer-inner">
+              <span>© 2026 DeskHive</span>
+              <span className="font-mono" style={{ fontSize: '11px', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted-2-fg)' }}>MVP · v0.1</span>
+            </div>
+          </footer>
+
+          <TweaksPanel title="Tweaks">
+            <TweakSection label="Mood" />
+            <TweakRadio
+              label="Palette"
+              value={t.mood}
+              options={['daylight', 'dusk', 'paper']}
+              onChange={(v) => setTweak('mood', v)}
+            />
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+  </script>
+</body>
+</html>
