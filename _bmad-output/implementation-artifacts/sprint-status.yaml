@@ -1,5 +1,5 @@
 # generated: 2026-05-06
-# last_updated: 2026-05-14 (Story 8-POLISH-1 BA-greenlit and moved to done — email design polish shipped at commit 1c7145f. Visual wrapper rewritten with inline-SVG hex logo + Inter font-stack + locked footer copy; `EMAIL_LOGO_URL` env-var infrastructure retired; From-header default flipped to `'DeskHive <onboarding@resend.dev>'`; CTA inline-CSS bumped in 10 templates. 14 files modified, zero changes in `src/app/` / `src/db/` / `src/actions/` / `src/lib/applications.ts` / `src/lib/bookings.ts` / `tests/` / `package.json` per AC-13. 305 unit tests pass (net +0: 3 EMAIL_LOGO_URL tests removed + 3 new wrapper tests + 2 updated). Theme C now has 3 done + 1 polish-done; Story 8-4 (payment emails) remains the last Theme C story, blocked on Theme B's Stripe webhook infrastructure. Story 8-3's open follow-up still logged in memory project_phase2_prd_4_5_cancel_interpretation.md.)
+# last_updated: 2026-05-15 (Story 9-1 dev-story complete and moved to review — opens Epic 9 / Theme B (Payments). `stripe@22.1.1` installed; `src/lib/stripe.ts` singleton wrapper with module-load env validation (missing/wrong-prefix/live-key-outside-production all hard-throw) + `apiVersion: '2026-04-22.dahlia'` pin (diverged from BA's locked `'2024-06-20'` because stripe@22.1.1 types apiVersion as the literal LatestApiVersion '2026-04-22.dahlia'; satisfies BA's intent + §2 anti-pattern, documented in Dev Agent Record Completion Note #1); thin `src/lib/stripe-service.ts` empty seam + `StripeServiceResult<T>` type; `scripts/stripe-ping.ts` CLI smoke test + `pnpm stripe-ping` entry; `.env.example` documents both env vars (no `STRIPE_WEBHOOK_SECRET` — reserved for 9-5); 7 new unit tests (vi.stubEnv + vi.resetModules + dynamic-import pattern). 312/313 unit tests pass (1 pre-existing skip), typecheck + lint + build clean, 35 routes unchanged. 9 files in commit, zero changes to `src/app/` / `src/db/` / `drizzle/` / `src/actions/` / `src/components/` / `src/lib/email*` / `scripts/seed.ts` / `tests/`. **BA operational note:** `.env.local` does NOT yet contain STRIPE_SECRET_KEY/PUBLISHABLE_KEY despite BA decisions doc claim — must be added before AC-14 §6 `pnpm stripe-ping` verification. Forward-looking flag: Phase 2 PRD §4.5 cancel-interpretation still pending for Stories 9-4 + 9-6. Awaiting BA browser walk + greenlight before push.)
 # project: vention-ba-bmad
 # project_key: NOKEY
 # tracking_system: file-system
@@ -163,3 +163,14 @@ development_status:
   8-4-payment-emails: backlog
   8-polish-1-email-design-polish: done
   epic-8-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────
+  # Epic 9 — Payments (Theme B) — Phase 2 final workstream
+  # Source: docs/03-phase2-prd.md §8 Epic 9
+  # Stories 9-2 through 9-7 will be added to this section when each
+  # is dispatched via *create-story (same posture as Epic 7's incremental
+  # YAML growth). 9-1 ships the Stripe SDK seam; 9-2+ light it up.
+  # ─────────────────────────────────────────────────────────────────
+  epic-9: in-progress
+  9-1-stripe-sdk-wrapper: review
+  epic-9-retrospective: optional
