@@ -1,6 +1,6 @@
 # Story 9-1: Stripe SDK Wrapper + Service Layer
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -452,4 +452,5 @@ Zero changes to: `deskhive/src/app/`, `deskhive/src/db/`, `deskhive/drizzle/`, `
 | Date | Change | Commit |
 |---|---|---|
 | 2026-05-15 | Story drafted by `bmad-create-story` from BA decisions document. | (none) |
-| 2026-05-15 | Story implemented; `stripe@22.1.1` installed; `src/lib/stripe.ts` singleton + env validation + apiVersion pinned to `'2026-04-22.dahlia'` (BA's `'2024-06-20'` pin diverged — see Completion Notes #1); `src/lib/stripe-service.ts` empty seam + `StripeServiceResult<T>`; `scripts/stripe-ping.ts` CLI smoke test + `pnpm stripe-ping` entry; `.env.example` documents both env vars; 7 new unit tests; memory entry `reference_stripe_service_pattern.md` created. 312 unit tests pass, typecheck + lint + build clean, 35 routes unchanged. Single commit per AC-13 — awaiting BA verification + greenlight before push. | _TBD (filled by a small follow-up `docs:` commit after BA greenlight + push)_ |
+| 2026-05-15 | Story implemented; `stripe@22.1.1` installed; `src/lib/stripe.ts` singleton + env validation + apiVersion pinned to `'2026-04-22.dahlia'` (BA's `'2024-06-20'` pin diverged — see Completion Notes #1; commit message records this as "SDK-matched literal; supersedes BA §2"); `src/lib/stripe-service.ts` empty seam + `StripeServiceResult<T>`; `scripts/stripe-ping.ts` CLI smoke test + `pnpm stripe-ping` entry; `.env.example` documents both env vars; 7 new unit tests; memory entry `reference_stripe_service_pattern.md` created. 312 unit tests pass, typecheck + lint + build clean, 35 routes unchanged. Initially landed as two commits (`feat:` + `fix:` for the dotenv-vs-ES-module-hoisting issue surfaced during BA verification); soft-reset and recommitted as one unified commit per BA's greenlight message. | `aff4060` |
+| 2026-05-15 | BA greenlit Story 9-1 after verifying `pnpm stripe-ping` returns 0.00 USD on the test-mode sandbox. Status moved to `done`; sprint-status reflects greenlight; Change Log hash filled. | _this docs follow-up commit_ |
