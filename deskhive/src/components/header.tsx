@@ -19,9 +19,9 @@ import { UserPill } from './user-pill';
 //      logo + "Browse spaces" + "My bookings" + <UserPill> (Switch to hosting + Log out)
 //
 //   4. SPACE_OWNER in Host mode:
-//      logo + "Dashboard" + "My spaces" + "Bookings" + <UserPill> (Switch to traveling + Log out)
-//      Host nav targets: /owner, /owner/spaces, /owner/bookings.
-//      All three resolve to placeholder pages until Story 7-5 fills them in.
+//      logo + "Dashboard" + "My spaces" + "Bookings" + "Settings" + <UserPill> (Switch to traveling + Log out)
+//      Host nav targets: /owner, /owner/spaces, /owner/bookings, /owner/settings.
+//      Settings lives at /owner/settings — Story 9-2's Stripe Connect onboarding surface.
 //
 //   5. SUPER_ADMIN (role === 'SUPER_ADMIN'):
 //      logo + "Browse spaces" + "Admin" + <UserPill> (Log out — no mode switch)
@@ -80,6 +80,9 @@ export async function Header() {
               </Link>
               <Link href="/owner/bookings" className="nav-link">
                 Bookings
+              </Link>
+              <Link href="/owner/settings" className="nav-link">
+                Settings
               </Link>
               <span className="nav-divider" aria-hidden="true" />
               <UserPill

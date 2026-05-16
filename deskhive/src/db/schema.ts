@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   date,
+  jsonb,
   uniqueIndex,
   index,
   check,
@@ -163,6 +164,47 @@ export const applicationsTable = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────────
+// stripe_connect_accounts — Story 9-2 (Phase 2 Epic 9)
+// Per Phase 2 PRD §6.1. One row per SPACE_OWNER who has begun (or
+// completed) Stripe Connect Express onboarding. `userId` is UNIQUE —
+// each owner gets at most one Connect account. The three boolean
+// flags (`onboarding_completed`, `charges_enabled`, `payouts_enabled`)
+// are kept in sync by the `account.updated` webhook (Decision §7) and
+// by `refreshConnectStatusAction` polling on return from Stripe.
+// ─────────────────────────────────────────────────────────────
+export const stripeConnectAccountsTable = pgTable('stripe_connect_accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .unique()
+    .references(() => usersTable.id),
+  stripeAccountId: text('stripe_account_id').notNull().unique(),
+  onboardingCompleted: boolean('onboarding_completed').notNull().default(false),
+  chargesEnabled: boolean('charges_enabled').notNull().default(false),
+  payoutsEnabled: boolean('payouts_enabled').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ─────────────────────────────────────────────────────────────
+// webhook_events — Story 9-2 (Phase 2 Epic 9)
+// Per Phase 2 PRD §6.1. Idempotency log for Stripe webhook deliveries.
+// Story 9-2 narrows the handler to `account.updated` only; Story 9-5
+// generalizes the dispatch. `stripe_event_id` is UNIQUE — duplicate
+// deliveries from Stripe are short-circuited at the SELECT layer
+// before any side effects fire. Decision §7 anti-pattern: NEVER
+// insert rows for unhandled event types — keeps 9-5's backfill seam
+// clean.
+// ─────────────────────────────────────────────────────────────
+export const webhookEventsTable = pgTable('webhook_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  stripeEventId: text('stripe_event_id').notNull().unique(),
+  eventType: text('event_type').notNull(),
+  payload: jsonb('payload').notNull(),
+  processedAt: timestamp('processed_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ─────────────────────────────────────────────────────────────
 // Better Auth tables — required by @better-auth/drizzle-adapter
 // ─────────────────────────────────────────────────────────────
 export const accountTable = pgTable('account', {
@@ -218,6 +260,11 @@ export type NewBooking = typeof bookingsTable.$inferInsert;
 export type Application = typeof applicationsTable.$inferSelect;
 export type NewApplication = typeof applicationsTable.$inferInsert;
 export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+// Story 9-2 — Stripe Connect onboarding + webhook idempotency.
+export type StripeConnectAccount = typeof stripeConnectAccountsTable.$inferSelect;
+export type NewStripeConnectAccount = typeof stripeConnectAccountsTable.$inferInsert;
+export type WebhookEvent = typeof webhookEventsTable.$inferSelect;
+export type NewWebhookEvent = typeof webhookEventsTable.$inferInsert;
 
 // Role: Phase 2 introduces SPACE_OWNER (Story 7-1).
 //

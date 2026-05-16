@@ -10,6 +10,7 @@ import {
   bookingsTable,
   desksTable,
   spacesTable,
+  stripeConnectAccountsTable,
   usersTable,
 } from '@/db/schema';
 import type { ApplicationStatus, BookingStatus } from '@/db/schema';
@@ -298,6 +299,57 @@ async function seedOwnerSpace(): Promise<string | null> {
 }
 
 /**
+ * Story 9-2 BA Decision §8: seed a synthetic `stripe_connect_accounts`
+ * row for the seeded owner. Idempotent — no-op if a row already exists
+ * for this user.
+ *
+ * Why synthetic: real Stripe API calls from the seed script would add
+ * an external dependency to a script that runs in CI and on every dev
+ * setup. The synthetic ID `acct_seed_for_e2e_only` deliberately fails
+ * Stripe's real-account-id pattern so any production code path that
+ * mistakenly calls Stripe with this ID gets a clear 404 (signaling
+ * the test boundary needs to mock at that seam).
+ */
+const SEED_OWNER_CONNECT_ACCOUNT_ID = 'acct_seed_for_e2e_only';
+
+async function seedOwnerConnectAccount(): Promise<void> {
+  const [owner] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.email, SEED_OWNER_EMAIL))
+    .limit(1);
+  if (!owner) {
+    console.warn(
+      `Seed owner not found (${SEED_OWNER_EMAIL}); skipping Connect account seed.`,
+    );
+    return;
+  }
+
+  const [existing] = await db
+    .select({ id: stripeConnectAccountsTable.id })
+    .from(stripeConnectAccountsTable)
+    .where(eq(stripeConnectAccountsTable.userId, owner.id))
+    .limit(1);
+  if (existing) {
+    console.log(
+      `Stripe Connect row already exists for ${SEED_OWNER_EMAIL}; seed is a no-op.`,
+    );
+    return;
+  }
+
+  await db.insert(stripeConnectAccountsTable).values({
+    userId: owner.id,
+    stripeAccountId: SEED_OWNER_CONNECT_ACCOUNT_ID,
+    onboardingCompleted: true,
+    chargesEnabled: true,
+    payoutsEnabled: true,
+  });
+  console.log(
+    `Seeded Stripe Connect row for ${SEED_OWNER_EMAIL} (synthetic ID; for E2E state only).`,
+  );
+}
+
+/**
  * Story 7-5: seed 2-3 bookings from existing applicant guests on the
  * owner's seeded space. Idempotent: skip if any booking by these guests
  * on this space already exists. Mix of statuses across past + future
@@ -473,6 +525,16 @@ async function main() {
   if (ownerSpaceId) {
     await seedOwnerBookings(ownerSpaceId);
   }
+
+  // Story 9-2 BA Decision §8: synthetic Stripe Connect row for the
+  // seeded owner so the /owner/settings "onboarding complete" path
+  // has a stable E2E target. The synthetic ID deliberately does NOT
+  // match Stripe's real `acct_<base32>` format — any code path that
+  // makes a real Stripe call against it will 404, which is the
+  // correct signal to mock at the test boundary instead. Adding a
+  // SECOND seed owner without a Connect row (for gated-publish E2E
+  // testing) is deferred to Story 9-2b.
+  await seedOwnerConnectAccount();
 
   console.log(
     'Seed credentials are documented in deskhive/README.md → "Database setup".',
