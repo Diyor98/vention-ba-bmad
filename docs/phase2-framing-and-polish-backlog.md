@@ -279,4 +279,23 @@ Items that need team input before Phase 2 PRD drafting begins in earnest.
 
 ---
 
+## 6. Operational hygiene follow-ups
+
+### E2E test hygiene — apply Fix A + Fix B as standing pre-run steps
+
+Logged after Story 9-2 ship (2026-05-17). Accepted three times now without resolution (Stories 8-POLISH-1, 9-1, 9-2 ships).
+
+**Problem:** every `pnpm test:e2e` run on a fresh machine sees 4–5 deterministic failures that are NOT regressions but are environmental:
+
+- **Fix A — kill stale `pnpm dev` before `pnpm test:e2e`** to resolve the Story 8-POLISH-1 dev-server-reuse hazard. Playwright's `webServer.reuseExistingServer: !CI` reuses an already-running dev process without propagating `webServer.env` (notably `EMAIL_TEST_RECORD_FILE`), so the recording-sink-dependent tests (`admin-applications:33`, `application-emails:74`, `become-a-host:58`, `booking-emails:73`) time out waiting for emails that the live Resend path never recorded. Fixing means either: (a) `Stop-Process -Id <pnpm-dev-pid>` before each E2E run, or (b) wrapping `pnpm test:e2e` in a script that auto-kills port 3000 first, or (c) setting `reuseExistingServer: false` in `playwright.config.ts` and accepting slower startup.
+
+- **Fix B — `_reset-e2e-state.ts` before E2E runs** to resolve the Story 7-PREP-1 mutation-discipline cascade. When `application-emails:74` partially completes (POSTs the application form but times out on email recording), `guest@deskhive.local` ends up with a stray PENDING application. The next E2E run's `become-a-host:41` ("fresh Guest with no application sees State A") then fails because the Guest's State A precondition is now stale. A small reset script (pattern proven in Story 8-POLISH-1's session) clears `guest@deskhive.local`'s applications + bookings before the suite runs.
+
+**Belongs in a dedicated operational-hygiene story before Phase 3.** Story candidates:
+- **OPS-1:** add `pnpm test:e2e:clean` script that kills port 3000, resets test DB state, then runs Playwright fresh. Single commit. Touches `playwright.config.ts` + adds `scripts/_reset-e2e-state.ts` (the BA already road-tested this script during Story 8-POLISH-1 dev) + adds the npm script. Net change: per-run E2E pass rate goes from "56/56 minus 5 flakes" to "56/56 deterministic."
+
+**Why deferred:** Phase 2's story budget is tight; the failures are deterministic + understood + non-regressive. Three story ships have proven that accepting them is workable. But it's accumulating tech debt — every BA verification turn includes the same "those 5 failures are pre-existing" surface-and-accept ritual. Worth resolving before Phase 3 ships any new E2E tests on top of this baseline.
+
+---
+
 **End of working document.**
