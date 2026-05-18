@@ -187,6 +187,51 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
     expect(upsertConnectMock).not.toHaveBeenCalled();
   });
 
+  it('account.updated → upsertConnectAccount throws → 500 with diagnostic body, NO webhook_events insert (Story 9-2 BA-walk fix)', async () => {
+    // Reproduces the BA browser walk failure: the upsert call throws
+    // (Drizzle/PG transient error). The wrapped try/catch should
+    // surface a 500 with body 'Database update failed' (distinct from
+    // the other failure bodies) and a logger.error line with
+    // stripe_webhook_upsert_failed tag, AND must NOT insert into
+    // webhook_events (Decision §7 anti-pattern preserved on failure).
+    constructEventMock.mockReturnValueOnce({
+      id: 'evt_upsert_throws',
+      type: 'account.updated',
+      data: {
+        object: {
+          id: 'acct_test_xyz',
+          charges_enabled: false,
+          payouts_enabled: false,
+          details_submitted: false,
+        },
+      },
+    });
+    stubWebhookEventsLookup(false);
+    getByStripeAcctIdMock.mockResolvedValueOnce({
+      id: 'row-1',
+      userId: 'user-owner-1',
+      stripeAccountId: 'acct_test_xyz',
+    });
+    // Underlying DrizzleQueryError carrying a PG cause — exactly the
+    // shape the BA walk's pnpm dev log showed (modulo .cause being
+    // visible now).
+    const drizzleErr = new Error(
+      'Failed query: insert ... on conflict do update ...',
+    );
+    (drizzleErr as Error & { cause: Error }).cause = new Error(
+      'Connection terminated unexpectedly',
+    );
+    upsertConnectMock.mockRejectedValueOnce(drizzleErr);
+
+    const res = await POST(makePostRequest('{}', 'sig_valid'));
+
+    expect(res.status).toBe(500);
+    expect(await res.text()).toBe('Database update failed');
+    // CRITICAL: failed handling must NOT insert into webhook_events —
+    // Decision §7 anti-pattern preserved so Stripe's retry can re-attempt.
+    expect(dbInsertMock).not.toHaveBeenCalled();
+  });
+
   it('account.updated for an unknown account → 200 deferred, NO webhook_events insert', async () => {
     constructEventMock.mockReturnValueOnce({
       id: 'evt_unknown_acct',

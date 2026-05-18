@@ -27,6 +27,15 @@ import { logger } from '@/lib/logger';
  * re-processing. Insert + side-effect both happen only on first
  * successful handle.
  *
+ * Story 9-2 follow-up (after BA browser walk surfaced a 500 on the
+ * first real account.updated event): each DB op is now wrapped in a
+ * stage-specific try/catch that logs `error.message` + `error.cause`
+ * separately. Stripe SDK's `DrizzleQueryError` collapses the underlying
+ * PG error into `error.cause`; without explicit capture we lost the
+ * actual failure reason. The wrappers preserve Decision §7 anti-pattern
+ * (failed handling does NOT insert into webhook_events) and Decision
+ * §11 retry behavior (500 surfaces, Stripe retries normally).
+ *
  * Story 9-5 will:
  *   • Extract signature verification + idempotency into helpers in
  *     `src/lib/payments/webhooks.ts`.
@@ -64,11 +73,22 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   // Idempotency: short-circuit if we've already processed this event id.
-  const [existing] = await db
-    .select({ id: webhookEventsTable.id })
-    .from(webhookEventsTable)
-    .where(eq(webhookEventsTable.stripeEventId, event.id))
-    .limit(1);
+  let existing: { id: string } | undefined;
+  try {
+    [existing] = await db
+      .select({ id: webhookEventsTable.id })
+      .from(webhookEventsTable)
+      .where(eq(webhookEventsTable.stripeEventId, event.id))
+      .limit(1);
+  } catch (err) {
+    logger.error('stripe_webhook_idempotency_select_failed', {
+      eventId: event.id,
+      eventType: event.type,
+      error: errMessage(err),
+      cause: errCause(err),
+    });
+    return new Response('Idempotency check failed', { status: 500 });
+  }
   if (existing) {
     return Response.json(
       { received: true, idempotent: true },
@@ -79,7 +99,20 @@ export async function POST(req: Request): Promise<Response> {
   // Narrow dispatch.
   if (event.type === 'account.updated') {
     const account = event.data.object as Stripe.Account;
-    const row = await getConnectAccountByStripeAccountId(account.id);
+
+    let row;
+    try {
+      row = await getConnectAccountByStripeAccountId(account.id);
+    } catch (err) {
+      logger.error('stripe_webhook_account_lookup_failed', {
+        eventId: event.id,
+        stripeAccountId: account.id,
+        error: errMessage(err),
+        cause: errCause(err),
+      });
+      return new Response('Account lookup failed', { status: 500 });
+    }
+
     if (!row) {
       // We don't have this account in our DB yet — could happen if Stripe
       // delivers `account.updated` before our `initiateConnectOnboardingAction`
@@ -94,19 +127,43 @@ export async function POST(req: Request): Promise<Response> {
       return Response.json({ received: true, deferred: true }, { status: 200 });
     }
 
-    await upsertConnectAccount({
-      userId: row.userId,
-      stripeAccountId: account.id,
-      chargesEnabled: account.charges_enabled,
-      payoutsEnabled: account.payouts_enabled,
-      onboardingCompleted: account.details_submitted,
-    });
+    try {
+      await upsertConnectAccount({
+        userId: row.userId,
+        stripeAccountId: account.id,
+        chargesEnabled: account.charges_enabled,
+        payoutsEnabled: account.payouts_enabled,
+        onboardingCompleted: account.details_submitted,
+      });
+    } catch (err) {
+      logger.error('stripe_webhook_upsert_failed', {
+        eventId: event.id,
+        stripeAccountId: account.id,
+        error: errMessage(err),
+        cause: errCause(err),
+      });
+      return new Response('Database update failed', { status: 500 });
+    }
 
-    await db.insert(webhookEventsTable).values({
-      stripeEventId: event.id,
-      eventType: event.type,
-      payload: event as unknown as Record<string, unknown>,
-    });
+    try {
+      await db.insert(webhookEventsTable).values({
+        stripeEventId: event.id,
+        eventType: event.type,
+        // Defensive: round-trip through JSON to strip any Stripe SDK
+        // class machinery (toJSON, non-enumerable props, custom
+        // getters) before the jsonb insert. Stripe events are pure
+        // JSON-serializable in practice but the cost of belt-and-
+        // suspenders is one extra parse+stringify on a <20KB payload.
+        payload: JSON.parse(JSON.stringify(event)),
+      });
+    } catch (err) {
+      logger.error('stripe_webhook_event_insert_failed', {
+        eventId: event.id,
+        error: errMessage(err),
+        cause: errCause(err),
+      });
+      return new Response('Idempotency log failed', { status: 500 });
+    }
 
     return Response.json({ received: true, handled: true }, { status: 200 });
   }
@@ -119,4 +176,20 @@ export async function POST(req: Request): Promise<Response> {
     eventId: event.id,
   });
   return Response.json({ received: true, handled: false }, { status: 200 });
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Helpers for error introspection inside the try/catch wrappers above.
+// Drizzle's DrizzleQueryError wraps PG errors with the underlying error
+// in `.cause`. Logging both `.message` and `.cause.message` separately
+// is what was missing from the original handler — the BA walk's 500
+// surfaced an opaque "Failed query: ..." with no cause text.
+// ─────────────────────────────────────────────────────────────────────
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+function errCause(err: unknown): string | null {
+  if (err instanceof Error && err.cause instanceof Error) return err.cause.message;
+  if (err instanceof Error && typeof err.cause === 'string') return err.cause;
+  return null;
 }

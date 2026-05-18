@@ -3,6 +3,7 @@ import { db } from '@/db/client';
 import {
   stripeConnectAccountsTable,
   type StripeConnectAccount,
+  type NewStripeConnectAccount,
 } from '@/db/schema';
 
 /**
@@ -52,7 +53,12 @@ export async function upsertConnectAccount(args: {
   chargesEnabled?: boolean;
   payoutsEnabled?: boolean;
 }): Promise<StripeConnectAccount> {
-  const updateSet: Record<string, unknown> = {
+  // Strict typing per Story 9-2 follow-up: Drizzle's `set:` parameter
+  // for onConflictDoUpdate expects Partial<table.$inferInsert>. The
+  // earlier `Record<string, unknown>` form was lax enough for TS to
+  // accept invalid keys at compile time and surface them as opaque
+  // "Failed query" runtime errors with no underlying message.
+  const updateSet: Partial<NewStripeConnectAccount> = {
     stripeAccountId: args.stripeAccountId,
     updatedAt: new Date(),
   };
