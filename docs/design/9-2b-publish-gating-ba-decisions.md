@@ -1,10 +1,10 @@
-# Story 9-2b: Publish Gating — BA Decisions (STRAWMAN)
+# Story 9-2b: Publish Gating — BA Decisions
 
 **Story:** 9-2b
 **Epic:** 9 — Payments (Theme B)
 **Phase:** 2
 **Type:** Schema migration + Server Action + owner-side UI
-**Author:** Ikhtiyor Ziyayev, Business Analyst (strawman drafted by dev-agent — review/edit/lock)
+**Author:** Ikhtiyor Ziyayev, Business Analyst
 **Date drafted:** 2026-05-15
 **Status:** LOCKED 2026-05-18. Ready for dispatch.
 **Source:** Phase 2 PRD §4.6 FR-OWNER-3 + carved out of the 9-2 strawman during BA scope review on 2026-05-15
