@@ -371,6 +371,134 @@ export async function markBookingRejectedAndVoidedByPaymentIntent(
 }
 
 /**
+ * Story 9-6: Phase 2 PENDING Guest-cancel. Transitions
+ * (PENDING, AUTHORIZED) → (CANCELLED, VOIDED). Called by
+ * `cancelBookingAction`'s Phase 2 PENDING branch AFTER `cancelPaymentIntent`
+ * succeeds (releasing the Stripe auth hold).
+ *
+ * Conditional WHERE keyed on (id, status='PENDING',
+ * payment_status='AUTHORIZED', guest_user_id) — race-safety net AND
+ * ownership defense-in-depth (alongside the action's `requireOwnership`
+ * check). The `guest_user_id` clause distinguishes this from 9-4's
+ * `markBookingRejectedAndVoided` which has no ownership clause (admin/
+ * owner reject is platform-side; this Guest-cancel is user-side).
+ *
+ * Returns the updated row on success; `undefined` when the row is no
+ * longer in (PENDING, AUTHORIZED) or doesn't belong to guestUserId.
+ * The action surfaces an empty return as Phase 1's CANNOT_CANCEL code
+ * (carry-forward).
+ */
+export async function markBookingCancelledAndVoided(
+  id: string,
+  guestUserId: string,
+): Promise<Booking | undefined> {
+  const [row] = await db
+    .update(bookingsTable)
+    .set({
+      status: 'CANCELLED',
+      paymentStatus: 'VOIDED',
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(bookingsTable.id, id),
+        eq(bookingsTable.status, 'PENDING'),
+        eq(bookingsTable.paymentStatus, 'AUTHORIZED'),
+        eq(bookingsTable.guestUserId, guestUserId),
+      ),
+    )
+    .returning();
+  return row;
+}
+
+/**
+ * Story 9-6: Phase 2 CONFIRMED Guest-cancel with full refund. Transitions
+ * (CONFIRMED, CAPTURED) → (CANCELLED, REFUNDED) and writes refunded_at
+ * + refund_amount_cents atomically. Called by `cancelBookingAction`'s
+ * Phase 2 CONFIRMED branch AFTER `createRefund` succeeds.
+ *
+ * Conditional WHERE keyed on (id, status='CONFIRMED',
+ * payment_status='CAPTURED', guest_user_id) — same race-safety + ownership
+ * defense as `markBookingCancelledAndVoided`.
+ *
+ * `refundAmountCents` argument is the caller's authoritative value
+ * (booking.totalCents for Phase 2 full-refund-only). Phase 3 partial
+ * refunds may pass a smaller value.
+ *
+ * Returns the updated row on success; `undefined` when the row is no
+ * longer in (CONFIRMED, CAPTURED) (e.g., already refunded by a prior
+ * delivery of the charge.refunded webhook) or doesn't belong to
+ * guestUserId. Caller surfaces empty return as CANNOT_CANCEL.
+ */
+export async function markBookingCancelledAndRefunded(
+  id: string,
+  guestUserId: string,
+  refundAmountCents: number,
+): Promise<Booking | undefined> {
+  const [row] = await db
+    .update(bookingsTable)
+    .set({
+      status: 'CANCELLED',
+      paymentStatus: 'REFUNDED',
+      refundedAt: new Date(),
+      refundAmountCents,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(bookingsTable.id, id),
+        eq(bookingsTable.status, 'CONFIRMED'),
+        eq(bookingsTable.paymentStatus, 'CAPTURED'),
+        eq(bookingsTable.guestUserId, guestUserId),
+      ),
+    )
+    .returning();
+  return row;
+}
+
+/**
+ * Story 9-6: webhook backstop for the `charge.refunded` handler. Same
+ * state transition as `markBookingCancelledAndRefunded` but keyed on
+ * `payment_intent_id` (no guest_user_id clause — the webhook doesn't
+ * know who initiated; the PI uniqueness is the join key per the BA
+ * Decision §5 lookup-by-PI pattern from 9-5).
+ *
+ * Used by `handleChargeRefunded` as the Stripe-side-truth-syncing
+ * backstop for the narrow window where the action's DB write fails
+ * AFTER `stripe.refunds.create` succeeds. Mirrors 9-5's
+ * `markBookingConfirmedAndCapturedByPaymentIntent` /
+ * `markBookingRejectedAndVoidedByPaymentIntent` pattern.
+ *
+ * BA Decision §11: 9-5's audit-gap-on-retry pattern is accepted for
+ * this handler. The bookings row IS the financial audit trail
+ * (refunded_at + refund_amount_cents + payment_status); webhook_events
+ * is operational, not financial. No transactional write-with-rollback.
+ */
+export async function markBookingCancelledAndRefundedByPaymentIntent(
+  paymentIntentId: string,
+  refundAmountCents: number,
+): Promise<Booking | undefined> {
+  const [row] = await db
+    .update(bookingsTable)
+    .set({
+      status: 'CANCELLED',
+      paymentStatus: 'REFUNDED',
+      refundedAt: new Date(),
+      refundAmountCents,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(bookingsTable.paymentIntentId, paymentIntentId),
+        eq(bookingsTable.status, 'CONFIRMED'),
+        eq(bookingsTable.paymentStatus, 'CAPTURED'),
+      ),
+    )
+    .returning();
+  return row;
+}
+
+/**
  * Story 9-5: orphan-booking cleanup for the checkout.session.expired
  * handler. Deletes the booking row IFF it matches the pre-claimed-but-
  * abandoned shape: `status='PENDING' AND payment_status='AWAITING_PAYMENT'

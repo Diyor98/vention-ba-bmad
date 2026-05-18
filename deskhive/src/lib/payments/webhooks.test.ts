@@ -39,6 +39,8 @@ const {
   markBookingConfirmedAndCapturedByPaymentIntentMock,
   markBookingRejectedAndVoidedByPaymentIntentMock,
   deleteAbandonedBookingByCheckoutSessionMock,
+  // Story 9-6: webhook backstop for charge.refunded.
+  markBookingCancelledAndRefundedByPaymentIntentMock,
 } = vi.hoisted(() => ({
   getConnectAccountByStripeAccountIdMock: vi.fn(),
   upsertConnectAccountMock: vi.fn(),
@@ -48,6 +50,7 @@ const {
   markBookingConfirmedAndCapturedByPaymentIntentMock: vi.fn(),
   markBookingRejectedAndVoidedByPaymentIntentMock: vi.fn(),
   deleteAbandonedBookingByCheckoutSessionMock: vi.fn(),
+  markBookingCancelledAndRefundedByPaymentIntentMock: vi.fn(),
 }));
 
 vi.mock('@/db/queries/stripe-connect', () => ({
@@ -65,6 +68,9 @@ vi.mock('@/db/queries/bookings', () => ({
     markBookingRejectedAndVoidedByPaymentIntentMock,
   deleteAbandonedBookingByCheckoutSession:
     deleteAbandonedBookingByCheckoutSessionMock,
+  // Story 9-6
+  markBookingCancelledAndRefundedByPaymentIntent:
+    markBookingCancelledAndRefundedByPaymentIntentMock,
 }));
 
 import {
@@ -73,6 +79,8 @@ import {
   handlePaymentIntentSucceeded,
   handlePaymentIntentCanceled,
   handleCheckoutSessionExpired,
+  // Story 9-6: charge.refunded backstop handler.
+  handleChargeRefunded,
   dispatchWebhookEvent,
   WEBHOOK_HANDLERS,
 } from './webhooks';
@@ -86,6 +94,7 @@ beforeEach(() => {
   markBookingConfirmedAndCapturedByPaymentIntentMock.mockReset();
   markBookingRejectedAndVoidedByPaymentIntentMock.mockReset();
   deleteAbandonedBookingByCheckoutSessionMock.mockReset();
+  markBookingCancelledAndRefundedByPaymentIntentMock.mockReset();
 });
 
 // Minimal Stripe.Event factory — handlers only read .id, .type, and
@@ -338,6 +347,113 @@ describe('handleCheckoutSessionCompleted (regression — verbatim migration from
       bookingId: 'booking-uuid-r1',
       paymentIntentId: 'pi_test_r1',
     });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// handleChargeRefunded — Story 9-6 NEW (BA Decision §12 webhooks tests).
+// Closes the narrow ops window for the Phase 2 CONFIRMED+CAPTURED refund
+// path: action's stripe.refunds.create succeeds but DB UPDATE fails →
+// booking stuck in (CONFIRMED, CAPTURED) until this webhook reconciles.
+//
+// 3 locked cases:
+//   • Happy: booking in (CONFIRMED, CAPTURED, paymentIntentId='pi_...') →
+//     conditional UPDATE returns row → { handled: true }.
+//   • Idempotent: booking already in (CANCELLED, REFUNDED) → conditional
+//     UPDATE returns undefined → { idempotent: true } (action won race).
+//   • Deferred (booking-not-found): no booking matches PI id → { deferred }.
+// ─────────────────────────────────────────────────────────────────────
+
+describe('handleChargeRefunded (Story 9-6 NEW refund backstop)', () => {
+  it('happy path — booking in (CONFIRMED, CAPTURED) → conditional UPDATE rescues → handled:true', async () => {
+    getBookingByPaymentIntentIdMock.mockResolvedValueOnce({
+      id: 'booking-uuid-refund-1',
+      status: 'CONFIRMED',
+      paymentStatus: 'CAPTURED',
+      paymentIntentId: 'pi_test_refund_1',
+    });
+    markBookingCancelledAndRefundedByPaymentIntentMock.mockResolvedValueOnce({
+      id: 'booking-uuid-refund-1',
+      status: 'CANCELLED',
+      paymentStatus: 'REFUNDED',
+      paymentIntentId: 'pi_test_refund_1',
+    });
+
+    const result = await handleChargeRefunded(
+      makeEvent('charge.refunded', 'evt_charge_refunded_1', {
+        id: 'ch_test_refund_1',
+        payment_intent: 'pi_test_refund_1',
+        amount: 2500,
+        amount_refunded: 2500,
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, handled: true });
+    // Helper called with PI id + refund amount from charge.amount_refunded.
+    expect(
+      markBookingCancelledAndRefundedByPaymentIntentMock,
+    ).toHaveBeenCalledWith('pi_test_refund_1', 2500);
+  });
+
+  it('idempotent — booking already (CANCELLED, REFUNDED) (action won race) → idempotent:true', async () => {
+    getBookingByPaymentIntentIdMock.mockResolvedValueOnce({
+      id: 'booking-uuid-refund-2',
+      status: 'CANCELLED',
+      paymentStatus: 'REFUNDED',
+      paymentIntentId: 'pi_test_refund_2',
+    });
+    // Conditional WHERE on (CONFIRMED, CAPTURED) filters out → undefined.
+    markBookingCancelledAndRefundedByPaymentIntentMock.mockResolvedValueOnce(
+      undefined,
+    );
+
+    const result = await handleChargeRefunded(
+      makeEvent('charge.refunded', 'evt_charge_refunded_2', {
+        id: 'ch_test_refund_2',
+        payment_intent: 'pi_test_refund_2',
+        amount: 2500,
+        amount_refunded: 2500,
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, idempotent: true });
+  });
+
+  it('deferred — booking-not-found (no row matches PI) → deferred:true, UPDATE NOT called', async () => {
+    getBookingByPaymentIntentIdMock.mockResolvedValueOnce(undefined);
+
+    const result = await handleChargeRefunded(
+      makeEvent('charge.refunded', 'evt_charge_refunded_3', {
+        id: 'ch_test_refund_3',
+        payment_intent: 'pi_test_no_match',
+        amount: 2500,
+        amount_refunded: 2500,
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, deferred: true });
+    expect(
+      markBookingCancelledAndRefundedByPaymentIntentMock,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('deferred — missing charge.payment_intent → deferred:true, lookup NOT called', async () => {
+    // Stripe SHOULD always include payment_intent on charge.refunded, but
+    // the handler defends defensively per BA Decision §7.
+    const result = await handleChargeRefunded(
+      makeEvent('charge.refunded', 'evt_charge_refunded_4', {
+        id: 'ch_test_no_pi',
+        payment_intent: null,
+        amount: 2500,
+        amount_refunded: 2500,
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, deferred: true });
+    expect(getBookingByPaymentIntentIdMock).not.toHaveBeenCalled();
+    expect(
+      markBookingCancelledAndRefundedByPaymentIntentMock,
+    ).not.toHaveBeenCalled();
   });
 });
 

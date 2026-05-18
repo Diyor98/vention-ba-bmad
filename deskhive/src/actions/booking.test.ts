@@ -37,10 +37,17 @@ const {
   requireOwnershipMock,
   getSpaceByIdMock,
   getBookingByIdMock,
+  cancelBookingMock,
   confirmBookingMock,
   rejectBookingMock,
   markBookingConfirmedAndCapturedMock,
   markBookingRejectedAndVoidedMock,
+  // Story 9-6: cancelBookingAction's new query helpers + refund wrapper +
+  // refund-eligibility helper.
+  markBookingCancelledAndVoidedMock,
+  markBookingCancelledAndRefundedMock,
+  createRefundMock,
+  isRefundEligibleMock,
   capturePaymentIntentMock,
   cancelPaymentIntentMock,
   notifyBookingConfirmedMock,
@@ -52,10 +59,15 @@ const {
   requireOwnershipMock: vi.fn(),
   getSpaceByIdMock: vi.fn(),
   getBookingByIdMock: vi.fn(),
+  cancelBookingMock: vi.fn(),
   confirmBookingMock: vi.fn(),
   rejectBookingMock: vi.fn(),
   markBookingConfirmedAndCapturedMock: vi.fn(),
   markBookingRejectedAndVoidedMock: vi.fn(),
+  markBookingCancelledAndVoidedMock: vi.fn(),
+  markBookingCancelledAndRefundedMock: vi.fn(),
+  createRefundMock: vi.fn(),
+  isRefundEligibleMock: vi.fn(),
   capturePaymentIntentMock: vi.fn(),
   cancelPaymentIntentMock: vi.fn(),
   notifyBookingConfirmedMock: vi.fn(),
@@ -78,15 +90,25 @@ vi.mock('@/db/queries/spaces', () => ({
 }));
 vi.mock('@/db/queries/bookings', () => ({
   getBookingById: getBookingByIdMock,
-  cancelBooking: vi.fn(),
+  cancelBooking: cancelBookingMock,
   confirmBooking: confirmBookingMock,
   rejectBooking: rejectBookingMock,
   markBookingConfirmedAndCaptured: markBookingConfirmedAndCapturedMock,
   markBookingRejectedAndVoided: markBookingRejectedAndVoidedMock,
+  // Story 9-6: new query helpers for cancelBookingAction's 3-branch logic.
+  markBookingCancelledAndVoided: markBookingCancelledAndVoidedMock,
+  markBookingCancelledAndRefunded: markBookingCancelledAndRefundedMock,
 }));
 vi.mock('@/lib/payments/payment-intents', () => ({
   capturePaymentIntent: capturePaymentIntentMock,
   cancelPaymentIntent: cancelPaymentIntentMock,
+}));
+// Story 9-6: refund wrapper + refund-policy helper.
+vi.mock('@/lib/payments/refunds', () => ({
+  createRefund: createRefundMock,
+}));
+vi.mock('@/lib/refund-policy', () => ({
+  isRefundEligible: isRefundEligibleMock,
 }));
 vi.mock('@/lib/bookings', () => ({
   notifyBookingConfirmed: notifyBookingConfirmedMock,
@@ -99,6 +121,7 @@ vi.mock('next/cache', () => ({
 }));
 
 import {
+  cancelBookingAction,
   confirmBookingAction,
   rejectBookingAction,
 } from './booking';
@@ -147,10 +170,16 @@ beforeEach(() => {
   requireOwnershipMock.mockReset();
   getSpaceByIdMock.mockReset();
   getBookingByIdMock.mockReset();
+  cancelBookingMock.mockReset();
   confirmBookingMock.mockReset();
   rejectBookingMock.mockReset();
   markBookingConfirmedAndCapturedMock.mockReset();
   markBookingRejectedAndVoidedMock.mockReset();
+  // Story 9-6 mocks
+  markBookingCancelledAndVoidedMock.mockReset();
+  markBookingCancelledAndRefundedMock.mockReset();
+  createRefundMock.mockReset();
+  isRefundEligibleMock.mockReset();
   capturePaymentIntentMock.mockReset();
   cancelPaymentIntentMock.mockReset();
   // notify* are awaited via .catch(...) post-success — return resolved
@@ -349,5 +378,258 @@ describe('rejectBookingAction (Story 9-4 — Decision §11 tests)', () => {
     expect(markBookingRejectedAndVoidedMock).not.toHaveBeenCalled();
     expect(rejectBookingMock).not.toHaveBeenCalled();
     expect(notifyBookingRejectedMock).not.toHaveBeenCalled();
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────
+// Story 9-6 — cancelBookingAction 3-branch tests (BA Decision §12).
+//
+// Resolves the long-standing PRD §4.5 cancel-interpretation open question
+// (Option (a) extend-in-place — see BA Decision §2). 5 locked cases per
+// AC-12:
+//   1. Phase 2 PENDING happy: PI auth release via cancelPaymentIntent →
+//      markBookingCancelledAndVoided → success. Idempotency key shared
+//      with 9-4 reject path (BA Decision §5).
+//   2. Phase 2 CONFIRMED eligible refund: createRefund → markBookingCancelledAndRefunded
+//      → success. Refund amount = booking.totalCents.
+//   3. Phase 2 CONFIRMED ineligible refusal: isRefundEligible returns false →
+//      REFUND_INELIGIBLE; no Stripe call; no DB UPDATE.
+//   4. Phase 2 CONFIRMED + Stripe refund failure: createRefund returns
+//      { ok: false } → STRIPE_REFUND_FAILED with Stripe's message; no DB UPDATE.
+//   5. Phase 1 backwards-compat: paymentIntentId IS NULL → cancelBooking
+//      (existing helper) unchanged; Stripe wrappers NOT called.
+//   6. CANNOT_CANCEL on terminal state: booking already CANCELLED/REJECTED →
+//      action returns CANNOT_CANCEL with new "already cancelled or rejected"
+//      message (Phase 1 verbatim message SUPERSEDED per Decision §2).
+// ────────────────────────────────────────────────────────────────────────
+
+const GUEST_ID = '44444444-4444-4444-4444-444444444444';
+
+function stubAuthedGuest(userId = GUEST_ID) {
+  requireSessionMock.mockResolvedValue({
+    user: { id: userId, email: 'guest@deskhive.local', role: 'GUEST' },
+  });
+}
+
+// totalCents is read by the CONFIRMED-refund branch to pass refund_amount_cents.
+function phase2ConfirmedCapturedBooking(
+  overrides: Partial<{ bookingDate: string; totalCents: number }> = {},
+) {
+  return {
+    id: BOOKING_ID,
+    spaceId: SPACE_ID,
+    guestUserId: GUEST_ID,
+    status: 'CONFIRMED',
+    paymentIntentId: PI_ID,
+    paymentStatus: 'CAPTURED',
+    bookingDate: overrides.bookingDate ?? '2026-12-31',
+    totalCents: overrides.totalCents ?? 2500,
+  };
+}
+
+function phase2PendingAuthorizedBooking() {
+  return {
+    id: BOOKING_ID,
+    spaceId: SPACE_ID,
+    guestUserId: GUEST_ID,
+    status: 'PENDING',
+    paymentIntentId: PI_ID,
+    paymentStatus: 'AUTHORIZED',
+    bookingDate: '2026-12-31',
+    totalCents: 2500,
+  };
+}
+
+function phase1PendingBooking() {
+  return {
+    id: BOOKING_ID,
+    spaceId: SPACE_ID,
+    guestUserId: GUEST_ID,
+    status: 'PENDING',
+    paymentIntentId: null,
+    paymentStatus: null,
+    bookingDate: '2026-12-31',
+    totalCents: 0,
+  };
+}
+
+describe('cancelBookingAction (Story 9-6 — Decision §12 tests)', () => {
+  it('test 1 — Phase 2 PENDING happy: cancelPaymentIntent + markBookingCancelledAndVoided → success', async () => {
+    stubAuthedGuest();
+    getBookingByIdMock.mockResolvedValueOnce(phase2PendingAuthorizedBooking());
+    cancelPaymentIntentMock.mockResolvedValueOnce({
+      ok: true,
+      data: { paymentIntentId: PI_ID, status: 'canceled' },
+    });
+    markBookingCancelledAndVoidedMock.mockResolvedValueOnce({
+      id: BOOKING_ID,
+      status: 'CANCELLED',
+      paymentStatus: 'VOIDED',
+    });
+
+    const result = await cancelBookingAction({ status: 'idle' }, makeFormData());
+
+    expect(result).toEqual({ status: 'success' });
+    // Idempotency key INTENTIONALLY shared with 9-4 reject path (BA Decision §5).
+    expect(cancelPaymentIntentMock).toHaveBeenCalledTimes(1);
+    expect(cancelPaymentIntentMock.mock.calls[0]?.[0]).toEqual({
+      paymentIntentId: PI_ID,
+      idempotencyKey: `cancel-${BOOKING_ID}`,
+    });
+    // New Phase 2 helper used (NOT cancelBooking or createRefund).
+    expect(markBookingCancelledAndVoidedMock).toHaveBeenCalledTimes(1);
+    expect(markBookingCancelledAndVoidedMock.mock.calls[0]?.[0]).toBe(
+      BOOKING_ID,
+    );
+    expect(markBookingCancelledAndVoidedMock.mock.calls[0]?.[1]).toBe(
+      GUEST_ID,
+    );
+    expect(cancelBookingMock).not.toHaveBeenCalled();
+    expect(createRefundMock).not.toHaveBeenCalled();
+    expect(markBookingCancelledAndRefundedMock).not.toHaveBeenCalled();
+  });
+
+  it('test 2 — Phase 2 CONFIRMED eligible refund: createRefund + markBookingCancelledAndRefunded → success', async () => {
+    stubAuthedGuest();
+    getBookingByIdMock.mockResolvedValueOnce(
+      phase2ConfirmedCapturedBooking({ bookingDate: '2026-12-31', totalCents: 2500 }),
+    );
+    isRefundEligibleMock.mockReturnValueOnce(true);
+    createRefundMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        refundId: 're_test_succeeded',
+        paymentIntentId: PI_ID,
+        status: 'succeeded',
+        amountCents: 2500,
+      },
+    });
+    markBookingCancelledAndRefundedMock.mockResolvedValueOnce({
+      id: BOOKING_ID,
+      status: 'CANCELLED',
+      paymentStatus: 'REFUNDED',
+      refundedAt: new Date(),
+      refundAmountCents: 2500,
+    });
+
+    const result = await cancelBookingAction({ status: 'idle' }, makeFormData());
+
+    expect(result).toEqual({ status: 'success' });
+    // Eligibility check fired with booking_date.
+    expect(isRefundEligibleMock).toHaveBeenCalledWith('2026-12-31');
+    // Refund called with the locked per-booking-id key.
+    expect(createRefundMock).toHaveBeenCalledTimes(1);
+    expect(createRefundMock.mock.calls[0]?.[0]).toEqual({
+      paymentIntentId: PI_ID,
+      idempotencyKey: `refund-${BOOKING_ID}`,
+    });
+    // markBookingCancelledAndRefunded called with refundAmountCents === totalCents
+    // (Phase 2 full-refund-only).
+    expect(markBookingCancelledAndRefundedMock).toHaveBeenCalledTimes(1);
+    expect(markBookingCancelledAndRefundedMock.mock.calls[0]).toEqual([
+      BOOKING_ID,
+      GUEST_ID,
+      2500,
+    ]);
+    // Other paths NOT called.
+    expect(cancelPaymentIntentMock).not.toHaveBeenCalled();
+    expect(markBookingCancelledAndVoidedMock).not.toHaveBeenCalled();
+    expect(cancelBookingMock).not.toHaveBeenCalled();
+  });
+
+  it('test 3 — Phase 2 CONFIRMED ineligible refusal: REFUND_INELIGIBLE; no Stripe, no DB UPDATE', async () => {
+    stubAuthedGuest();
+    getBookingByIdMock.mockResolvedValueOnce(phase2ConfirmedCapturedBooking());
+    isRefundEligibleMock.mockReturnValueOnce(false);
+
+    const result = await cancelBookingAction({ status: 'idle' }, makeFormData());
+
+    expect(result).toEqual({
+      status: 'error',
+      code: 'REFUND_INELIGIBLE',
+      message:
+        'Cancellations within 24 hours of the booking date are non-refundable.',
+    });
+    // PRD §4.5 / FR-REFUND-3 explicit "refuses entirely" — NO Stripe call.
+    expect(createRefundMock).not.toHaveBeenCalled();
+    expect(markBookingCancelledAndRefundedMock).not.toHaveBeenCalled();
+    // notify also NOT called (no successful cancel happened).
+    expect(notifyBookingCancelledByGuestMock).not.toHaveBeenCalled();
+  });
+
+  it('test 4 — Phase 2 CONFIRMED + Stripe refund failure: STRIPE_REFUND_FAILED; no DB UPDATE', async () => {
+    stubAuthedGuest();
+    getBookingByIdMock.mockResolvedValueOnce(phase2ConfirmedCapturedBooking());
+    isRefundEligibleMock.mockReturnValueOnce(true);
+    createRefundMock.mockResolvedValueOnce({
+      ok: false,
+      error: 'The charge has already been refunded',
+    });
+
+    const result = await cancelBookingAction({ status: 'idle' }, makeFormData());
+
+    expect(result).toEqual({
+      status: 'error',
+      code: 'STRIPE_REFUND_FAILED',
+      message: 'The charge has already been refunded',
+    });
+    expect(createRefundMock).toHaveBeenCalledTimes(1);
+    // DB write NOT attempted on Stripe failure (Stripe-first-then-DB).
+    expect(markBookingCancelledAndRefundedMock).not.toHaveBeenCalled();
+  });
+
+  it('test 5 — Phase 1 backwards-compat: paymentIntentId IS NULL → cancelBooking; Stripe NOT called', async () => {
+    stubAuthedGuest();
+    getBookingByIdMock.mockResolvedValueOnce(phase1PendingBooking());
+    cancelBookingMock.mockResolvedValueOnce({
+      id: BOOKING_ID,
+      status: 'CANCELLED',
+    });
+
+    const result = await cancelBookingAction({ status: 'idle' }, makeFormData());
+
+    expect(result).toEqual({ status: 'success' });
+    // Phase 1 helper called with (bookingId, guestUserId).
+    expect(cancelBookingMock).toHaveBeenCalledTimes(1);
+    expect(cancelBookingMock.mock.calls[0]).toEqual([BOOKING_ID, GUEST_ID]);
+    // Stripe wrappers NOT called.
+    expect(cancelPaymentIntentMock).not.toHaveBeenCalled();
+    expect(createRefundMock).not.toHaveBeenCalled();
+    // Phase 2 helpers NOT called.
+    expect(markBookingCancelledAndVoidedMock).not.toHaveBeenCalled();
+    expect(markBookingCancelledAndRefundedMock).not.toHaveBeenCalled();
+  });
+
+  it('test 6 — CANNOT_CANCEL on terminal state (already CANCELLED): no Stripe, no DB write, supersedes Phase 1 message', async () => {
+    stubAuthedGuest();
+    getBookingByIdMock.mockResolvedValueOnce({
+      id: BOOKING_ID,
+      spaceId: SPACE_ID,
+      guestUserId: GUEST_ID,
+      status: 'CANCELLED',
+      paymentIntentId: PI_ID,
+      paymentStatus: 'VOIDED',
+      bookingDate: '2026-12-31',
+      totalCents: 2500,
+    });
+
+    const result = await cancelBookingAction({ status: 'idle' }, makeFormData());
+
+    expect(result).toEqual({
+      status: 'error',
+      code: 'CANNOT_CANCEL',
+      message: 'This booking has already been cancelled or rejected.',
+    });
+    // Phase 1 verbatim "Only pending bookings can be cancelled." message
+    // SUPERSEDED per BA Decision §2 — must NOT appear.
+    if (result.status === 'error') {
+      expect(result.message).not.toBe('Only pending bookings can be cancelled.');
+    }
+    // No Stripe / no DB writes.
+    expect(cancelPaymentIntentMock).not.toHaveBeenCalled();
+    expect(createRefundMock).not.toHaveBeenCalled();
+    expect(cancelBookingMock).not.toHaveBeenCalled();
+    expect(markBookingCancelledAndVoidedMock).not.toHaveBeenCalled();
+    expect(markBookingCancelledAndRefundedMock).not.toHaveBeenCalled();
   });
 });

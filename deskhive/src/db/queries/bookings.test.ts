@@ -48,6 +48,10 @@ import {
   markBookingConfirmedAndCapturedByPaymentIntent,
   markBookingRejectedAndVoidedByPaymentIntent,
   deleteAbandonedBookingByCheckoutSession,
+  // Story 9-6 helpers
+  markBookingCancelledAndVoided,
+  markBookingCancelledAndRefunded,
+  markBookingCancelledAndRefundedByPaymentIntent,
 } from './bookings';
 
 beforeEach(() => {
@@ -218,5 +222,128 @@ describe('deleteAbandonedBookingByCheckoutSession (Story 9-5)', () => {
     const result =
       await deleteAbandonedBookingByCheckoutSession('booking-uuid-orphan');
     expect(result).toBe(expected);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Story 9-6 query helpers — 3 new conditional UPDATEs for the
+// cancelBookingAction 3-branch logic + charge.refunded webhook backstop.
+// Same mock-at-@/db/client boundary pattern as the 9-5 helpers.
+// ─────────────────────────────────────────────────────────────────────
+
+describe('markBookingCancelledAndVoided (Story 9-6)', () => {
+  it.each([
+    {
+      label:
+        'happy — DB returns 1 row (PENDING + AUTHORIZED matched) → helper returns row with VOIDED',
+      dbRows: [
+        {
+          id: 'booking-uuid-pending',
+          guestUserId: 'guest-1',
+          status: 'CANCELLED',
+          paymentStatus: 'VOIDED',
+        },
+      ],
+      expectedDefined: true,
+    },
+    {
+      label:
+        'race lost — DB returns [] (conditional WHERE filtered — wrong status / wrong payment_status / wrong guest) → helper returns undefined',
+      dbRows: [],
+      expectedDefined: false,
+    },
+  ])('$label', async ({ dbRows, expectedDefined }) => {
+    stubUpdateChain(dbRows);
+    const result = await markBookingCancelledAndVoided(
+      'booking-uuid-pending',
+      'guest-1',
+    );
+    if (expectedDefined) {
+      expect(result).toBeDefined();
+      expect(result?.status).toBe('CANCELLED');
+      expect(result?.paymentStatus).toBe('VOIDED');
+    } else {
+      expect(result).toBeUndefined();
+    }
+  });
+});
+
+describe('markBookingCancelledAndRefunded (Story 9-6)', () => {
+  it.each([
+    {
+      label:
+        'happy — DB returns 1 row (CONFIRMED + CAPTURED matched) → helper returns row with REFUNDED + refundedAt + refundAmountCents',
+      dbRows: [
+        {
+          id: 'booking-uuid-confirmed',
+          guestUserId: 'guest-1',
+          status: 'CANCELLED',
+          paymentStatus: 'REFUNDED',
+          refundedAt: new Date(),
+          refundAmountCents: 2500,
+        },
+      ],
+      expectedDefined: true,
+    },
+    {
+      label:
+        'race lost — DB returns [] (conditional WHERE filtered) → helper returns undefined',
+      dbRows: [],
+      expectedDefined: false,
+    },
+  ])('$label', async ({ dbRows, expectedDefined }) => {
+    stubUpdateChain(dbRows);
+    const result = await markBookingCancelledAndRefunded(
+      'booking-uuid-confirmed',
+      'guest-1',
+      2500,
+    );
+    if (expectedDefined) {
+      expect(result).toBeDefined();
+      expect(result?.status).toBe('CANCELLED');
+      expect(result?.paymentStatus).toBe('REFUNDED');
+      expect(result?.refundAmountCents).toBe(2500);
+    } else {
+      expect(result).toBeUndefined();
+    }
+  });
+});
+
+describe('markBookingCancelledAndRefundedByPaymentIntent (Story 9-6)', () => {
+  it.each([
+    {
+      label:
+        'happy — DB returns 1 row → helper returns row with REFUNDED (webhook-backstop path)',
+      dbRows: [
+        {
+          id: 'booking-uuid-confirmed',
+          paymentIntentId: 'pi_test_captured',
+          status: 'CANCELLED',
+          paymentStatus: 'REFUNDED',
+          refundedAt: new Date(),
+          refundAmountCents: 2500,
+        },
+      ],
+      expectedDefined: true,
+    },
+    {
+      label:
+        'race lost — DB returns [] (action won race; booking already REFUNDED) → helper returns undefined',
+      dbRows: [],
+      expectedDefined: false,
+    },
+  ])('$label', async ({ dbRows, expectedDefined }) => {
+    stubUpdateChain(dbRows);
+    const result = await markBookingCancelledAndRefundedByPaymentIntent(
+      'pi_test_captured',
+      2500,
+    );
+    if (expectedDefined) {
+      expect(result).toBeDefined();
+      expect(result?.paymentStatus).toBe('REFUNDED');
+      expect(result?.refundAmountCents).toBe(2500);
+    } else {
+      expect(result).toBeUndefined();
+    }
   });
 });

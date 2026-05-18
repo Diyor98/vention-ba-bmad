@@ -29,6 +29,9 @@ function mkBooking(deskId: string): Booking {
     paymentIntentId: null,
     totalCents: 0,
     platformFeeCents: 0,
+    // Story 9-6 fields — NULL until/unless refunded.
+    refundedAt: null,
+    refundAmountCents: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

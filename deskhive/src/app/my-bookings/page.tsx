@@ -195,8 +195,19 @@ function BookingCard({ row, archived }: { row: Row; archived: boolean }) {
           </p>
         </div>
       ) : (
-        // CONFIRMED future-dated → no footer (keep card tight)
-        null
+        // Story 9-6: CONFIRMED future-dated bookings ALSO get a cancel
+        // button (resolves PRD §4.5's previously-deferred cancel-
+        // interpretation question). Past-dated CONFIRMED bookings land in
+        // the `archived` branch above and correctly skip the button —
+        // the refund-eligibility helper would refuse them anyway, so
+        // rendering just to error out is bad UX (BA Decision §8 anti-pattern).
+        // The action handles 24h-refund-eligibility check + refund OR
+        // refusal-toast server-side.
+        <div className="booking-footer">
+          <div className="booking-actions">
+            <CancelBookingButton bookingId={booking.id} />
+          </div>
+        </div>
       )}
     </li>
   );

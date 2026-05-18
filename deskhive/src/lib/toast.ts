@@ -63,6 +63,23 @@ export const TOAST_COPY = {
   BOOKING_FAILED_STRIPE_NOT_ACTIVE: "This space can't accept bookings right now.",
   BOOKING_FAILED_PAYMENT_INIT: "Payment couldn't start. Please try again.",
   BOOKING_CANCELLED_PAYMENT: 'Payment cancelled — your card was not charged.',
+  // Story 9-6: surfaces the within-24h refusal per PRD §1.2 step 21 +
+  // FR-REFUND-3's explicit "refuses the cancellation entirely with an
+  // error toast" lock. Action returns code `REFUND_INELIGIBLE`; the
+  // <CancelBookingButton>'s useEffect-toast dispatch reads this entry
+  // and fires toastError(title, description). Inline rendering of
+  // state.message is NOT used for this error code (9-4 pattern only
+  // applies to Stripe-failed codes per BA Decision §9).
+  //
+  // Nested-object shape (vs the flat-string entries above) because the
+  // toast wrapper takes (title, description?) and this error wants both
+  // a short title + an explanatory description. Same shape future Phase
+  // 3 toasts may adopt for richer error UX.
+  CANCEL_REFUND_INELIGIBLE: {
+    title: 'Cancellation not eligible',
+    description:
+      'Cancellations within 24 hours of the booking date are non-refundable.',
+  },
 } as const;
 
 type ToastAction = { label: string; onClick: () => void };

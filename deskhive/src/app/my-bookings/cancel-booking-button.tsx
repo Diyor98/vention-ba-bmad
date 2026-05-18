@@ -6,23 +6,41 @@ import {
   cancelBookingAction,
   type CancelBookingActionState,
 } from '@/actions/booking';
-import { toastSuccess, TOAST_COPY } from '@/lib/toast';
+import { toastSuccess, toastError, TOAST_COPY } from '@/lib/toast';
 
 const initialState: CancelBookingActionState = { status: 'idle' };
 
 export function CancelBookingButton({ bookingId }: { bookingId: string }) {
   const [state, formAction] = useActionState(cancelBookingAction, initialState);
-  const errorMessage = state.status === 'error' ? state.message : undefined;
+  // Story 9-6: REFUND_INELIGIBLE surfaces via toastError per PRD §1.2 step 21
+  // + FR-REFUND-3 explicit "error toast" lock — NOT inline. Other error
+  // codes (STRIPE_*_FAILED, CANNOT_CANCEL, FORBIDDEN, NOT_FOUND,
+  // INTERNAL_ERROR) keep the 9-4 inline-error pattern via state.message.
+  const errorMessage =
+    state.status === 'error' && state.code !== 'REFUND_INELIGIBLE'
+      ? state.message
+      : undefined;
 
   // Story 6-3 (BA Decisions §10): toast on successful cancel. State-identity
   // ref guards against React 19 Strict Mode effect double-fire and against
   // re-firing on unrelated re-renders.
+  //
+  // Story 9-6: extended to also fire toastError on REFUND_INELIGIBLE
+  // (Phase 2 within-24h refusal). Same ref-guard pattern guards against
+  // double-fire.
   const lastFiredState = useRef<CancelBookingActionState | null>(null);
   useEffect(() => {
-    if (state.status !== 'success') return;
     if (lastFiredState.current === state) return;
-    lastFiredState.current = state;
-    toastSuccess(TOAST_COPY.CANCEL_SUCCESS);
+    if (state.status === 'success') {
+      lastFiredState.current = state;
+      toastSuccess(TOAST_COPY.CANCEL_SUCCESS);
+    } else if (state.status === 'error' && state.code === 'REFUND_INELIGIBLE') {
+      lastFiredState.current = state;
+      toastError(
+        TOAST_COPY.CANCEL_REFUND_INELIGIBLE.title,
+        TOAST_COPY.CANCEL_REFUND_INELIGIBLE.description,
+      );
+    }
   }, [state]);
 
   return (
@@ -49,7 +67,11 @@ function SubmitButton() {
       aria-disabled={pending || undefined}
       className="btn-ghost"
     >
-      {pending ? 'Cancelling…' : 'Cancel request'}
+      {/* Story 9-6: label "Cancel booking" uniform across PENDING and
+          CONFIRMED future-dated bookings (BA Decision §8 picks (a) — single
+          label; the Phase 1 "Cancel request" framing leaked PENDING-only
+          assumption). */}
+      {pending ? 'Cancelling…' : 'Cancel booking'}
     </button>
   );
 }

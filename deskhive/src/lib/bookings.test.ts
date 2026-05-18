@@ -64,6 +64,9 @@ function makeInfo(opts: {
       paymentIntentId: null,
       totalCents: 0,
       platformFeeCents: 0,
+      // Story 9-6 fields — NULL until/unless refunded.
+      refundedAt: null,
+      refundAmountCents: null,
       createdAt: new Date('2026-05-13T10:00:00Z'),
       updatedAt: new Date('2026-05-13T10:00:00Z'),
     },

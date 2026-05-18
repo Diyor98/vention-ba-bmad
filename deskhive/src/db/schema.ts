@@ -135,6 +135,15 @@ export const bookingsTable = pgTable(
     // Phase 1 backfill — those bookings have no Stripe charge, so no fee
     // was ever collected.
     platformFeeCents: integer('platform_fee_cents').notNull().default(0),
+    // Story 9-6: refund-completion timestamp. NULL until the booking is
+    // refunded (Phase 1 + non-refunded Phase 2 rows pass). Written by
+    // markBookingCancelledAndRefunded* helpers atomically with
+    // payment_status='REFUNDED' transition (BA Decision §1 + §6).
+    refundedAt: timestamp('refunded_at', { withTimezone: true }),
+    // Story 9-6: refund amount in cents. For Phase 2 full refunds, equals
+    // totalCents at the time of refund. NULL until refunded. Phase 3 may
+    // support partial refunds where this diverges from totalCents.
+    refundAmountCents: integer('refund_amount_cents'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -148,17 +157,19 @@ export const bookingsTable = pgTable(
     // 'AUTHORIZED'. Existing NULL rows continue to satisfy the constraint
     // (PG CHECK allows NULL by default).
     //
-    // Story 9-4 extends to add 'CAPTURED' (Owner Confirm → captures the
-    // Payment Intent; funds settle to platform account + auto-transfer
-    // payout to connected account) and 'VOIDED' (Owner Reject → cancels
-    // the PI with cancellation_reason='requested_by_customer', releasing
-    // the auth hold). 'VOIDED' is deliberately distinct from booking-side
-    // `status='CANCELLED'` (Guest-initiated; 9-6 territory) to avoid sub-
-    // system confusion. Story 9-6 will extend again to add 'REFUNDED' via
-    // the same DROP/ADD CONSTRAINT pattern (BA Decision §1).
+    // Story 9-4 extended to add 'CAPTURED' (Owner Confirm → captures the
+    // Payment Intent) and 'VOIDED' (Owner Reject → cancels the PI with
+    // cancellation_reason='requested_by_customer'). 'VOIDED' is
+    // deliberately distinct from booking-side `status='CANCELLED'` to
+    // avoid sub-system confusion.
+    //
+    // Story 9-6 extends to add 'REFUNDED' (Guest-cancel CONFIRMED + CAPTURED
+    // booking ≥24h before booking_date → stripe.refunds.create → atomic
+    // transition to (CANCELLED, REFUNDED) + refunded_at + refund_amount_cents
+    // populated). Same DROP/ADD CONSTRAINT pattern (BA Decision §1).
     check(
       'bookings_payment_status_check',
-      sql`${t.paymentStatus} IN ('AWAITING_PAYMENT', 'AUTHORIZED', 'CAPTURED', 'VOIDED')`,
+      sql`${t.paymentStatus} IN ('AWAITING_PAYMENT', 'AUTHORIZED', 'CAPTURED', 'VOIDED', 'REFUNDED')`,
     ),
     // Document B §6.2 — THE marquee correctness constraint.
     uniqueIndex('uniq_active_booking_per_desk_per_date')

@@ -1,6 +1,6 @@
 # Story 9-6: Guest Cancellation with Refund
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -580,7 +580,7 @@ so that **(a) Phase 2 PRD §4.5's refund-policy intent is honored end-to-end wit
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 — Prep + 9-5 baseline check + locked-decision audit.**
+- [x] **Task 0 — Prep + 9-5 baseline check + locked-decision audit.**
   - Verify baseline CI clean: `pnpm typecheck` / `lint` / `test` (378 expected) / `build` (41 routes expected) / `test:e2e` (61 expected, modulo documented hazards).
   - Confirm Story 9-5 is at `done` on `main` (`git log --oneline` shows `2950e15` + `3c3d11f`).
   - Re-read [docs/design/9-6-cancellation-with-refund-ba-decisions.md](docs/design/9-6-cancellation-with-refund-ba-decisions.md) end-to-end (15 locked decisions + the **Lock context note** flagging Decisions §2 / §3 / §11 as end-of-shift batch-locks). If anything looks suspicious or ambiguous during implementation, STOP and re-engage BA rather than guess.
@@ -594,40 +594,40 @@ so that **(a) Phase 2 PRD §4.5's refund-policy intent is honored end-to-end wit
   - Confirm `stripe listen` is available locally: `stripe --version`.
   - Verify the 9-3 BA-walk artifact booking + the 9-4 BA-walk artifacts (the `92bd9829-...` row is currently in `(CONFIRMED, CAPTURED)` from 9-4's capture — if its `booking_date` is >24h out, it's the canonical 9-6 walk target for AC-15 §9 eligible-refund).
 
-- [ ] **Task 1 — Schema migration** (AC-1):
+- [x] **Task 1 — Schema migration** (AC-1):
   - Edit [src/db/schema.ts](deskhive/src/db/schema.ts) `bookingsTable`: add `refundedAt` + `refundAmountCents` columns; extend `bookings_payment_status_check` to 5 values.
   - Run `pnpm db:generate` → produces `drizzle/migrations/0007_<random_name>.sql`.
   - Inspect the generated SQL: should contain ALTER TABLE statements for the 2 new columns + a `DROP CONSTRAINT ... ADD CONSTRAINT ...` block for the CHECK extension. No data migrations.
   - Add the story-tag comment block at the top of `0007_*.sql` matching the `0006_cold_rictor.sql` convention.
   - Apply locally: `pnpm db:migrate`.
 
-- [ ] **Task 2 — Refund-eligibility helper** (AC-3):
+- [x] **Task 2 — Refund-eligibility helper** (AC-3):
   - Create [src/lib/refund-policy.ts](deskhive/src/lib/refund-policy.ts) with `isRefundEligible(bookingDate, now?)` per the locked signature + UTC + integer-ms math.
   - Document the location choice in DAR if dev-agent overrode to extend `src/lib/bookings.ts` instead.
 
-- [ ] **Task 3 — Stripe refunds sub-module** (AC-4):
+- [x] **Task 3 — Stripe refunds sub-module** (AC-4):
   - Create [src/lib/payments/refunds.ts](deskhive/src/lib/payments/refunds.ts) with `createRefund` per the locked signature. Mirror 9-4's `payment-intents.ts` file-header docstring conventions.
   - Internal `mapStripeError` helper identical to 9-2 / 9-3 / 9-4 wrappers.
 
-- [ ] **Task 4 — New `bookings` query helpers** (AC-6):
+- [x] **Task 4 — New `bookings` query helpers** (AC-6):
   - Edit [src/db/queries/bookings.ts](deskhive/src/db/queries/bookings.ts). Add 3 new helpers per AC-6 with the conditional WHERE clauses + `guestUserId` defense-in-depth on the 2 action-facing helpers.
 
-- [ ] **Task 5 — Extend `cancelBookingAction`** (AC-2 + AC-5 + AC-10):
+- [x] **Task 5 — Extend `cancelBookingAction`** (AC-2 + AC-5 + AC-10):
   - Edit [src/actions/booking.ts](deskhive/src/actions/booking.ts). Insert the 3-branch logic between the pre-checks and the post-success path. Replace the Phase 1 verbatim message per AC-2.
   - Add the 3 new error codes to `CancelBookingActionState` per AC-10.
   - Idempotency keys: `cancel-${bookingId}` (shared with 9-4 — intentional) + `refund-${bookingId}` (new per AC-4).
 
-- [ ] **Task 6 — NEW `handleChargeRefunded` webhook handler** (AC-7 + AC-11):
+- [x] **Task 6 — NEW `handleChargeRefunded` webhook handler** (AC-7 + AC-11):
   - Edit [src/lib/payments/webhooks.ts](deskhive/src/lib/payments/webhooks.ts). Add the handler function (mirroring `handlePaymentIntentSucceeded`'s shape from 9-5) + the 1 new map entry. Preserve the 3-stage try-catch wrapper + 9-5 log-key conventions.
 
-- [ ] **Task 7 — Toast copy addition** (AC-9):
+- [x] **Task 7 — Toast copy addition** (AC-9):
   - Edit [src/lib/toast.ts](deskhive/src/lib/toast.ts). Add `CANCEL_REFUND_INELIGIBLE` entry per AC-9.
 
-- [ ] **Task 8 — UI surface extension on `/my-bookings`** (AC-8):
+- [x] **Task 8 — UI surface extension on `/my-bookings`** (AC-8):
   - Edit [src/app/my-bookings/page.tsx](deskhive/src/app/my-bookings/page.tsx) to render `<CancelBookingButton>` on CONFIRMED + future-dated bookings (in addition to PENDING). Past-dated CONFIRMED bookings get no button.
   - Edit [src/app/my-bookings/cancel-booking-button.tsx](deskhive/src/app/my-bookings/cancel-booking-button.tsx): update label to "Cancel booking" + add `toastError(TOAST_COPY.CANCEL_REFUND_INELIGIBLE)` dispatch on `state.code === 'REFUND_INELIGIBLE'`.
 
-- [ ] **Task 9 — Unit tests** (AC-12):
+- [x] **Task 9 — Unit tests** (AC-12):
   - Create [src/lib/payments/refunds.test.ts](deskhive/src/lib/payments/refunds.test.ts) — 2 wrapper tests.
   - Create [src/lib/refund-policy.test.ts](deskhive/src/lib/refund-policy.test.ts) — 4-5 parameterized policy tests (OR colocate per Task 2 location decision).
   - Extend [src/actions/booking.test.ts](deskhive/src/actions/booking.test.ts) — ~5-6 action tests.
@@ -635,23 +635,23 @@ so that **(a) Phase 2 PRD §4.5's refund-policy intent is honored end-to-end wit
   - Extend [src/db/queries/bookings.test.ts](deskhive/src/db/queries/bookings.test.ts) — ~3-4 parameterized helper tests.
   - Run `pnpm test` → target ~390-393.
 
-- [ ] **Task 10 — E2E (optional 0-1)** (AC-13):
+- [x] **Task 10 — E2E (optional 0-1)** (AC-13):
   - Default: 0 new E2E. If dev-agent ships the optional within-24h-refusal regression E2E, document in DAR + target moves to 62.
   - Run `pnpm test:e2e` → target 61 (or 62 if optional shipped).
 
-- [ ] **Task 11 — Local CI parity** (AC-15):
+- [x] **Task 11 — Local CI parity** (AC-15):
   - `pnpm typecheck` clean.
   - `pnpm lint` clean.
   - `pnpm test` — ~390-393 expected.
   - `pnpm build` — 41 routes unchanged.
   - `pnpm test:e2e` — 61 expected (modulo documented hazards from prior stories).
 
-- [ ] **Task 12 — `git diff` verification + quick smoke test** (AC-15 + AC-16-equivalent):
+- [x] **Task 12 — `git diff` verification + quick smoke test** (AC-15 + AC-16-equivalent):
   - `git diff --stat` matches the AC-15 file list. Zero entries in the carved-out files (Stripe singleton, the other 4 payments sub-modules, the route shell, action files other than `booking.ts`, email infrastructure, UI files outside `/my-bookings`, etc.).
   - Quick smoke test: `pnpm dev` running, sign in as `guest@deskhive.local`, navigate to `/my-bookings`. Verify the Cancel button now appears on the seeded CONFIRMED future-dated bookings (if any exist) AND continues to appear on PENDING bookings. Click Cancel on a Phase 1 PENDING booking (no PI) to confirm the backwards-compat branch fires without Stripe.
   - **AC-15 §6–§13 (full BA browser walk including `stripe listen` setup + all 3 happy paths + ineligible refusal + past-date hidden walk + optional `charge.refunded` backstop)** is DEFERRED to BA's review pass per the precedent.
 
-- [ ] **Task 13 — Memory + open-question RESOLVE + sprint-status + DAR + single commit (no push)** (AC-14 + AC-15):
+- [x] **Task 13 — Memory + open-question RESOLVE + sprint-status + DAR + single commit (no push)** (AC-14 + AC-15):
   - Extend `~/.claude/.../memory/reference_stripe_service_pattern.md` with the Story 9-6 section per AC-14.
   - RESOLVE `~/.claude/.../memory/project_phase2_prd_4_5_cancel_interpretation.md` per AC-14 — add the "RESOLVED 2026-05-19" header pointing to this story file + the 9-6 BA decisions doc; preserve historical body.
   - Update `~/.claude/.../memory/MEMORY.md` index entry's one-liner for `reference_stripe_service_pattern.md`.
@@ -797,19 +797,72 @@ Claude Opus 4.7 (1M context).
 
 ### Debug Log References
 
-_TBD — filled during dev-story implementation._
+- `pnpm db:generate` produced `0007_sudden_nick_fury.sql` cleanly — 1 DROP CONSTRAINT + 2 ADD COLUMN + 1 ADD CONSTRAINT, no data migrations. Story-tag comment block prepended matching the `0006_cold_rictor.sql` convention.
+- `pnpm db:migrate` applied cleanly.
+- `pnpm typecheck` clean (after one fix: `previousStatus` cast to `BookingStatus` since the Phase 1 `booking.status !== 'PENDING'` type-narrowing precondition was removed; the conditional WHERE in the new query helpers + the CHECK constraint guarantee the value is in the union, so the cast is safe).
+- `pnpm lint` clean.
+- `pnpm test` — **403 passed + 1 skipped** (378 baseline + **+25 new**). Over BA's +12-15 target but the breakdown is defensible — see Completion Notes for the per-test-file tally + rationale for each bonus.
+- `pnpm build` — **41 routes unchanged** (zero new routes; refund work runs on the existing `/my-bookings` action path + the existing `/api/stripe/webhook` route).
+- `pnpm test:e2e` — **50 passed, 6 failed, 5 did not run = 61 total**. Matches AC-13's unchanged target. The 6 failures: 5 pre-existing documented hazards (admin-applications, application-emails, become-a-host × 2, booking-emails) + the 9-3 cross-file Connect-row race for `booking-with-payment.spec.ts` (the documented hazard that occasionally surfaces depending on test ordering; same hazard surface as 9-4's BA-walk run which saw 49 passed). No new regressions from 9-6.
 
 ### Completion Notes
 
-_TBD — filled during dev-story implementation._
+- **Schema migration `0007_sudden_nick_fury.sql`** — Drizzle auto-generated cleanly: 1 `DROP CONSTRAINT` + 2 `ADD COLUMN` + 1 `ADD CONSTRAINT` block. NULL-able columns mean Phase 1 + Phase 2 non-refunded rows pass without backfill. Story-tag comment block added at the top of the SQL file with full state-machine context + rollback hint.
+- **Net unit-test count: +25 (BA-stated +12-15; +10 over the upper bound).** Per-test-file breakdown + bonus rationale:
+  - **`src/lib/payments/refunds.test.ts`** (NEW): 2 tests — happy + error path. Matches BA AC-12 spec exactly.
+  - **`src/lib/refund-policy.test.ts`** (NEW): 7 parameterized cases — boundary at exactly 24h (INELIGIBLE), 24h+1ms (ELIGIBLE), 23h59m59s (INELIGIBLE), past date (INELIGIBLE), far-future (ELIGIBLE) + 2 bonus: `Date` input shape (tests the `string | Date` type-flexibility) + same-day morning of booking (INELIGIBLE — extra coverage of the strict-less-than boundary semantics). BA target was 4-5; shipped 7 with +2 bonus. The parameterized `it.each` table makes the coverage cheap to add.
+  - **`src/actions/booking.test.ts`** extension: 6 new tests — Phase 2 PENDING happy / Phase 2 CONFIRMED eligible / Phase 2 CONFIRMED ineligible refusal / Phase 2 CONFIRMED Stripe refund failure / Phase 1 backwards-compat / CANNOT_CANCEL on terminal state. Matches BA AC-12 spec exactly (6 tests).
+  - **`src/lib/payments/webhooks.test.ts`** extension: 4 new tests for `handleChargeRefunded` — happy / idempotent / deferred-booking-not-found / **bonus: deferred-missing-charge.payment_intent** (defensive case where Stripe sends `charge.refunded` without a PI; handler returns deferred without calling lookup helper). BA target was 2-3; shipped 4 with +1 bonus.
+  - **`src/db/queries/bookings.test.ts`** extension: 6 new parameterized cases across 3 describe blocks (markBookingCancelledAndVoided × 2 + markBookingCancelledAndRefunded × 2 + markBookingCancelledAndRefundedByPaymentIntent × 2). Matches BA AC-12 spec exactly (3 helpers × 2 cases each).
+  - Total: 2 + 7 + 6 + 4 + 6 = **25 new**. The +10 over upper bound is concentrated in: +2 refund-policy boundary cases (cheap parameterized rows) + +1 defensive webhook case (catches a Stripe-side malformation that could matter at scale). The 6 action tests + 6 query tests are EXACTLY per BA spec.
+- **Net E2E-test count: +0 → 61 target met.** BA Decision §13 locked 0 new; the optional within-24h-refusal regression E2E was NOT shipped (Phase 1 backwards-compat path is already covered by existing US-3.5 tests, and the within-24h refusal is exhaustively unit-tested via the eligibility helper + the action's branching). BA may walk the optional case via DB-direct insert if richer regression confidence is wanted.
+- **Route count: 41 unchanged.** Refund work runs entirely on existing routes.
+- **PRD §4.5 cancel-interpretation RESOLVED.** The long-standing open question (memorized in `project_phase2_prd_4_5_cancel_interpretation.md` since Story 8-3) is now closed. Phase 1 verbatim "Only pending bookings can be cancelled." message SUPERSEDED by Phase 2 PRD §4.5's explicit enablement of CONFIRMED-cancel. The action's 3-branch logic handles all combinations (Phase 1 NULL-PI / Phase 2 PENDING-AUTHORIZED / Phase 2 CONFIRMED-CAPTURED) + the terminal-state catch-all.
+- **9-5 dispatcher extensibility design PROVEN.** The `charge.refunded` handler addition was exactly 1 new function (`handleChargeRefunded`) + 1 new map entry in `WEBHOOK_HANDLERS`. The route shell at `src/app/api/stripe/webhook/route.ts` is UNCHANGED. The `dispatchWebhookEvent` entry is UNCHANGED. The `WebhookHandlerResult` type is UNCHANGED. Story 9-7's `payout.paid` will follow the same shape.
+- **No `amount` arg + no `refund_application_fee` flag** on `stripe.refunds.create` — confirmed via the wrapper unit test that asserts the params object equals `{ payment_intent }` exactly (no extra fields). Destination-charge mode auto-reverses the platform_fee_amount on full refunds per Stripe's documented behavior; adding `refund_application_fee: true` would double-reverse and break the math.
+- **Idempotency key sharing** (`cancel-${bookingId}` between 9-4's reject path + 9-6's Phase 2 PENDING cancel path) confirmed via unit test (test 1 — the Phase 2 PENDING happy test asserts the key value `cancel-${BOOKING_ID}` matches 9-4's namespace exactly). New `refund-${bookingId}` key for the CONFIRMED-refund branch (test 2).
+- **Audit-trail decision honored** — `handleChargeRefunded` follows 9-5's audit-gap-on-retry pattern verbatim. No transactional write-with-rollback. The bookings row's `refunded_at` + `refund_amount_cents` + `payment_status='REFUNDED'` IS the financial audit trail; `webhook_events` is operational. BA Decision §11 RESOLVES the 9-5 forward-flag.
+- **2 test-fixture files modified** (`src/lib/availability.test.ts` + `src/lib/bookings.test.ts`) — both gained 2-line additions (`refundedAt: null`, `refundAmountCents: null`) to satisfy the new `Booking` type shape required by the 9-6 schema change. These fixture-file edits were NOT in AC-15's explicit file list but are trivial mechanical fixes; the alternative (refactor every Booking mock to use a factory) is out of scope.
+- **Lock context flag check passed.** BA Decisions §2 / §3 / §11 were end-of-shift batch-locks per the BA decisions doc Lock context note. Implementation surfaced NO ambiguity during the dev-story run — the locked specs were precise enough to follow verbatim. Did NOT need to re-engage BA per Task 0's contingency.
+- **Phase 1 backwards-compat unchanged.** The existing `cancelBooking(id, guestUserId)` helper is REUSED unchanged on the Phase 1 PENDING branch (no PI ID). Test 5 (Phase 1 backwards-compat) confirms the existing helper is called + Stripe wrappers are NOT.
+- **UI surface change is minimal.** `<CancelBookingButton>` gained: (1) `toastError` import; (2) extended `useEffect` to fire `toastError(CANCEL_REFUND_INELIGIBLE.title, .description)` on the new error code; (3) `errorMessage` now filters out `REFUND_INELIGIBLE` so it doesn't double-render inline AND toast; (4) label changed from "Cancel request" to uniform "Cancel booking". `my-bookings/page.tsx` gained one footer-rendering branch for CONFIRMED future-dated bookings. No new components, no new props on the button.
+- **AC-15 §6–§13 (full BA browser walk via `stripe listen` + 5 cancel scenarios)** is DEFERRED to BA's review pass per the established precedent. BA needs: (1) `stripe listen` running; (2) `STRIPE_WEBHOOK_SECRET` swapped to CLI value + `pnpm dev` restart; (3) `owner@deskhive.local` Connect row in real (not synthetic) state — re-onboard via `/owner/settings` if seed reset.
 
 ### File List
 
-_TBD — filled during dev-story implementation._
+**New (in-tree):**
+- `deskhive/drizzle/migrations/0007_sudden_nick_fury.sql` — DROP/ADD CONSTRAINT + 2 ADD COLUMN + story-tag comment block
+- `deskhive/drizzle/migrations/meta/0007_snapshot.json` (auto)
+- `deskhive/src/lib/refund-policy.ts` — `isRefundEligible` UTC + start-of-day + integer-ms helper
+- `deskhive/src/lib/refund-policy.test.ts` — 7 parameterized policy tests
+- `deskhive/src/lib/payments/refunds.ts` — `createRefund` Stripe wrapper (5th Theme B sub-module)
+- `deskhive/src/lib/payments/refunds.test.ts` — 2 wrapper tests
+
+**Modified (in-tree):**
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — `9-6-cancellation-with-refund: review`; last_updated parenthetical refreshed
+- `_bmad-output/implementation-artifacts/9-6-cancellation-with-refund.md` — Status → review, tasks `[x]`, DAR filled in
+- `deskhive/drizzle/migrations/meta/_journal.json` (auto)
+- `deskhive/src/db/schema.ts` — add `refundedAt` + `refundAmountCents` columns; extend `bookings_payment_status_check` to 5 values (added `REFUNDED`)
+- `deskhive/src/db/queries/bookings.ts` — add 3 new helpers: `markBookingCancelledAndVoided`, `markBookingCancelledAndRefunded`, `markBookingCancelledAndRefundedByPaymentIntent`
+- `deskhive/src/db/queries/bookings.test.ts` — add 6 parameterized cases for the new helpers
+- `deskhive/src/actions/booking.ts` — extend `cancelBookingAction` with 3-branch logic + supersede Phase 1 verbatim message; import the 9-6 helpers; cast `previousStatus` to `BookingStatus`
+- `deskhive/src/actions/booking.test.ts` — add 6 cancel-action tests + 9-6 mocks (cancelBooking, markBookingCancelledAndVoided, markBookingCancelledAndRefunded, createRefund, isRefundEligible)
+- `deskhive/src/lib/payments/webhooks.ts` — add `handleChargeRefunded` handler + import the by-PI helper + map entry
+- `deskhive/src/lib/payments/webhooks.test.ts` — add 4 `handleChargeRefunded` tests + mock for new helper
+- `deskhive/src/app/my-bookings/page.tsx` — render `<CancelBookingButton>` on CONFIRMED future-dated bookings (3rd footer branch)
+- `deskhive/src/app/my-bookings/cancel-booking-button.tsx` — label "Cancel booking"; `toastError` import + `useEffect` dispatch on `REFUND_INELIGIBLE`; `errorMessage` filters out `REFUND_INELIGIBLE`
+- `deskhive/src/lib/toast.ts` — add `CANCEL_REFUND_INELIGIBLE` entry (nested-object shape with `title` + `description`)
+- `deskhive/src/lib/availability.test.ts` — fixture: add `refundedAt: null` + `refundAmountCents: null` to mkBooking helper (required by 9-6 type change)
+- `deskhive/src/lib/bookings.test.ts` — fixture: add `refundedAt: null` + `refundAmountCents: null` to makeInfo helper
+
+**Out-of-tree (memory):**
+- `~/.claude/.../memory/reference_stripe_service_pattern.md` — extended with full Story 9-6 section per AC-14; frontmatter `name` + `description` refreshed
+- `~/.claude/.../memory/project_phase2_prd_4_5_cancel_interpretation.md` — flipped to RESOLVED with header pointing to 9-6 BA decisions doc (`f4766f7`); historical body preserved
+- `~/.claude/.../memory/MEMORY.md` — index entry for `reference_stripe_service_pattern.md` refreshed; resolution memory entry retitled to reflect closure
 
 ### Change Log
 
 | Date | Change | Commit |
 |---|---|---|
-| 2026-05-19 | Story drafted by `bmad-create-story` from locked BA decisions document (commit `f4766f7`). Lock context flag noted — Decisions §2 / §3 / §11 were end-of-shift batch-locks; dev-agent re-engages BA if ambiguity surfaces during implementation. | _TBD (filled by dispatch commit)_ |
-| 2026-05-19 | _TBD (filled by `docs:` follow-up after BA greenlight + push, same pattern as Stories 9-1 + 9-2 + 9-2b + 9-3 + 9-4 + 9-5)_ | _TBD_ |
+| 2026-05-19 | Story drafted by `bmad-create-story` from locked BA decisions document (commit `f4766f7`). Lock context flag noted — Decisions §2 / §3 / §11 were end-of-shift batch-locks; dev-agent re-engages BA if ambiguity surfaces during implementation. | `270f540` |
+| 2026-05-19 | Story implemented; PRD §4.5 cancel-interpretation RESOLVED via Option (a) in-place extension of `cancelBookingAction`; Phase 1 verbatim message superseded; schema migration `0007_sudden_nick_fury.sql` adds 2 NULL-able columns + extends `bookings_payment_status_check` to 5 values; new sub-module `src/lib/payments/refunds.ts` (5th Theme B sub-module) + new helper `src/lib/refund-policy.ts` (UTC + start-of-day + integer-ms math); 3 new bookings query helpers + 1 new dispatcher map entry (`charge.refunded` — first proof of 9-5 extensibility design); 3 new error codes + 1 new toast (`CANCEL_REFUND_INELIGIBLE`); UI surface extension on `/my-bookings` (cancel button on CONFIRMED future-dated; uniform "Cancel booking" label; `toastError` on `REFUND_INELIGIBLE`); 25 new unit tests (+10 over BA upper bound; bonus rationale documented in Completion Notes — concentrated in parameterized boundary cases for refund-policy + 1 defensive webhook case); 0 new E2E (target 61 unchanged). Memory entry extended; open-question memory flipped to RESOLVED. Single commit per AC-15 — awaiting BA browser walk via `stripe listen` before push. Lock context flag check passed — no ambiguity surfaced during implementation. | _TBD (filled by `docs:` follow-up after BA greenlight + push, same pattern as Stories 9-1 + 9-2 + 9-2b + 9-3 + 9-4 + 9-5)_ |

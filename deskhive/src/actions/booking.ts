@@ -20,18 +20,42 @@ import {
   // concurrent Guest-side cancel + future 9-5 webhook backstop.
   markBookingConfirmedAndCaptured,
   markBookingRejectedAndVoided,
+  // Story 9-6: new query helpers for the 3-branch cancelBookingAction
+  // extension. The PENDING+AUTHORIZED Phase 2 path uses
+  // markBookingCancelledAndVoided; the CONFIRMED+CAPTURED Phase 2 path
+  // uses markBookingCancelledAndRefunded (atomic transition writing
+  // refunded_at + refund_amount_cents alongside status). Both have a
+  // guest_user_id clause for ownership defense-in-depth.
+  markBookingCancelledAndVoided,
+  markBookingCancelledAndRefunded,
 } from '@/db/queries/bookings';
 // Story 9-4: wrappers for stripe.paymentIntents.capture / cancel. Called
 // FIRST in confirmBookingAction / rejectBookingAction (Stripe-first-then-
 // DB ordering per BA Decision §2 + §3) for Phase 2 bookings; Phase 1
 // bookings (payment_intent_id IS NULL) skip these entirely per
 // Decision §6's backwards-compat branch.
+//
+// Story 9-6: cancelPaymentIntent is REUSED unchanged for the Phase 2
+// PENDING+AUTHORIZED Guest-cancel branch. Idempotency key
+// `cancel-${bookingId}` is INTENTIONALLY shared with 9-4's reject path
+// (BA Decision §5) — same Stripe operation; Stripe's idempotency cache
+// resolves correctly if both paths run on the same booking.
 import {
   capturePaymentIntent,
   cancelPaymentIntent,
 } from '@/lib/payments/payment-intents';
+// Story 9-6: wrapper for stripe.refunds.create. Called FIRST in the
+// Phase 2 CONFIRMED+CAPTURED branch (Stripe-first-then-DB ordering per
+// BA Decision §5 + §11). Idempotency key `refund-${bookingId}` is the
+// 9-4 per-resource pattern carry-forward.
+import { createRefund } from '@/lib/payments/refunds';
+// Story 9-6: refund-eligibility helper. UTC-only 24h cutoff per
+// FR-REFUND-2; integer-ms math (no floating-point). The action calls
+// this BEFORE the Stripe API to short-circuit refused cancellations
+// without any side effect (PRD §4.5 / FR-REFUND-3 "refuses entirely").
+import { isRefundEligible } from '@/lib/refund-policy';
 import { logger } from '@/lib/logger';
-import type { Role } from '@/db/schema';
+import type { BookingStatus, Role } from '@/db/schema';
 // Story 8-3: post-commit fire-and-forget notification calls. Email send
 // failures must NEVER roll back the booking transaction; the actions
 // call notify* with `.catch(...)` rather than `await ... try { } catch`.
@@ -57,6 +81,21 @@ export type CancelBookingActionState =
   | { status: 'error'; code: 'FORBIDDEN'; message: string }
   | { status: 'error'; code: 'NOT_FOUND'; message: string }
   | { status: 'error'; code: 'CANNOT_CANCEL'; message: string }
+  // Story 9-6: Phase 2 PRD §4.5 within-24h refusal. Surfaced inline AND
+  // (per BA Decision §9 + PRD §1.2 step 21 "error toast" mandate) via
+  // toastError(TOAST_COPY.CANCEL_REFUND_INELIGIBLE) at the button.
+  | { status: 'error'; code: 'REFUND_INELIGIBLE'; message: string }
+  // Story 9-6: Stripe-side failures on the Phase 2 CONFIRMED+CAPTURED
+  // refund path. Inline error rendering per the 9-4 carry-forward
+  // pattern (Stripe's verbatim error message is end-user-readable in
+  // test mode).
+  | { status: 'error'; code: 'STRIPE_REFUND_FAILED'; message: string }
+  // Story 9-6: Stripe-side failures on the Phase 2 PENDING+AUTHORIZED
+  // path (paymentIntents.cancel — releases auth hold). Inline error
+  // rendering. Distinct from the same-named code on
+  // RejectBookingActionState — different state types even though the
+  // code name is shared.
+  | { status: 'error'; code: 'STRIPE_CANCEL_FAILED'; message: string }
   | { status: 'error'; code: 'INTERNAL_ERROR'; message: string };
 
 const UUID_RE =
@@ -123,49 +162,174 @@ export async function cancelBookingAction(
     };
   }
 
-  if (booking.status !== 'PENDING') {
-    // Verbatim PRD message — do not paraphrase (US-3.5 AC-2).
-    return {
-      status: 'error',
-      code: 'CANNOT_CANCEL',
-      message: 'Only pending bookings can be cancelled.',
-    };
-  }
+  // Story 9-6: classify the booking into one of three cancellable shapes
+  // OR a terminal/unexpected state. The Phase 1 verbatim message
+  // ("Only pending bookings can be cancelled.") is SUPERSEDED — Phase 2
+  // PRD §4.5 explicitly enables CONFIRMED cancel (BA Decision §2 + AC-2;
+  // memory `project_phase2_prd_4_5_cancel_interpretation.md` RESOLVED).
+  const isPhase1Pending =
+    booking.status === 'PENDING' && booking.paymentIntentId === null;
+  const isPhase2PendingAuth =
+    booking.status === 'PENDING' &&
+    booking.paymentStatus === 'AUTHORIZED' &&
+    booking.paymentIntentId !== null;
+  const isPhase2ConfirmedCaptured =
+    booking.status === 'CONFIRMED' &&
+    booking.paymentStatus === 'CAPTURED' &&
+    booking.paymentIntentId !== null;
 
   // Story 8-3: capture previousStatus BEFORE the cancellation UPDATE.
   // notifyBookingCancelledByGuest's owner-side branch only fires when
   // previousStatus === 'CONFIRMED' (Decision §2 — PENDING cancellations
   // are noise). After the UPDATE, booking.status is 'CANCELLED' and the
-  // discriminator is lost.
-  // NB: Phase 1 only allows cancelling PENDING bookings (line 238 check
-  // above). The previousStatus capture is forward-looking — if Phase 2/3
-  // ever permits cancelling CONFIRMED bookings, the notify branch is
-  // ready. For now it'll always be 'PENDING' here.
-  const previousStatus = booking.status;
+  // discriminator is lost. Story 9-6 RESOLVES the deferred CONFIRMED-
+  // cancel path; this capture now matters for the CONFIRMED+CAPTURED
+  // branch (previousStatus === 'CONFIRMED' fires both notification emails).
+  // Cast: schema column is `text` (string), but the CHECK constraint
+  // enforces the BookingStatus union — safe narrow.
+  const previousStatus = booking.status as BookingStatus;
 
-  // Conditional UPDATE: race-safe against concurrent Super Admin Confirm.
-  let result: CancelBookingActionState | null = null;
-  try {
-    const updated = await cancelBooking(bookingId, String(session.user.id));
-    if (!updated) {
-      result = {
+  if (isPhase1Pending) {
+    // Phase 1 path: pure DB cancel, no Stripe involvement. Existing
+    // cancelBooking helper unchanged (Phase 1 backwards-compat).
+    let updated;
+    try {
+      updated = await cancelBooking(bookingId, String(session.user.id));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error('cancel_booking_action_db_failed', { error: msg });
+      return {
         status: 'error',
-        code: 'CANNOT_CANCEL',
-        message: 'Only pending bookings can be cancelled.',
+        code: 'INTERNAL_ERROR',
+        message: 'Something went wrong. Please try again.',
       };
     }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error('cancel_booking_action_db_failed', { error: msg });
-    result = {
+    if (!updated) {
+      return {
+        status: 'error',
+        code: 'CANNOT_CANCEL',
+        message: 'This booking has already been cancelled or rejected.',
+      };
+    }
+  } else if (isPhase2PendingAuth) {
+    // Phase 2 PENDING path: cancel Stripe PI auth first (no refund — funds
+    // were never captured), then DB UPDATE. Idempotency key INTENTIONALLY
+    // shared with 9-4's reject path (BA Decision §5) — same Stripe
+    // operation; Stripe's cache resolves correctly if both ran.
+    const cancelResult = await cancelPaymentIntent({
+      paymentIntentId: booking.paymentIntentId!,
+      idempotencyKey: `cancel-${bookingId}`,
+    });
+    if (!cancelResult.ok) {
+      logger.error('cancel_booking_action_stripe_cancel_failed', {
+        bookingId,
+        paymentIntentId: booking.paymentIntentId,
+        error: cancelResult.error,
+      });
+      return {
+        status: 'error',
+        code: 'STRIPE_CANCEL_FAILED',
+        message: cancelResult.error,
+      };
+    }
+    let updated;
+    try {
+      updated = await markBookingCancelledAndVoided(
+        bookingId,
+        String(session.user.id),
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error('cancel_booking_action_db_failed', { error: msg });
+      return {
+        status: 'error',
+        code: 'INTERNAL_ERROR',
+        message: 'Something went wrong. Please try again.',
+      };
+    }
+    if (!updated) {
+      return {
+        status: 'error',
+        code: 'CANNOT_CANCEL',
+        message: 'This booking has already been cancelled or rejected.',
+      };
+    }
+  } else if (isPhase2ConfirmedCaptured) {
+    // Phase 2 CONFIRMED path: check eligibility FIRST. No Stripe call
+    // happens if ineligible (PRD §4.5 / FR-REFUND-3 explicit "refuses
+    // entirely" lock). Application-layer logic — the toast surfaces
+    // the message at the button via state.code === 'REFUND_INELIGIBLE'.
+    if (!isRefundEligible(booking.bookingDate)) {
+      return {
+        status: 'error',
+        code: 'REFUND_INELIGIBLE',
+        message:
+          'Cancellations within 24 hours of the booking date are non-refundable.',
+      };
+    }
+    // Stripe-first-then-DB ordering (9-4 carry-forward).
+    const refundResult = await createRefund({
+      paymentIntentId: booking.paymentIntentId!,
+      idempotencyKey: `refund-${bookingId}`,
+    });
+    if (!refundResult.ok) {
+      logger.error('cancel_booking_action_stripe_refund_failed', {
+        bookingId,
+        paymentIntentId: booking.paymentIntentId,
+        error: refundResult.error,
+      });
+      return {
+        status: 'error',
+        code: 'STRIPE_REFUND_FAILED',
+        message: refundResult.error,
+      };
+    }
+    let updated;
+    try {
+      // Phase 2 full-refund-only: refund_amount_cents = booking.totalCents.
+      // Phase 3 partial refunds would pass a smaller value computed from
+      // a multi-policy helper.
+      updated = await markBookingCancelledAndRefunded(
+        bookingId,
+        String(session.user.id),
+        booking.totalCents,
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error('cancel_booking_action_db_failed', { error: msg });
+      return {
+        status: 'error',
+        code: 'INTERNAL_ERROR',
+        message: 'Something went wrong. Please try again.',
+      };
+    }
+    if (!updated) {
+      // Conditional WHERE no-op — booking moved out of (CONFIRMED, CAPTURED)
+      // between the pre-check and the UPDATE. Stripe has already refunded
+      // the funds; surface CANNOT_CANCEL. The charge.refunded webhook
+      // backstop (handleChargeRefunded) will reconcile via
+      // markBookingCancelledAndRefundedByPaymentIntent.
+      return {
+        status: 'error',
+        code: 'CANNOT_CANCEL',
+        message: 'This booking has already been cancelled or rejected.',
+      };
+    }
+  } else {
+    // Terminal state (CANCELLED / REJECTED / already-REFUNDED) OR an
+    // unexpected edge case (paymentIntentId set but payment_status not
+    // in the expected 9-3/9-4 progression — could indicate state
+    // corruption). Phase 1 verbatim message SUPERSEDED per BA Decision §2.
+    return {
       status: 'error',
-      code: 'INTERNAL_ERROR',
-      message: 'Something went wrong. Please try again.',
+      code: 'CANNOT_CANCEL',
+      message: 'This booking has already been cancelled or rejected.',
     };
   }
-  if (result) return result;
 
-  // Story 8-3: fire-and-forget post-commit notification.
+  // Story 8-3: fire-and-forget post-commit notification. previousStatus
+  // is now meaningful (CONFIRMED for Story 9-6 CONFIRMED-cancel path —
+  // both Guest + Owner emails fire) vs PENDING (Guest-only email).
   notifyBookingCancelledByGuest(bookingId, previousStatus).catch((err) => {
     logger.warn('notify_booking_cancelled_failed', { error: String(err) });
   });

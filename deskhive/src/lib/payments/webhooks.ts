@@ -87,6 +87,9 @@ import {
   markBookingConfirmedAndCapturedByPaymentIntent,
   markBookingRejectedAndVoidedByPaymentIntent,
   deleteAbandonedBookingByCheckoutSession,
+  // Story 9-6: webhook backstop for charge.refunded. Same shape as the
+  // 9-5 by-PI helpers; uses payment_intent_id as the join.
+  markBookingCancelledAndRefundedByPaymentIntent,
 } from '@/db/queries/bookings';
 
 /**
@@ -505,13 +508,127 @@ export async function handleCheckoutSessionExpired(
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// handleChargeRefunded — Story 9-6 NEW.
+// Refund-confirmation backstop for the action's Phase 2 CONFIRMED+CAPTURED
+// branch. Closes the narrow ops window where stripe.refunds.create
+// succeeds at Stripe but the subsequent DB UPDATE in cancelBookingAction
+// fails — without this handler the booking would sit in (CONFIRMED,
+// CAPTURED) with Stripe in a refunded state.
+//
+// First proof of 9-5's dispatcher extensibility design (BA Decision §7):
+// one new handler function + one new entry in WEBHOOK_HANDLERS. The
+// existing route shell, dispatch entry, and idempotency machinery are
+// untouched.
+//
+// Lookup keyed on charge.payment_intent (NOT metadata.bookingId) per
+// the 9-5 by-PI pattern (BA Decision §5 carry-forward).
+//
+// charge.refunded (NOT refund.created) per PRD §4.5 FR-REFUND-5 lock —
+// charge.refunded is the canonical "the customer was refunded" signal;
+// refund.created is the per-attempt "Stripe started a refund" signal
+// that could still fail before charge.refunded fires.
+//
+// Audit-trail accept-9-5-pattern (BA Decision §11): no transactional
+// write-with-rollback. The bookings row IS the financial audit trail
+// (refunded_at + refund_amount_cents + payment_status='REFUNDED');
+// webhook_events is operational. On retry-after-partial-failure the
+// idempotent path runs cleanly (conditional WHERE filters the row out;
+// handler returns idempotent:true; route skips webhook_events insert).
+// ─────────────────────────────────────────────────────────────────────
+export async function handleChargeRefunded(
+  event: Stripe.Event,
+): Promise<WebhookHandlerResult> {
+  const charge = event.data.object as Stripe.Charge;
+  // Webhook payloads carry payment_intent as a string ID by default. Coerce
+  // defensively in case Stripe expands the field on some future event shape.
+  const paymentIntentId =
+    typeof charge.payment_intent === 'string'
+      ? charge.payment_intent
+      : (charge.payment_intent?.id ?? null);
+  if (!paymentIntentId) {
+    logger.warn('stripe_webhook_charge_refunded_no_payment_intent', {
+      eventId: event.id,
+      chargeId: charge.id,
+    });
+    // Acknowledge so Stripe stops retrying. Decision §7 anti-pattern from
+    // 9-2 carry-forward: do NOT insert into webhook_events — no real handle.
+    return { ok: true, deferred: true };
+  }
+
+  // charge.amount_refunded is the cumulative refunded amount (cents). For
+  // Phase 2 full refunds, this equals charge.amount. Phase 3 partial
+  // refunds would need richer logic — 9-6 ships full-refund-only.
+  const refundAmountCents = charge.amount_refunded;
+
+  let booking;
+  try {
+    booking = await getBookingByPaymentIntentId(paymentIntentId);
+  } catch (err) {
+    logger.error('stripe_webhook_charge_refunded_lookup_failed', {
+      eventId: event.id,
+      paymentIntentId,
+      error: errMessage(err),
+      cause: errCause(err),
+    });
+    return { ok: false, status: 500, message: 'Booking lookup failed' };
+  }
+
+  if (!booking) {
+    // No DeskHive booking matches this PI. Could be a test event from the
+    // Stripe dashboard, an orphan PI, or a race where the booking row
+    // hasn't been written yet (extremely unlikely under the locked flow
+    // since refunds only fire on captured bookings — but defer is the
+    // conservative response). Do NOT insert into webhook_events; Stripe
+    // retries naturally.
+    logger.warn('stripe_webhook_charge_refunded_booking_not_found', {
+      eventId: event.id,
+      paymentIntentId,
+    });
+    return { ok: true, deferred: true };
+  }
+
+  let updated;
+  try {
+    updated = await markBookingCancelledAndRefundedByPaymentIntent(
+      paymentIntentId,
+      refundAmountCents,
+    );
+  } catch (err) {
+    logger.error('stripe_webhook_charge_refunded_update_failed', {
+      eventId: event.id,
+      paymentIntentId,
+      error: errMessage(err),
+      cause: errCause(err),
+    });
+    return { ok: false, status: 500, message: 'Booking update failed' };
+  }
+
+  if (!updated) {
+    // Action's DB write already won the race (booking is already in
+    // (CANCELLED, REFUNDED)). The conditional WHERE in
+    // markBookingCancelledAndRefundedByPaymentIntent (status='CONFIRMED'
+    // AND payment_status='CAPTURED') filtered the row out. Happy path —
+    // not a failure. Do NOT insert into webhook_events (9-2 / 9-3 / 9-5
+    // pattern: only insert on first real handle).
+    logger.info('stripe_webhook_charge_refunded_already_refunded', {
+      eventId: event.id,
+      paymentIntentId,
+    });
+    return { ok: true, idempotent: true };
+  }
+
+  // First real handle — the booking was stuck in (CONFIRMED, CAPTURED)
+  // and we just rescued it. Caller inserts webhook_events.
+  return { ok: true, handled: true };
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Dispatcher map + entry point.
 // ─────────────────────────────────────────────────────────────────────
 
 /**
- * Map keyed by Stripe event type. Stories 9-6 (`charge.refunded`) and
- * 9-7 (`payout.paid`) extend this map by adding one handler function +
- * one entry.
+ * Map keyed by Stripe event type. Story 9-7 (`payout.paid`) extends
+ * this map by adding one handler function + one entry.
  */
 export const WEBHOOK_HANDLERS: Readonly<
   Record<string, (event: Stripe.Event) => Promise<WebhookHandlerResult>>
@@ -521,6 +638,10 @@ export const WEBHOOK_HANDLERS: Readonly<
   'checkout.session.expired': handleCheckoutSessionExpired,
   'payment_intent.succeeded': handlePaymentIntentSucceeded,
   'payment_intent.canceled': handlePaymentIntentCanceled,
+  // Story 9-6: NEW. First proof of 9-5's dispatcher extensibility design
+  // (1 new function + 1 new map entry; no route refactor; no
+  // dispatchWebhookEvent change).
+  'charge.refunded': handleChargeRefunded,
 };
 
 /**
