@@ -210,6 +210,76 @@ export async function markBookingAuthorized(args: {
   return row;
 }
 
+/**
+ * Story 9-4: mark a PENDING + AUTHORIZED booking as CONFIRMED + CAPTURED
+ * after `stripe.paymentIntents.capture` succeeds. Called by
+ * `confirmBookingAction` AFTER the Stripe call returns ok (Stripe-first-
+ * then-DB ordering per BA Decision §2).
+ *
+ * The conditional WHERE restricts to rows currently in (PENDING,
+ * AUTHORIZED) — same race-safety net as `markBookingAuthorized`. A
+ * concurrent Guest cancel (Phase 1's cancelBookingAction; will be
+ * extended in 9-6), a future Story 9-5 webhook backstop racing the
+ * action's DB write, or a stale-retry would leave the row outside
+ * that window, and `.returning()` is empty. Caller treats the empty
+ * return as the Phase 1 `CANNOT_CONFIRM` error code (carry-forward).
+ *
+ * NB: Stripe has already captured the funds when we get here (the
+ * action calls Stripe FIRST). If this UPDATE no-ops because of the
+ * race, the booking is in an inconsistent state — Stripe has funds,
+ * DB still says AUTHORIZED. Story 9-5's webhook backstop
+ * (`payment_intent.succeeded`) will reconcile via the same conditional
+ * UPDATE. Until 9-5 lands, the rare-but-real ops risk is acknowledged
+ * per BA Decision §8.
+ */
+export async function markBookingConfirmedAndCaptured(
+  id: string,
+): Promise<Booking | undefined> {
+  const [row] = await db
+    .update(bookingsTable)
+    .set({
+      status: 'CONFIRMED',
+      paymentStatus: 'CAPTURED',
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(bookingsTable.id, id),
+        eq(bookingsTable.status, 'PENDING'),
+        eq(bookingsTable.paymentStatus, 'AUTHORIZED'),
+      ),
+    )
+    .returning();
+  return row;
+}
+
+/**
+ * Story 9-4: mark a PENDING + AUTHORIZED booking as REJECTED + VOIDED
+ * after `stripe.paymentIntents.cancel` succeeds. Mirror shape of
+ * `markBookingConfirmedAndCaptured`. Conditional WHERE provides the
+ * same race-safety net.
+ */
+export async function markBookingRejectedAndVoided(
+  id: string,
+): Promise<Booking | undefined> {
+  const [row] = await db
+    .update(bookingsTable)
+    .set({
+      status: 'REJECTED',
+      paymentStatus: 'VOIDED',
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(bookingsTable.id, id),
+        eq(bookingsTable.status, 'PENDING'),
+        eq(bookingsTable.paymentStatus, 'AUTHORIZED'),
+      ),
+    )
+    .returning();
+  return row;
+}
+
 // Story 8-3: dispatch-info join for booking notification emails. Returns
 // booking + space + desk + guest (inner-join, FK NOT NULL) + owner (left-
 // join via space.owner_id, nullable). The owner field is null when the

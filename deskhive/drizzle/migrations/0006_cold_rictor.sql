@@ -1,0 +1,46 @@
+-- Story 9-4: extend `bookings.payment_status` CHECK constraint to four
+-- values (Phase 2 Epic 9). Adds the two terminal Owner-side states per
+-- BA Decision §1:
+--   • AWAITING_PAYMENT — Phase 2 pre-claim state from Story 9-3; row
+--                        exists before Stripe Checkout redirect.
+--   • AUTHORIZED       — Phase 2 post-Stripe-Checkout state from 9-3;
+--                        Payment Intent in `requires_capture` on Stripe.
+--   • CAPTURED         — NEW. Owner clicked Confirm; 9-4's
+--                        `confirmBookingAction` called
+--                        `stripe.paymentIntents.capture(...)` and the
+--                        funds settled to platform account + auto-
+--                        transferred (minus 15% application_fee_amount)
+--                        to the connected account.
+--   • VOIDED           — NEW. Owner clicked Reject; 9-4's
+--                        `rejectBookingAction` called
+--                        `stripe.paymentIntents.cancel(...,
+--                        { cancellation_reason: 'requested_by_customer' })`
+--                        and the auth hold was released. Deliberately
+--                        distinct from booking-side `status='CANCELLED'`
+--                        (Guest-initiated; 9-6 territory) to avoid sub-
+--                        system confusion.
+--
+-- No data migration: Phase 1 NULL rows continue to satisfy the
+-- constraint (PG CHECK allows NULL by default); 9-3's existing
+-- AWAITING_PAYMENT + AUTHORIZED rows continue to satisfy.
+--
+-- State-machine transitions unlocked by this migration:
+--   • AUTHORIZED → CAPTURED  (9-4 confirmBookingAction)
+--   • AUTHORIZED → VOIDED    (9-4 rejectBookingAction)
+--
+-- Story 9-6 will extend again to add 'REFUNDED' via the same DROP/ADD
+-- CONSTRAINT pattern.
+--
+-- ── Rollback (reversibility per established convention) ──────────
+-- ALTER TABLE "bookings" DROP CONSTRAINT "bookings_payment_status_check";
+-- ALTER TABLE "bookings" ADD CONSTRAINT "bookings_payment_status_check"
+--   CHECK ("bookings"."payment_status" IN ('AWAITING_PAYMENT', 'AUTHORIZED'));
+--
+-- Safe IFF no rows are currently in CAPTURED or VOIDED state (would
+-- violate the restored constraint). Pre-rollback: UPDATE bookings SET
+-- payment_status = NULL WHERE payment_status IN ('CAPTURED', 'VOIDED'); --
+-- or DELETE WHERE payment_status IN ('CAPTURED', 'VOIDED') depending on
+-- intended outcome.
+-- ──────────────────────────────────────────────────────────────────
+ALTER TABLE "bookings" DROP CONSTRAINT "bookings_payment_status_check";--> statement-breakpoint
+ALTER TABLE "bookings" ADD CONSTRAINT "bookings_payment_status_check" CHECK ("bookings"."payment_status" IN ('AWAITING_PAYMENT', 'AUTHORIZED', 'CAPTURED', 'VOIDED'));

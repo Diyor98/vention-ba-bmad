@@ -144,15 +144,21 @@ export const bookingsTable = pgTable(
       sql`${t.status} IN ('PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED')`,
     ),
     // Story 9-3: payment_status CHECK constraint. Phase 1 declared the
-    // column nullable with no CHECK; 9-3 introduces 'AWAITING_PAYMENT' +
+    // column nullable with no CHECK; 9-3 introduced 'AWAITING_PAYMENT' +
     // 'AUTHORIZED'. Existing NULL rows continue to satisfy the constraint
-    // (PG CHECK allows NULL by default). Stories 9-4 + 9-6 extend via
-    // DROP/ADD CONSTRAINT — same pattern 9-2b used for spaces.status:
-    //   9-4 → adds 'CAPTURED'
-    //   9-6 → adds 'REFUNDED'
+    // (PG CHECK allows NULL by default).
+    //
+    // Story 9-4 extends to add 'CAPTURED' (Owner Confirm → captures the
+    // Payment Intent; funds settle to platform account + auto-transfer
+    // payout to connected account) and 'VOIDED' (Owner Reject → cancels
+    // the PI with cancellation_reason='requested_by_customer', releasing
+    // the auth hold). 'VOIDED' is deliberately distinct from booking-side
+    // `status='CANCELLED'` (Guest-initiated; 9-6 territory) to avoid sub-
+    // system confusion. Story 9-6 will extend again to add 'REFUNDED' via
+    // the same DROP/ADD CONSTRAINT pattern (BA Decision §1).
     check(
       'bookings_payment_status_check',
-      sql`${t.paymentStatus} IN ('AWAITING_PAYMENT', 'AUTHORIZED')`,
+      sql`${t.paymentStatus} IN ('AWAITING_PAYMENT', 'AUTHORIZED', 'CAPTURED', 'VOIDED')`,
     ),
     // Document B §6.2 — THE marquee correctness constraint.
     uniqueIndex('uniq_active_booking_per_desk_per_date')

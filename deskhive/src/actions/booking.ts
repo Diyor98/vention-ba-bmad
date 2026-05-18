@@ -14,7 +14,22 @@ import {
   cancelBooking,
   confirmBooking,
   rejectBooking,
+  // Story 9-4: new query helpers for the Phase 2 Stripe-first-then-DB
+  // ordering. The conditional WHERE on (status='PENDING',
+  // payment_status='AUTHORIZED') is the race-safety net against
+  // concurrent Guest-side cancel + future 9-5 webhook backstop.
+  markBookingConfirmedAndCaptured,
+  markBookingRejectedAndVoided,
 } from '@/db/queries/bookings';
+// Story 9-4: wrappers for stripe.paymentIntents.capture / cancel. Called
+// FIRST in confirmBookingAction / rejectBookingAction (Stripe-first-then-
+// DB ordering per BA Decision §2 + §3) for Phase 2 bookings; Phase 1
+// bookings (payment_intent_id IS NULL) skip these entirely per
+// Decision §6's backwards-compat branch.
+import {
+  capturePaymentIntent,
+  cancelPaymentIntent,
+} from '@/lib/payments/payment-intents';
 import { logger } from '@/lib/logger';
 import type { Role } from '@/db/schema';
 // Story 8-3: post-commit fire-and-forget notification calls. Email send
@@ -166,6 +181,12 @@ export type ConfirmBookingActionState =
   | { status: 'error'; code: 'FORBIDDEN'; message: string }
   | { status: 'error'; code: 'NOT_FOUND'; message: string }
   | { status: 'error'; code: 'CANNOT_CONFIRM'; message: string }
+  // Story 9-4: surfaces Stripe's verbatim error message (end-user-readable
+  // in test mode) inline next to the button via the existing
+  // <ConfirmBookingButton> `state.message` render path. No new toast
+  // strings — Phase 1 / Story 5-2 inline-error pattern preserved per
+  // BA Decision §9 + §11.
+  | { status: 'error'; code: 'STRIPE_CAPTURE_FAILED'; message: string }
   | { status: 'error'; code: 'INTERNAL_ERROR'; message: string };
 
 export async function confirmBookingAction(
@@ -238,26 +259,110 @@ export async function confirmBookingAction(
     };
   }
 
-  // Conditional UPDATE: race-safe against concurrent Guest cancel.
+  // Story 9-4: branch on Phase 1 vs Phase 2 booking (BA Decision §6).
+  // Phase 2 bookings have `payment_intent_id` populated AND
+  // `payment_status='AUTHORIZED'` (Story 9-3 invariant). Phase 1
+  // bookings have `payment_intent_id IS NULL` — these come from Phase
+  // 1 seeded data + the still-active /api/bookings REST endpoint.
+  const isPaymentBooking =
+    booking.paymentIntentId !== null &&
+    booking.paymentStatus === 'AUTHORIZED';
+
   let result: ConfirmBookingActionState | null = null;
-  try {
-    const updated = await confirmBooking(bookingId);
-    if (!updated) {
-      result = {
+
+  if (isPaymentBooking) {
+    // ─── Phase 2 path: Stripe first, then DB (BA Decision §2) ────
+    // booking.paymentIntentId is guaranteed non-null by the isPaymentBooking
+    // check above; the `!` narrows for TS.
+    const captureResult = await capturePaymentIntent({
+      paymentIntentId: booking.paymentIntentId!,
+      // BA Decision §7: per-booking-id key — retries hit Stripe's
+      // 24h idempotency cache and return the same `succeeded` PI.
+      idempotencyKey: `capture-${bookingId}`,
+    });
+    if (!captureResult.ok) {
+      logger.error('confirm_booking_action_capture_failed', {
+        bookingId,
+        paymentIntentId: booking.paymentIntentId,
+        error: captureResult.error,
+      });
+      return {
         status: 'error',
-        code: 'CANNOT_CONFIRM',
-        message: 'Only pending bookings can be confirmed.',
+        code: 'STRIPE_CAPTURE_FAILED',
+        message: captureResult.error,
       };
     }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error('confirm_booking_action_db_failed', { error: msg });
+    // Stripe captured successfully — now do the conditional DB UPDATE.
+    // The conditional WHERE on (status='PENDING', payment_status='AUTHORIZED')
+    // in markBookingConfirmedAndCaptured catches the race window where
+    // a concurrent Guest cancel OR a future 9-5 webhook backstop wrote
+    // first. If that fires, the booking is in an inconsistent state
+    // (Stripe captured, DB still AUTHORIZED) — Story 9-5's webhook
+    // backstop reconciles. Surface CANNOT_CONFIRM for the Owner.
+    try {
+      const updated = await markBookingConfirmedAndCaptured(bookingId);
+      if (!updated) {
+        result = {
+          status: 'error',
+          code: 'CANNOT_CONFIRM',
+          message: 'Only pending bookings can be confirmed.',
+        };
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error('confirm_booking_action_db_failed', {
+        error: msg,
+        paymentIntentId: booking.paymentIntentId,
+        bookingId,
+      });
+      result = {
+        status: 'error',
+        code: 'INTERNAL_ERROR',
+        message: 'Something went wrong. Please try again.',
+      };
+    }
+  } else if (booking.paymentIntentId === null) {
+    // ─── Phase 1 path: no Stripe involvement (BA Decision §6) ───
+    // Preserves admin-side workflow continuity for seeded rows + any
+    // bookings created via the still-active /api/bookings REST route.
+    // Uses the existing confirmBooking helper unchanged.
+    try {
+      const updated = await confirmBooking(bookingId);
+      if (!updated) {
+        result = {
+          status: 'error',
+          code: 'CANNOT_CONFIRM',
+          message: 'Only pending bookings can be confirmed.',
+        };
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error('confirm_booking_action_db_failed', { error: msg });
+      result = {
+        status: 'error',
+        code: 'INTERNAL_ERROR',
+        message: 'Something went wrong. Please try again.',
+      };
+    }
+  } else {
+    // ─── Edge case: PI set but payment_status not AUTHORIZED ────
+    // Shouldn't happen under normal flow (9-3's pre-claim sets
+    // AWAITING_PAYMENT; return-URL/webhook sets AUTHORIZED; 9-4
+    // transitions to CAPTURED/VOIDED). Decision §6 surfaces
+    // INTERNAL_ERROR for ops cleanup — automatic recovery would
+    // invite Stripe API errors on already-mutated PIs.
+    logger.error('confirm_booking_action_unexpected_payment_state', {
+      bookingId,
+      paymentIntentId: booking.paymentIntentId,
+      paymentStatus: booking.paymentStatus,
+    });
     result = {
       status: 'error',
       code: 'INTERNAL_ERROR',
       message: 'Something went wrong. Please try again.',
     };
   }
+
   if (result) return result;
 
   // Story 8-3: fire-and-forget post-commit notification. actorUserId
@@ -282,6 +387,9 @@ export type RejectBookingActionState =
   | { status: 'error'; code: 'FORBIDDEN'; message: string }
   | { status: 'error'; code: 'NOT_FOUND'; message: string }
   | { status: 'error'; code: 'CANNOT_REJECT'; message: string }
+  // Story 9-4: mirror of STRIPE_CAPTURE_FAILED. Surfaces inline via the
+  // existing <RejectBookingButton> `state.message` render path.
+  | { status: 'error'; code: 'STRIPE_CANCEL_FAILED'; message: string }
   | { status: 'error'; code: 'INTERNAL_ERROR'; message: string };
 
 export async function rejectBookingAction(
@@ -348,26 +456,91 @@ export async function rejectBookingAction(
     };
   }
 
-  // Conditional UPDATE: race-safe against concurrent Guest cancel or Admin confirm.
+  // Story 9-4: mirror of confirmBookingAction's branching logic.
+  // Phase 2 bookings: cancel Payment Intent first, then DB UPDATE.
+  // Phase 1 bookings (paymentIntentId IS NULL): existing rejectBooking
+  // helper unchanged. See confirmBookingAction comments for full
+  // rationale + Decision §3 + §6 references.
+  const isPaymentBooking =
+    booking.paymentIntentId !== null &&
+    booking.paymentStatus === 'AUTHORIZED';
+
   let result: RejectBookingActionState | null = null;
-  try {
-    const updated = await rejectBooking(bookingId);
-    if (!updated) {
-      result = {
+
+  if (isPaymentBooking) {
+    // ─── Phase 2 path: Stripe cancel first, then DB ──────────────
+    const cancelResult = await cancelPaymentIntent({
+      paymentIntentId: booking.paymentIntentId!,
+      idempotencyKey: `cancel-${bookingId}`,
+    });
+    if (!cancelResult.ok) {
+      logger.error('reject_booking_action_cancel_failed', {
+        bookingId,
+        paymentIntentId: booking.paymentIntentId,
+        error: cancelResult.error,
+      });
+      return {
         status: 'error',
-        code: 'CANNOT_REJECT',
-        message: 'Only pending bookings can be rejected.',
+        code: 'STRIPE_CANCEL_FAILED',
+        message: cancelResult.error,
       };
     }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error('reject_booking_action_db_failed', { error: msg });
+    try {
+      const updated = await markBookingRejectedAndVoided(bookingId);
+      if (!updated) {
+        result = {
+          status: 'error',
+          code: 'CANNOT_REJECT',
+          message: 'Only pending bookings can be rejected.',
+        };
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error('reject_booking_action_db_failed', {
+        error: msg,
+        paymentIntentId: booking.paymentIntentId,
+        bookingId,
+      });
+      result = {
+        status: 'error',
+        code: 'INTERNAL_ERROR',
+        message: 'Something went wrong. Please try again.',
+      };
+    }
+  } else if (booking.paymentIntentId === null) {
+    // ─── Phase 1 path: no Stripe involvement ─────────────────────
+    try {
+      const updated = await rejectBooking(bookingId);
+      if (!updated) {
+        result = {
+          status: 'error',
+          code: 'CANNOT_REJECT',
+          message: 'Only pending bookings can be rejected.',
+        };
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error('reject_booking_action_db_failed', { error: msg });
+      result = {
+        status: 'error',
+        code: 'INTERNAL_ERROR',
+        message: 'Something went wrong. Please try again.',
+      };
+    }
+  } else {
+    // ─── Edge case: PI set but payment_status not AUTHORIZED ────
+    logger.error('reject_booking_action_unexpected_payment_state', {
+      bookingId,
+      paymentIntentId: booking.paymentIntentId,
+      paymentStatus: booking.paymentStatus,
+    });
     result = {
       status: 'error',
       code: 'INTERNAL_ERROR',
       message: 'Something went wrong. Please try again.',
     };
   }
+
   if (result) return result;
 
   // Story 8-3: fire-and-forget post-commit notification. Same actor-
