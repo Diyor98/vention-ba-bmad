@@ -6,12 +6,10 @@
 **Type:** Schema migration + Server Action + owner-side UI
 **Author:** Ikhtiyor Ziyayev, Business Analyst (strawman drafted by dev-agent — review/edit/lock)
 **Date drafted:** 2026-05-15
-**Status:** STRAWMAN — NOT LOCKED. BA review pending.
+**Status:** LOCKED 2026-05-18. Ready for dispatch.
 **Source:** Phase 2 PRD §4.6 FR-OWNER-3 + carved out of the 9-2 strawman during BA scope review on 2026-05-15
 
 **Companion / dependency:** **Story 9-2 — Stripe Connect Express Onboarding** (separate decisions doc at [docs/design/9-2-stripe-connect-onboarding-ba-decisions.md](docs/design/9-2-stripe-connect-onboarding-ba-decisions.md)). **9-2b CANNOT dispatch until 9-2 has shipped** — this story depends on 9-2's `stripe_connect_accounts` table existing, on the seeded `owner@deskhive.local` having a synthetic Connect row, and on Connect-state booleans being populated.
-
-> **⚠️ STRAWMAN.** Every decision below is the dev-agent's recommendation with rationale. BA reviews each, edits where she disagrees, and removes the STRAWMAN banner before dispatching `*create-story 9-2b with path docs/design/9-2b-publish-gating-ba-decisions.md` (AFTER 9-2 ships).
 
 ---
 
@@ -130,7 +128,7 @@ async function publishSpaceAction(input: { spaceId: string }): Promise<
   | { ok: true }
   | {
       ok: false;
-      error: 'NOT_FOUND' | 'NOT_OWNER' | 'STRIPE_NOT_ACTIVE' | 'ALREADY_PUBLISHED';
+      error: 'NOT_FOUND' | 'STRIPE_NOT_ACTIVE' | 'ALREADY_PUBLISHED';
     }
 >;
 ```
@@ -163,25 +161,27 @@ async function publishSpaceAction(input: { spaceId: string }): Promise<
 - **(B) Per-detail Publish button in `/owner/spaces/[id]`** — owners click into a draft to see its details, click Publish there.
 - **(C) Both.**
 
-**Locked:** Option (C). Both surfaces show the Publish button.
+**Locked:** Option (B). Detail page only. List view shows the DRAFT badge but no Publish button per row.
 
 **Why:**
-- List view is the natural "publish-this-draft" affordance for owners who know which space they want to publish.
-- Detail view is the natural "publish-this-after-editing-it" affordance for owners mid-edit.
-- The two buttons share the same Server Action; UI cost is two button placements.
+- List-row Publish is a footgun. Owner-side lists may grow to ~dozens of spaces; a per-row Publish button is one mis-click away from publishing the wrong space, with no preview opportunity. Publish is irreversible in this story's scope (no `unpublishSpaceAction` ships in 9-2b — Decision §2 anti-pattern). The cost of a mistaken publish is asymmetric with the cost of one extra click into the detail page.
+- Detail page acts as preview-before-publish. Owners click into the draft, see the full space content as the public listing will render it (image, name, address, description, desks + pricing), and then choose to publish. This matches the cognitive flow of "review what's about to go live, then confirm."
+- Single surface = single source of truth for disabled-state + gating logic evolution. When Story 9-3+ adds further publish-eligibility checks (e.g., "must have at least one active desk"), they live in one place. Adding a second surface now would force every future gating refinement to ship twice.
 
 **Locked button behavior:**
+- Lives on `/owner/spaces/[id]` only.
 - Visible ONLY when `space.status === 'DRAFT'`.
 - Disabled state when the owner's Connect is incomplete — tooltip: "Complete Stripe onboarding to publish this space." Link to `/owner/settings`.
-- Clicking submits the form posting to `publishSpaceAction`. On success: toast "Space published" + the row's badge transitions from DRAFT to PUBLISHED + the Publish button disappears. On `STRIPE_NOT_ACTIVE` error: toast "Complete Stripe onboarding before publishing" + link to `/owner/settings`.
+- Clicking submits the form posting to `publishSpaceAction`. On success: toast "Space published" + the detail page re-renders with the DRAFT badge gone and the Publish button gone. On `STRIPE_NOT_ACTIVE` error: toast "Complete Stripe onboarding before publishing" + link to `/owner/settings`.
 
 **DRAFT badge:**
-- Both list + detail surfaces show a `DRAFT` chip/badge next to the space name when status is DRAFT.
+- Both list + detail surfaces show a `DRAFT` chip/badge next to the space name when status is DRAFT. (List shows the badge as a status indicator; only detail surfaces the action.)
 - Color/style matches existing `SUSPENDED` badge convention (Story 7-5 likely established this; verify in `src/components/`).
 
 **Anti-pattern forbidden:**
+- Do NOT add a per-row Publish button in `/owner/spaces`. List view is read-only for publish state; only the badge shows there.
 - Do NOT show the Publish button on PUBLISHED or SUSPENDED spaces.
-- Do NOT hide draft spaces from the owner's own listing — they need to see + manage them.
+- Do NOT hide draft spaces from the owner's own listing — they need to see + manage them (the list view's clickthrough is how owners reach the detail page where Publish lives).
 - Do NOT auto-disable the button purely client-side based on a Connect-state prop — server-side validation in `publishSpaceAction` is authoritative; the client-side disable is a UX nicety, not security.
 
 ---
@@ -440,20 +440,4 @@ After 9-2b ships:
 
 ---
 
-## STRAWMAN review checklist (for BA — delete before lock)
-
-- [ ] Decision §1 — `DRAFT` enum addition (vs. `published_at` timestamp vs. deferring publish-gating)?
-- [ ] Decision §3 — Publish button on BOTH list + detail (vs. one or the other)?
-- [ ] Decision §4 — keep DB default `'PUBLISHED'` + owner-side flow passes `'DRAFT'` explicitly (vs. flipping the DB default)?
-- [ ] Decision §5 — `owner-no-connect@deskhive.local` as bounded seed exception (vs. programmatic delete-restore)?
-- [ ] Decision §6 — does the existing public-listing query already filter `status = 'PUBLISHED'`? Dev-agent will verify during dev-story; BA may want to pre-check.
-- [ ] Decision §9 — 4 unit tests + 2 E2E feels right for this scope? Could trim if BA wants leaner.
-- [ ] Any decisions to remove entirely?
-- [ ] Any decisions to add that I missed?
-- [ ] Confirm: 9-2b does not modify ANY file that 9-2 modifies (clean boundary)?
-
-When all checks are resolved + edits made, delete this section, delete the "STRAWMAN — NOT LOCKED" banner at the top, and dispatch `*create-story 9-2b with path docs/design/9-2b-publish-gating-ba-decisions.md` — but ONLY AFTER Story 9-2 has shipped and is at `done` on `main`.
-
----
-
-**End of strawman BA decisions document.**
+**End of BA decisions document.**
