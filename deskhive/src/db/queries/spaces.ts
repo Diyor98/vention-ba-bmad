@@ -84,9 +84,18 @@ export async function getPublishedSpaceById(
 // createSpaceAction) pass their own id; SUPER_ADMIN callers omit it,
 // preserving the Phase 1 owner_id = NULL behavior. The column itself
 // remains nullable per the Story 7-1 schema (architecture.md §7.4).
+//
+// Story 9-2b: optional `status` parameter. SPACE_OWNER callers pass
+// `'DRAFT'` (owner-side spaces start private per Phase 2 PRD §4.6
+// FR-OWNER-3); SUPER_ADMIN callers omit it (defaults to `'PUBLISHED'`
+// preserving Phase 1 admin auto-publish behavior). BA Decision §4 anti-
+// pattern: do NOT branch on caller role inside this helper — the
+// branching lives in createSpaceAction. This parameter just makes the
+// helper status-aware so each action layer can pass its own intent.
 export async function createSpace(
   input: CreateSpaceInput,
   ownerId?: string,
+  status: 'PUBLISHED' | 'DRAFT' = 'PUBLISHED',
 ): Promise<Space> {
   const [row] = await db
     .insert(spacesTable)
@@ -97,8 +106,7 @@ export async function createSpace(
       description: input.description,
       primaryImageUrl: input.primaryImageUrl,
       ownerId: ownerId ?? null,
-      // status defaults to 'PUBLISHED' at the DB level; explicit for clarity.
-      status: 'PUBLISHED',
+      status,
     })
     .returning();
   return row;

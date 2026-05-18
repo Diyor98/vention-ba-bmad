@@ -61,7 +61,16 @@ export const spacesTable = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [check('spaces_status_check', sql`${t.status} IN ('PUBLISHED', 'SUSPENDED')`)],
+  (t) => [
+    // Story 9-2b: extended to include 'DRAFT' so owner-created spaces
+    // can start in a private state and only become publicly bookable
+    // after the owner clicks Publish on the detail page (with Connect-
+    // onboarding gating enforced by `publishSpaceAction`). Phase 1
+    // PUBLISHED + admin-side SUSPENDED behaviors unchanged. DB-level
+    // column default stays 'PUBLISHED' — owner-side createSpaceAction
+    // passes 'DRAFT' explicitly per BA Decision §4.
+    check('spaces_status_check', sql`${t.status} IN ('DRAFT', 'PUBLISHED', 'SUSPENDED')`),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────────

@@ -1,13 +1,20 @@
 'use server';
 
+import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { requireSession, AuthError } from '@/lib/auth/guards';
+import { auth } from '@/lib/auth/config';
+import { effectiveMode } from '@/lib/mode';
 import { createSpaceSchema } from '@/lib/validation/space';
 import {
   createSpace,
   updateSpace,
   getSpaceById,
 } from '@/db/queries/spaces';
+import { getConnectAccountByUserId } from '@/db/queries/stripe-connect';
+import { db } from '@/db/client';
+import { spacesTable } from '@/db/schema';
 import { logger } from '@/lib/logger';
 import type { Role } from '@/db/schema';
 
@@ -72,9 +79,14 @@ export async function createSpaceAction(
 
   let created;
   try {
+    // Story 9-2b: owner-side creates land in DRAFT (private until the
+    // owner clicks Publish on the detail page with active Connect). Admin
+    // side keeps Phase 1 auto-publish behavior. The status branch lives
+    // here — NOT inside `createSpace` — per BA Decision §4 anti-pattern.
     created = await createSpace(
       parsed.data,
       callerRole === 'SPACE_OWNER' ? callerId : undefined,
+      callerRole === 'SPACE_OWNER' ? 'DRAFT' : 'PUBLISHED',
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -189,4 +201,85 @@ export async function editSpaceAction(
   revalidatePath('/');
   revalidatePath(`/spaces/${id}`);
   return { status: 'success' };
+}
+
+// Story 9-2b: publish a DRAFT space. Gated on the caller owning the row
+// AND their `stripe_connect_accounts` row showing both `chargesEnabled`
+// and `payoutsEnabled`. The Connect check is a pure DB read — the cached
+// state is kept in sync by Story 9-2's `account.updated` webhook handler
+// and `refreshConnectStatusAction`. NO Stripe SDK calls from here.
+//
+// Error union dropped NOT_OWNER per BA Decision §2 — cross-tenant
+// mismatches collapse into NOT_FOUND (Story 7-5 leak-prevention). The
+// signature shape (plain object return, not the useActionState
+// state-machine shape) matches the locked spec from the decisions doc;
+// the caller is a Client Component button, not a useActionState form.
+export type PublishSpaceResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error: 'NOT_FOUND' | 'STRIPE_NOT_ACTIVE' | 'ALREADY_PUBLISHED';
+    };
+
+export async function publishSpaceAction(input: {
+  spaceId: string;
+}): Promise<PublishSpaceResult> {
+  // Step 1: session + role + host-mode. Any failure collapses into
+  // NOT_FOUND (Decision §2's broader leak-prevention philosophy — an
+  // unauthorized caller probing for a real spaceId gets the same
+  // response shape as a genuinely-missing row).
+  let userId: string;
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) return { ok: false, error: 'NOT_FOUND' };
+    const role = (session.user as { role?: string }).role;
+    if (role !== 'SPACE_OWNER') return { ok: false, error: 'NOT_FOUND' };
+    const mode = await effectiveMode(session);
+    if (mode !== 'host') return { ok: false, error: 'NOT_FOUND' };
+    userId = String(session.user.id);
+  } catch (err) {
+    logger.error('publish_space_action_auth_failed', { error: String(err) });
+    return { ok: false, error: 'NOT_FOUND' };
+  }
+
+  // Steps 2 + 3: space exists AND caller owns it.
+  const space = await getSpaceById(input.spaceId);
+  if (!space) return { ok: false, error: 'NOT_FOUND' };
+  if (space.ownerId !== userId) return { ok: false, error: 'NOT_FOUND' };
+
+  // Steps 4 + 5: current status branches.
+  if (space.status === 'PUBLISHED') {
+    return { ok: false, error: 'ALREADY_PUBLISHED' };
+  }
+  if (space.status === 'SUSPENDED') {
+    return { ok: false, error: 'NOT_FOUND' };
+  }
+
+  // Step 6: Connect-active check (pure DB read).
+  const connectRow = await getConnectAccountByUserId(userId);
+  if (
+    !connectRow ||
+    connectRow.chargesEnabled !== true ||
+    connectRow.payoutsEnabled !== true
+  ) {
+    return { ok: false, error: 'STRIPE_NOT_ACTIVE' };
+  }
+
+  // Step 7: flip to PUBLISHED. Single-table single-row update — PG
+  // row-level isolation is sufficient; no transaction needed.
+  try {
+    await db
+      .update(spacesTable)
+      .set({ status: 'PUBLISHED', updatedAt: new Date() })
+      .where(eq(spacesTable.id, input.spaceId));
+  } catch (err) {
+    logger.error('publish_space_action_db_failed', { error: String(err) });
+    return { ok: false, error: 'NOT_FOUND' };
+  }
+
+  revalidatePath('/owner/spaces');
+  revalidatePath(`/owner/spaces/${input.spaceId}`);
+  revalidatePath('/');
+  revalidatePath(`/spaces/${input.spaceId}`);
+  return { ok: true };
 }

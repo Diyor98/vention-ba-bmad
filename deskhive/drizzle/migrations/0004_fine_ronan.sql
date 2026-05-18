@@ -1,0 +1,28 @@
+-- Story 9-2b: extend `spaces.status` check constraint to include 'DRAFT'
+-- (Phase 2 Epic 9). Adds a third allowed state per Phase 2 PRD §4.6
+-- FR-OWNER-3 + BA Decision §1:
+--   • DRAFT      — owner-created spaces start here; private (excluded
+--                  from `listPublishedSpaces` / `getPublishedSpaceById`)
+--                  until the owner clicks Publish via `publishSpaceAction`
+--                  on the detail page with active Stripe Connect state.
+--   • PUBLISHED  — Phase 1 default; admin-created spaces continue to
+--                  rely on this via the unchanged DB-level column default.
+--   • SUSPENDED  — Phase 1 admin-only state; behavior unchanged.
+--
+-- No data migration: existing rows stay in their current state. DB-level
+-- column default stays 'PUBLISHED'. Owner-side createSpaceAction is
+-- updated to pass 'DRAFT' explicitly (BA Decision §4 — application-level
+-- default, not DB-level).
+--
+-- ── Rollback (reversibility per established convention) ──────────
+-- ALTER TABLE "spaces" DROP CONSTRAINT "spaces_status_check";
+-- ALTER TABLE "spaces" ADD CONSTRAINT "spaces_status_check"
+--   CHECK ("spaces"."status" IN ('PUBLISHED', 'SUSPENDED'));
+--
+-- Safe IFF no rows are currently in DRAFT state (would violate the
+-- restored constraint). Pre-rollback: UPDATE spaces SET status =
+-- 'PUBLISHED' WHERE status = 'DRAFT'; -- or DELETE WHERE status = 'DRAFT'
+-- depending on intended outcome.
+-- ──────────────────────────────────────────────────────────────────
+ALTER TABLE "spaces" DROP CONSTRAINT "spaces_status_check";--> statement-breakpoint
+ALTER TABLE "spaces" ADD CONSTRAINT "spaces_status_check" CHECK ("spaces"."status" IN ('DRAFT', 'PUBLISHED', 'SUSPENDED'));

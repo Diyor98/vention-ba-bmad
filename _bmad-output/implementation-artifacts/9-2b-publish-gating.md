@@ -1,6 +1,6 @@
 # Story 9-2b: Publish Gating
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -254,7 +254,7 @@ so that **half-built spaces never appear in the public listing, and bookings can
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 — Prep + 9-2 audit + operator state check.**
+- [x] **Task 0 — Prep + 9-2 audit + operator state check.**
   - Verify baseline CI clean: `pnpm typecheck` / `lint` / `test` (329 expected) / `build` (39 routes expected) / `test:e2e` (56 expected, modulo the documented hazards).
   - Confirm Story 9-2 + its fix are at `done` on `main` (`git log --oneline` shows `0d384e0`, `8f230b2`).
   - Re-read [docs/design/9-2b-publish-gating-ba-decisions.md](docs/design/9-2b-publish-gating-ba-decisions.md) end-to-end.
@@ -263,25 +263,25 @@ so that **half-built spaces never appear in the public listing, and bookings can
   - Read [src/app/(owner)/owner/spaces/page.tsx](deskhive/src/app/(owner)/owner/spaces/page.tsx) + [src/app/(owner)/owner/spaces/[id]/page.tsx](deskhive/src/app/(owner)/owner/spaces/[id]/page.tsx) for the existing list/detail render shape — find the right insertion points for the Draft badge + Publish button.
   - Confirm seeded `owner@deskhive.local` still has the synthetic Connect row from Story 9-2's seed (the dev-story replay verification ended with the synthetic row restored). If not, run `pnpm db:seed` to re-establish.
 
-- [ ] **Task 1 — Schema + migration** (AC-1):
+- [x] **Task 1 — Schema + migration** (AC-1):
   - Edit [src/db/schema.ts](deskhive/src/db/schema.ts) `spacesTable` check constraint: add `'DRAFT'` to the IN clause.
   - Run `pnpm db:generate` → produces `drizzle/migrations/0004_<random_name>.sql`.
   - Inspect the generated SQL: should be a `DROP CONSTRAINT ... ADD CONSTRAINT ...` block, NO data changes.
   - Add the story-tag comment block at the top of `0004_*.sql` matching the `0003_numerous_stone_men.sql` convention.
   - Apply locally: `pnpm db:migrate`.
 
-- [ ] **Task 2 — Query helper extension** (AC-4):
+- [x] **Task 2 — Query helper extension** (AC-4):
   - Extend `createSpace` in [src/db/queries/spaces.ts](deskhive/src/db/queries/spaces.ts) with the optional `status` parameter defaulting to `'PUBLISHED'`. Update the comment block to note the Story 9-2b extension.
 
-- [ ] **Task 3 — Server Action `publishSpaceAction`** (AC-2):
+- [x] **Task 3 — Server Action `publishSpaceAction`** (AC-2):
   - Add to [src/actions/space.ts](deskhive/src/actions/space.ts) following the locked 7-step behavior.
   - Returns `Promise<{ ok: true } | { ok: false; error: 'NOT_FOUND' | 'STRIPE_NOT_ACTIVE' | 'ALREADY_PUBLISHED' }>`.
   - Includes `revalidatePath('/owner/spaces')`, `revalidatePath(/owner/spaces/${spaceId})`, `revalidatePath('/')`, `revalidatePath(/spaces/${spaceId})` on success.
 
-- [ ] **Task 4 — Update `createSpaceAction` to pass DRAFT for SPACE_OWNER** (AC-4):
+- [x] **Task 4 — Update `createSpaceAction` to pass DRAFT for SPACE_OWNER** (AC-4):
   - One-line change to the existing `createSpace(...)` call site in [src/actions/space.ts](deskhive/src/actions/space.ts) — pass the third positional argument.
 
-- [ ] **Task 5 — Detail page Publish button + Client Component** (AC-3, AC-6):
+- [x] **Task 5 — Detail page Publish button + Client Component** (AC-3, AC-6):
   - Create `deskhive/src/app/(owner)/owner/spaces/[id]/publish-space-button.tsx` (Client Component).
   - Edit [src/app/(owner)/owner/spaces/[id]/page.tsx](deskhive/src/app/(owner)/owner/spaces/[id]/page.tsx):
     - Import `getConnectAccountByUserId` from `@/db/queries/stripe-connect`.
@@ -290,43 +290,43 @@ so that **half-built spaces never appear in the public listing, and bookings can
     - Render `<PublishSpaceButton spaceId={...} canPublish={canPublish} />` conditional on `space.status === 'DRAFT'`.
     - Update the meta-strip to render the Draft badge when status is DRAFT (replacing `<strong>{space.status}</strong>`).
 
-- [ ] **Task 6 — List page Draft badge** (AC-5):
+- [x] **Task 6 — List page Draft badge** (AC-5):
   - Edit [src/app/(owner)/owner/spaces/page.tsx](deskhive/src/app/(owner)/owner/spaces/page.tsx). Inline a conditional `<span className="badge badge-pending">Draft</span>` next to the space name when row's status is DRAFT.
   - **DO NOT add a per-row Publish button** (Decision §3 anti-pattern).
 
-- [ ] **Task 7 — Seed `owner-no-connect@deskhive.local`** (AC-8):
+- [x] **Task 7 — Seed `owner-no-connect@deskhive.local`** (AC-8):
   - Edit [scripts/seed.ts](deskhive/scripts/seed.ts) following the existing `seedUser` pattern.
   - Run `pnpm db:seed` to verify idempotent insert + correct role assignment.
   - **DO NOT seed a Connect row, DO NOT seed any spaces** for this user.
 
-- [ ] **Task 8 — Playwright fixture for `owner-no-connect`** (AC-9):
+- [x] **Task 8 — Playwright fixture for `owner-no-connect`** (AC-9):
   - Edit [tests/fixtures/auth-helpers.ts](deskhive/tests/fixtures/auth-helpers.ts):
     - Add `'owner-no-connect@deskhive.local': 'OwnerNoConnect1!'` to `SEED_CREDENTIALS`.
     - Add `'owner-no-connect': 'owner-no-connect@deskhive.local'` to `ROLE_EMAIL`.
     - Update the `AuthRole` type to include the new key.
 
-- [ ] **Task 9 — Unit tests for `publishSpaceAction`** (AC-10):
+- [x] **Task 9 — Unit tests for `publishSpaceAction`** (AC-10):
   - Create [src/actions/space.test.ts](deskhive/src/actions/space.test.ts) with the 4 cases from Decision §9 + AC-10.
   - Mock pattern: `vi.mock('@/db/client')` + `vi.mock('@/db/queries/stripe-connect')` + `vi.mock('@/lib/auth/config')` + `vi.mock('next/headers')` + `vi.mock('@/lib/mode')` + `vi.mock('next/cache')` (for `revalidatePath`).
   - Run `pnpm test src/actions/space.test.ts` → 4/4 green.
 
-- [ ] **Task 10 — E2E tests for publish-gating** (AC-11):
+- [x] **Task 10 — E2E tests for publish-gating** (AC-11):
   - Create [tests/e2e/publish-gating.spec.ts](deskhive/tests/e2e/publish-gating.spec.ts) with the 2 cases from AC-11.
   - Run isolated: `pnpm test:e2e tests/e2e/publish-gating.spec.ts` → 2/2 green.
 
-- [ ] **Task 11 — Local CI parity** (AC-15):
+- [x] **Task 11 — Local CI parity** (AC-15):
   - `pnpm typecheck` clean.
   - `pnpm lint` clean.
   - `pnpm test` — 333 expected.
   - `pnpm build` — 39 routes unchanged.
   - `pnpm test:e2e` — 58 expected (modulo the documented dev-server-reuse + mutation-discipline hazards from prior stories).
 
-- [ ] **Task 12 — `git diff` verification + manual smoke test** (AC-13, AC-15):
+- [x] **Task 12 — `git diff` verification + manual smoke test** (AC-13, AC-15):
   - `git diff --stat` matches AC-13 file list. Zero entries in `src/lib/stripe*`, `src/lib/payments/*`, `src/app/(owner)/owner/settings/*`, `src/app/api/stripe/webhook/*`, email infrastructure.
   - Quick smoke test: `pnpm dev` running, sign in as seeded `owner@deskhive.local`, create a new space, verify Draft badge appears, click Publish, verify it flips to PUBLISHED, verify it shows up on `/spaces`.
   - **AC-15 §6–§8 (full BA browser walk including the gated-path with `owner-no-connect@deskhive.local` and the Phase 1 regression check)** is DEFERRED to BA's review pass per the precedent.
 
-- [ ] **Task 13 — Memory + sprint-status + Dev Agent Record + single commit (no push)** (AC-12, AC-14):
+- [x] **Task 13 — Memory + sprint-status + Dev Agent Record + single commit (no push)** (AC-12, AC-14):
   - Extend `~/.claude/.../memory/reference_stripe_service_pattern.md` with the Story 9-2b section per AC-12.
   - Update `~/.claude/.../memory/MEMORY.md` index entry's one-liner.
   - Update `_bmad-output/implementation-artifacts/sprint-status.yaml`: `9-2b-publish-gating: review`; update `last_updated` parenthetical.
@@ -456,26 +456,59 @@ Story 9-2b is the **fourth Epic 9 feature commit** (after 9-1, 9-2, and 9-2's BA
 
 ### Agent Model
 
-_To be filled in by dev-agent during the dev-story phase._
+Claude Opus 4.7 (1M context).
 
 ### Debug Log References
 
-_To be filled in by dev-agent during the dev-story phase._
+- `pnpm db:migrate` applied `0004_fine_ronan.sql` cleanly (single DROP/ADD CONSTRAINT block; no data changes).
+- `pnpm db:seed` idempotently created `owner-no-connect@deskhive.local` on first run; subsequent runs reported "already exists; seed is a no-op."
+- `pnpm test src/actions/space.test.ts` — 5/5 green in isolation.
+- `pnpm typecheck` clean.
+- `pnpm lint` clean.
+- `pnpm test` — 334 passed + 1 skipped (`login-action.test.ts`).
+- `pnpm build` — 40 routes (no new routes; UI-only changes on existing surfaces).
+- `pnpm test:e2e tests/e2e/publish-gating.spec.ts` — 2/2 green in isolation.
+- `pnpm test:e2e` (full suite) — 48 passed, 5 failed, 5 did not run. The 5 failures are the pre-existing documented hazards from Stories 7-PREP-1 (mutation-discipline cascade) + 8-POLISH-1 (dev-server-reuse): admin-applications, application-emails, become-a-host × 2, booking-emails. Unchanged set from prior dev-story runs.
 
 ### Completion Notes
 
-_To be filled in by dev-agent during the dev-story phase. Expected highlights:_
-- Migration file name (`0004_<random_name>.sql`) and whether Drizzle's auto-generation produced clean SQL (single `DROP CONSTRAINT ... ADD CONSTRAINT` block, no data changes).
-- Net unit-test count change (+4 → 333). If actual differs from target, surface why (e.g., bonus auth-path tests like in Story 9-2).
-- Net E2E-test count change (+2 → 58).
-- Whether the inline Draft badge styling matched the existing `badge-pending` look acceptably, or if BA flagged a cosmetic adjustment.
-- Whether AC-7's verification of `listPublishedSpaces` / `getPublishedSpaceById` held up (it should — the audit pre-confirmed it).
-- Any cross-tenant test surprises (e.g., the `NOT_FOUND` collapse for SPACE_OWNER-not-owning-the-space requires careful mocking; if the mock setup was non-obvious, document the pattern).
-- Whether `pnpm db:seed` correctly idempotent for the new `owner-no-connect@deskhive.local` user across re-runs.
+- **Migration** `0004_fine_ronan.sql` — Drizzle auto-generated cleanly (single `DROP CONSTRAINT spaces_status_check ... ADD CONSTRAINT spaces_status_check ... CHECK (status IN ('DRAFT', 'PUBLISHED', 'SUSPENDED'))` pair). Story-tag comment block added at top matching the `0003_numerous_stone_men.sql` convention. No data migration; existing rows stay in PUBLISHED.
+- **Net unit tests: +5, target was +4 → 334 not 333.** Wrote 5 cases (4 from BA Decision §9 + a 2b variant "Connect row exists but `chargesEnabled=false`" that tests the boolean-flag branch separately from the row-missing branch). Same kind of bonus-tests-on-error-paths pattern as Story 9-2's +16-vs-+11.
+- **Net E2E tests: +2 → 58 total.** Both pass in isolation; both pass in full-suite runs with the defensive-restore-before-click pattern (see hazard note below).
+- **AC-7 verification passed unchanged.** `listPublishedSpaces` (line 47-52) and `getPublishedSpaceById` (line 78) already filter `eq(spacesTable.status, 'PUBLISHED')`. The create-story audit was correct; no code changes needed for AC-7.
+- **Draft badge styling:** used the existing `badge badge-pending` class (gold/yellow) per AC-5's recommendation. No SpaceStatusBadge component factored out (Decision §7 in the Dev Notes section — single-state badge in two places, inline JSX is sufficient). Visual cohesion with the existing booking PENDING badge.
+- **No cross-tenant test surprises.** The NOT_FOUND collapse mock was straightforward: `getSessionMock` returns owner-A; `getSpaceByIdMock` returns a space with `ownerId: 'user-owner-B'`; the action returns NOT_FOUND before any Connect lookup or DB write. Added a defensive assertion that NOT_OWNER doesn't surface on the wire (Decision §2 lock).
+- **Build route count: 40 (story estimated 39).** Inspected the build output; the actual baseline before 9-2b was already 40 (including `/` + `/_not-found`). The story-doc's 39 estimate was conservative; we added zero new routes (UI changes on existing pages only).
+- **E2E mode-cookie gotcha:** `publishSpaceAction` requires `effectiveMode === 'host'` per Decision §2 step 1. The `authenticatedPage` fixture mints the auth session cookie but does NOT set `deskhive_mode`. Without it, the action returns NOT_FOUND (per the collapse rule), no toast fires, and the test fails at the toast assertion. Added an `enableHostMode(page)` helper local to the spec that calls `page.context().addCookies(...)` to set `deskhive_mode=host`. Scoped to this spec; other /owner/* tests don't fire publish-gated actions so they don't need the cookie.
+- **E2E parallelism race (new hazard, narrow):** the happy-path test races against `connect-onboarding.spec.ts` test #2 ("initial state") which deletes + restores the same `acct_seed_for_e2e_only` Connect row for `owner@deskhive.local`. Under `fullyParallel: true`, my beforeEach's restore can be undone in the race window before my publish click. Mitigated by re-calling `restoreOwnerConnectRow()` immediately before `getByRole('button', { name: /publish space/ }).click()` — narrows the race window to ~10ms. Passes consistently in the local suite. Family with the documented 8-POLISH-1 / 7-PREP-1 hazards; logged in the polish-backlog as a follow-up candidate.
+- **`pnpm db:seed` idempotent for the new user.** First run created `owner-no-connect@deskhive.local`; subsequent runs no-op via the `seedUser`-existing-email check.
+- **Public listing audit:** verified `/` (the public browse) is what `revalidatePath('/')` targets; there's no `/spaces` index route (the build confirms this — only `/spaces/[id]` for detail). The story's AC-11 happy-path text said "visit `/spaces`"; updated the E2E spec to navigate to `/` instead.
+- **No `published_at` column, no `unpublishSpaceAction`, no Stripe SDK calls in `publishSpaceAction`** — all Decision §1/§2/§8 anti-patterns held.
 
 ### File List
 
-_To be filled in by dev-agent during the dev-story phase._
+**New:**
+- `deskhive/drizzle/migrations/0004_fine_ronan.sql` (auto-generated by Drizzle + story-tag comment block)
+- `deskhive/drizzle/migrations/meta/0004_snapshot.json` (auto)
+- `deskhive/src/actions/space.test.ts` (5 unit tests for `publishSpaceAction`)
+- `deskhive/src/app/(owner)/owner/spaces/[id]/publish-space-button.tsx` (Client Component)
+- `deskhive/tests/e2e/publish-gating.spec.ts` (2 E2E tests + `enableHostMode` helper)
+
+**Modified:**
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (Epic 9 row + last_updated parenthetical)
+- `_bmad-output/implementation-artifacts/9-2b-publish-gating.md` (Status → review; tasks `[x]`; DAR filled in)
+- `deskhive/drizzle/migrations/meta/_journal.json` (Drizzle journal entry for 0004)
+- `deskhive/scripts/seed.ts` (+ `owner-no-connect@deskhive.local` seeded user; no Connect row, no spaces for this user)
+- `deskhive/src/actions/space.ts` (added `publishSpaceAction`; `createSpaceAction` now passes `'DRAFT'` for SPACE_OWNER callers)
+- `deskhive/src/app/(owner)/owner/spaces/[id]/page.tsx` (Draft badge in meta-strip; new "Publish space" section with `<PublishSpaceButton>` conditional on `status === 'DRAFT'`)
+- `deskhive/src/app/(owner)/owner/spaces/page.tsx` (inline Draft badge in the name cell)
+- `deskhive/src/db/queries/spaces.ts` (`createSpace` accepts optional `status: 'PUBLISHED' | 'DRAFT'` parameter, defaulting to `'PUBLISHED'`)
+- `deskhive/src/db/schema.ts` (spaces.status check constraint extended to include `'DRAFT'`; DB-level column default unchanged)
+- `deskhive/tests/fixtures/auth-helpers.ts` (`'owner-no-connect'` role added to SEED_CREDENTIALS, ROLE_EMAIL, AuthRole union)
+
+**Out-of-tree (memory):**
+- `~/.claude/.../memory/reference_stripe_service_pattern.md` (extended with publish-gating section per AC-12)
+- `~/.claude/.../memory/MEMORY.md` (one-liner refresh)
 
 ### Change Log
 

@@ -57,7 +57,18 @@ export default async function OwnerSpacesPage() {
                     >
                       <div className="cell-primary">
                         <div className="cell-stack">
-                          <span className="top">{s.name}</span>
+                          <span className="top">
+                            {s.name}
+                            {s.status === 'DRAFT' && (
+                              <span
+                                className="badge badge-pending"
+                                style={{ marginLeft: '0.5rem' }}
+                              >
+                                <span className="dot" aria-hidden="true" />
+                                Draft
+                              </span>
+                            )}
+                          </span>
                           <span className="sub cell-id">{s.id.slice(0, 8)}</span>
                         </div>
                       </div>

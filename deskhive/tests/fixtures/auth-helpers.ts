@@ -32,6 +32,9 @@ export const SEED_CREDENTIALS = {
   // satisfy Better Auth's 8-char minimum + our own register validation
   // (src/lib/validation/auth.ts:9).
   'guest@deskhive.local': 'GuestPass1!',
+  // Story 9-2b: second bounded-exception seed user (SPACE_OWNER without a
+  // Connect row) — gated-publish E2E target. BA Decision §5.
+  'owner-no-connect@deskhive.local': 'OwnerNoConnect1!',
   'applicant1@deskhive.local': 'Applicant1!',
   'applicant2@deskhive.local': 'Applicant2!',
   'applicant3@deskhive.local': 'Applicant3!',
@@ -51,13 +54,16 @@ export type SeedEmail = keyof typeof SEED_CREDENTIALS;
  * codifies the alignment.
  */
 export const ROLE_EMAIL: Record<
-  'guest' | 'owner' | 'admin' | 'fresh-owner',
+  'guest' | 'owner' | 'admin' | 'fresh-owner' | 'owner-no-connect',
   SeedEmail
 > = {
   guest: 'guest@deskhive.local',
   owner: 'owner@deskhive.local',
   admin: 'admin@deskhive.local',
   'fresh-owner': 'applicant3@deskhive.local',
+  // Story 9-2b: SPACE_OWNER without a `stripe_connect_accounts` row.
+  // Gated-publish E2E target — Publish button is disabled for this user.
+  'owner-no-connect': 'owner-no-connect@deskhive.local',
 } as const;
 
 export type AuthRole = keyof typeof ROLE_EMAIL;

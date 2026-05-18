@@ -2,11 +2,13 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { requireSession } from '@/lib/auth/guards';
 import { getSpaceByIdForOwner } from '@/db/queries/spaces';
+import { getConnectAccountByUserId } from '@/db/queries/stripe-connect';
 import { listDesksForSpace } from '@/db/queries/desks';
 import { DataView } from '@/components/data-view';
 import { EditSpaceForm } from '@/app/admin/spaces/[id]/edit-space-form';
 import { EditDeskForm } from '@/app/admin/spaces/[id]/edit-desk-form';
 import { AddDeskForm } from '@/app/admin/spaces/[id]/add-desk-form';
+import { PublishSpaceButton } from './publish-space-button';
 
 // Same UUID regex used across Phase 1.
 const UUID_RE =
@@ -37,7 +39,14 @@ export default async function OwnerEditSpacePage({
   const session = await requireSession();
   const ownerId = String(session.user.id);
 
-  const space = await getSpaceByIdForOwner(id, ownerId);
+  // Story 9-2b: parallel-fetch the owner's Connect row so we can decide
+  // whether to enable the Publish button (only relevant when the space is
+  // DRAFT, but parallelizing keeps the page render cheap either way).
+  const [space, connectRow] = await Promise.all([
+    getSpaceByIdForOwner(id, ownerId),
+    getConnectAccountByUserId(ownerId),
+  ]);
+
   if (!space) {
     // Decision §5: soft-redirect rather than 404 — same UX as Story 6-2's
     // role-mismatch pattern. Avoids leaking row existence to other owners.
@@ -45,6 +54,9 @@ export default async function OwnerEditSpacePage({
   }
 
   const desks = await listDesksForSpace(id);
+  const canPublish = Boolean(
+    connectRow && connectRow.chargesEnabled && connectRow.payoutsEnabled,
+  );
 
   return (
     <main className="container-content admin-page">
@@ -67,11 +79,42 @@ export default async function OwnerEditSpacePage({
             </span>
             <span className="sep" aria-hidden="true"></span>
             <span className="meta-item">
-              Status <strong>{space.status}</strong>
+              Status{' '}
+              {space.status === 'DRAFT' ? (
+                <span
+                  className="badge badge-pending"
+                  style={{ marginLeft: '0.25rem' }}
+                >
+                  <span className="dot" aria-hidden="true" />
+                  Draft
+                </span>
+              ) : (
+                <strong>{space.status}</strong>
+              )}
             </span>
           </div>
         </div>
       </div>
+
+      {/* Story 9-2b: Publish CTA — only on DRAFT spaces. Gated by Connect
+          state (canPublish). When PUBLISHED or SUSPENDED, render nothing. */}
+      {space.status === 'DRAFT' && (
+        <section className="form-card">
+          <div className="form-card-head">
+            <div>
+              <h2>Publish space</h2>
+              <p className="sub">
+                {canPublish
+                  ? 'Make this space visible on DeskHive so guests can book it.'
+                  : 'Finish Stripe Connect onboarding in Settings before publishing.'}
+              </p>
+            </div>
+            <div className="admin-actions">
+              <PublishSpaceButton spaceId={space.id} canPublish={canPublish} />
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="form-card">
         <div className="form-card-head">

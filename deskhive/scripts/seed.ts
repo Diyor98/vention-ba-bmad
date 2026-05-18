@@ -41,6 +41,17 @@ const SEED_GUEST_EMAIL = 'guest@deskhive.local';
 const SEED_GUEST_PASSWORD = 'GuestPass1!';
 const SEED_GUEST_FULL_NAME = 'Test Guest';
 
+// Story 9-2b (Phase 2): seed a SECOND SPACE_OWNER without any Stripe
+// Connect row, so the gated-publish E2E test has a stable "Connect-
+// incomplete owner" target. Mirrors the bounded-exception precedent of
+// `guest@deskhive.local` from Story 7-PREP-1 (BA Decision §5). DO NOT
+// seed a `stripe_connect_accounts` row OR any spaces for this user —
+// the gated-path E2E exercises the full create-then-attempt-publish
+// flow against a virgin owner.
+const SEED_OWNER_NO_CONNECT_EMAIL = 'owner-no-connect@deskhive.local';
+const SEED_OWNER_NO_CONNECT_PASSWORD = 'OwnerNoConnect1!';
+const SEED_OWNER_NO_CONNECT_FULL_NAME = 'Owner Without Connect';
+
 // Story 7-4 (Phase 2): seed four applicant GUESTs + four applications
 // (2 PENDING + 1 APPROVED w/ atomic promotion + 1 REJECTED w/ reason).
 // Used for BA browser verification of /admin/applications.
@@ -459,6 +470,17 @@ async function main() {
     email: SEED_OWNER_EMAIL,
     password: SEED_OWNER_PASSWORD,
     fullName: SEED_OWNER_FULL_NAME,
+    role: 'SPACE_OWNER',
+  });
+
+  // Story 9-2b: second SPACE_OWNER without a Connect row. Used by the
+  // gated-publish E2E test. seedUser is idempotent on email; we never
+  // call `seedOwnerConnectAccount` or `seedOwnerSpace` for this user —
+  // they remain a pristine "Connect-incomplete" target by design.
+  await seedUser({
+    email: SEED_OWNER_NO_CONNECT_EMAIL,
+    password: SEED_OWNER_NO_CONNECT_PASSWORD,
+    fullName: SEED_OWNER_NO_CONNECT_FULL_NAME,
     role: 'SPACE_OWNER',
   });
 
