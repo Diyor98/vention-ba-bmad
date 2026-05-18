@@ -280,6 +280,141 @@ export async function markBookingRejectedAndVoided(
   return row;
 }
 
+/**
+ * Story 9-5: lookup helper for the payment_intent.* webhook handlers.
+ * Returns the booking row whose `payment_intent_id` matches, or
+ * undefined when no row exists.
+ *
+ * Used BEFORE the conditional UPDATE so the handler can distinguish
+ * "no booking matches this PI" (return deferred — Stripe retries) from
+ * "booking matches but already in target state" (return idempotent —
+ * the 9-4 action's DB write won the race; webhook backstop is a no-op).
+ *
+ * The PI ID is the load-bearing join column (BA Decision §5): the PI
+ * is the Stripe-side resource that changed state, and 9-3 created
+ * `bookings.payment_intent_id` for exactly this lookup. Metadata-
+ * `bookingId` is technically equivalent but adds a fragile dependency
+ * on Stripe preserving metadata across the PI lifecycle.
+ */
+export async function getBookingByPaymentIntentId(
+  paymentIntentId: string,
+): Promise<Booking | undefined> {
+  const [row] = await db
+    .select()
+    .from(bookingsTable)
+    .where(eq(bookingsTable.paymentIntentId, paymentIntentId))
+    .limit(1);
+  return row;
+}
+
+/**
+ * Story 9-5: webhook backstop for capture (payment_intent.succeeded
+ * handler). Mirror of 9-4's `markBookingConfirmedAndCaptured` keyed on
+ * `payment_intent_id` instead of booking `id`. Closes the narrow ops
+ * window 9-4 documented (Stripe-capture-succeeds-but-DB-write-fails
+ * leaves booking stuck in PENDING + AUTHORIZED).
+ *
+ * Same 2-condition conditional WHERE (`status='PENDING' AND
+ * payment_status='AUTHORIZED'`) — race-safety net against the 9-4
+ * action's DB write winning first OR a duplicate webhook delivery.
+ *
+ * On a returned row: handler reports `{ ok: true, handled: true }` →
+ * route inserts `webhook_events`. On undefined: handler reports
+ * `{ ok: true, idempotent: true }` → route does NOT insert (preserved
+ * 9-2 / 9-3 anti-pattern).
+ */
+export async function markBookingConfirmedAndCapturedByPaymentIntent(
+  paymentIntentId: string,
+): Promise<Booking | undefined> {
+  const [row] = await db
+    .update(bookingsTable)
+    .set({
+      status: 'CONFIRMED',
+      paymentStatus: 'CAPTURED',
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(bookingsTable.paymentIntentId, paymentIntentId),
+        eq(bookingsTable.status, 'PENDING'),
+        eq(bookingsTable.paymentStatus, 'AUTHORIZED'),
+      ),
+    )
+    .returning();
+  return row;
+}
+
+/**
+ * Story 9-5: webhook backstop for reject (payment_intent.canceled
+ * handler). Mirror shape of `markBookingConfirmedAndCapturedByPaymentIntent`
+ * with target state (REJECTED, VOIDED).
+ */
+export async function markBookingRejectedAndVoidedByPaymentIntent(
+  paymentIntentId: string,
+): Promise<Booking | undefined> {
+  const [row] = await db
+    .update(bookingsTable)
+    .set({
+      status: 'REJECTED',
+      paymentStatus: 'VOIDED',
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(bookingsTable.paymentIntentId, paymentIntentId),
+        eq(bookingsTable.status, 'PENDING'),
+        eq(bookingsTable.paymentStatus, 'AUTHORIZED'),
+      ),
+    )
+    .returning();
+  return row;
+}
+
+/**
+ * Story 9-5: orphan-booking cleanup for the checkout.session.expired
+ * handler. Deletes the booking row IFF it matches the pre-claimed-but-
+ * abandoned shape: `status='PENDING' AND payment_status='AWAITING_PAYMENT'
+ * AND id=$bookingId`.
+ *
+ * The 3-condition WHERE is the load-bearing safety net (BA Decision
+ * §5 + §11). Any one condition missing opens a path to deleting the
+ * wrong row:
+ *   • A CONFIRMED row mismatches on `status` (Guest came back and
+ *     completed; 9-4 captured).
+ *   • A CAPTURED row mismatches on `payment_status` (9-4 captured).
+ *   • Without `id`, a misfired event with a stale metadata.bookingId
+ *     could match an unrelated abandoned attempt — but the bookingId
+ *     equality clause narrows to the specific row.
+ *
+ * Returns `true` when exactly 1 row was deleted (real orphan removed);
+ * `false` when no rows matched (idempotent — either a different path
+ * won OR a prior delivery already cleaned). Never returns true on
+ * more than 1 (the bookingId equality clause is on the PK).
+ *
+ * DELETE rather than UPDATE-to-CANCELLED (BA Decision §5): the booking
+ * was never visible to the Guest (never confirmed, never appeared in
+ * /my-bookings as a real booking). A CANCELLED row would clutter the
+ * Guest's history with a non-event. DELETE returns the slot to the
+ * partial unique index `uniq_active_booking_per_desk_per_date` so the
+ * Guest can re-book the same desk/date without DOUBLE_BOOKING from
+ * their own orphan.
+ */
+export async function deleteAbandonedBookingByCheckoutSession(
+  bookingId: string,
+): Promise<boolean> {
+  const rows = await db
+    .delete(bookingsTable)
+    .where(
+      and(
+        eq(bookingsTable.id, bookingId),
+        eq(bookingsTable.status, 'PENDING'),
+        eq(bookingsTable.paymentStatus, 'AWAITING_PAYMENT'),
+      ),
+    )
+    .returning({ id: bookingsTable.id });
+  return rows.length > 0;
+}
+
 // Story 8-3: dispatch-info join for booking notification emails. Returns
 // booking + space + desk + guest (inner-join, FK NOT NULL) + owner (left-
 // join via space.owner_id, nullable). The owner field is null when the

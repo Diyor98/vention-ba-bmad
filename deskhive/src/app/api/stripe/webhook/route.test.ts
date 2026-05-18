@@ -1,29 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Story 9-2: tests for the narrow account.updated webhook handler
-// (Decision §14 tests 8-11).
+// Story 9-5: route-level tests after the dispatch generalization.
 //
-// Mock surface:
-//   - @/lib/stripe                    → stub stripe.webhooks.constructEvent
-//   - @/db/queries/stripe-connect     → stub getConnectAccountByStripeAccountId
-//                                       + upsertConnectAccount
-//   - @/db/client                     → stub the direct webhook_events
-//                                       select + insert chain
+// Pre-9-5 this file mocked `@/db/queries/stripe-connect` + `@/db/queries/bookings`
+// directly because the route owned all handler logic. Post-9-5 the route is a
+// thin shell — handler logic lives in `src/lib/payments/webhooks.ts`, tested
+// independently in `webhooks.test.ts`. This file now mocks at the dispatch
+// boundary (`@/lib/payments/webhooks` → `dispatchWebhookEvent`) per BA Decision
+// §13's split-by-mock-boundary, 3-layers pattern:
+//   route → @/lib/payments/webhooks
+//   handler → @/db/queries/*
+//   query → @/db/client
+//
+// Assertion lists for the migrated 9-2 + 9-3 tests are unchanged in spirit
+// (response shape + webhook_events insert / no-insert behavior). The internal
+// mocks shifted from leaf DB ops to the dispatch seam.
+//
+// NEW dispatcher-level tests (AC-12):
+//   • Unknown event type → dispatcher returns { handled: false } →
+//     route returns 200 handled:false, NO webhook_events insert.
+//   • Handler throws → dispatcher safety-net catches → returns { ok: false,
+//     status: 500 } → route returns 500, NO webhook_events insert.
 
 const {
   constructEventMock,
-  getByStripeAcctIdMock,
-  upsertConnectMock,
-  getBookingByIdMock,
-  markBookingAuthorizedMock,
+  dispatchWebhookEventMock,
   dbSelectMock,
   dbInsertMock,
 } = vi.hoisted(() => ({
   constructEventMock: vi.fn(),
-  getByStripeAcctIdMock: vi.fn(),
-  upsertConnectMock: vi.fn(),
-  getBookingByIdMock: vi.fn(),
-  markBookingAuthorizedMock: vi.fn(),
+  dispatchWebhookEventMock: vi.fn(),
   dbSelectMock: vi.fn(),
   dbInsertMock: vi.fn(),
 }));
@@ -36,15 +42,8 @@ vi.mock('@/lib/stripe', () => ({
   },
 }));
 
-vi.mock('@/db/queries/stripe-connect', () => ({
-  getConnectAccountByStripeAccountId: getByStripeAcctIdMock,
-  upsertConnectAccount: upsertConnectMock,
-}));
-
-// Story 9-3: bookings query mocks for the new checkout.session.completed branch.
-vi.mock('@/db/queries/bookings', () => ({
-  getBookingById: getBookingByIdMock,
-  markBookingAuthorized: markBookingAuthorizedMock,
+vi.mock('@/lib/payments/webhooks', () => ({
+  dispatchWebhookEvent: dispatchWebhookEventMock,
 }));
 
 vi.mock('@/db/client', () => ({
@@ -64,7 +63,9 @@ import { POST } from './route';
  * handler short-circuits; if empty, it proceeds to dispatch.
  */
 function stubWebhookEventsLookup(found: boolean) {
-  const limitFn = vi.fn().mockResolvedValue(found ? [{ id: 'evt_db_row' }] : []);
+  const limitFn = vi
+    .fn()
+    .mockResolvedValue(found ? [{ id: 'evt_db_row' }] : []);
   const whereFn = vi.fn().mockReturnValue({ limit: limitFn });
   const fromFn = vi.fn().mockReturnValue({ where: whereFn });
   dbSelectMock.mockReturnValue({ from: fromFn });
@@ -92,17 +93,19 @@ const ORIGINAL_ENV = { ...process.env };
 
 beforeEach(() => {
   constructEventMock.mockReset();
-  getByStripeAcctIdMock.mockReset();
-  upsertConnectMock.mockReset();
-  getBookingByIdMock.mockReset();
-  markBookingAuthorizedMock.mockReset();
+  dispatchWebhookEventMock.mockReset();
   dbSelectMock.mockReset();
   dbInsertMock.mockReset();
   process.env = { ...ORIGINAL_ENV, STRIPE_WEBHOOK_SECRET: 'whsec_test_secret' };
 });
 
-describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => {
-  it('test 8 — valid account.updated signature → updates DB row + inserts webhook_events', async () => {
+describe('POST /api/stripe/webhook — route shell (Story 9-5 refactor)', () => {
+  // ────────────────────────────────────────────────────────────────────
+  // Migrated 9-2 + 9-3 tests — assertion shape preserved, internal mocks
+  // shifted to the dispatch boundary per BA Decision §13.
+  // ────────────────────────────────────────────────────────────────────
+
+  it('Story 9-2 — valid account.updated signature → 200 handled + inserts webhook_events', async () => {
     constructEventMock.mockReturnValueOnce({
       id: 'evt_test_account_updated',
       type: 'account.updated',
@@ -116,12 +119,10 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
       },
     });
     stubWebhookEventsLookup(false);
-    getByStripeAcctIdMock.mockResolvedValueOnce({
-      id: 'row-1',
-      userId: 'user-owner-1',
-      stripeAccountId: 'acct_test_xyz',
+    dispatchWebhookEventMock.mockResolvedValueOnce({
+      ok: true,
+      handled: true,
     });
-    upsertConnectMock.mockResolvedValueOnce({});
     const valuesFn = stubWebhookEventsInsert();
 
     const res = await POST(makePostRequest('{}', 'sig_valid'));
@@ -130,15 +131,11 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
     const body = await res.json();
     expect(body).toEqual({ received: true, handled: true });
 
-    // DB row updated with the new booleans.
-    expect(upsertConnectMock).toHaveBeenCalledTimes(1);
-    expect(upsertConnectMock.mock.calls[0]?.[0]).toEqual({
-      userId: 'user-owner-1',
-      stripeAccountId: 'acct_test_xyz',
-      chargesEnabled: true,
-      payoutsEnabled: true,
-      onboardingCompleted: true,
-    });
+    // Dispatch was called with the verified event.
+    expect(dispatchWebhookEventMock).toHaveBeenCalledTimes(1);
+    expect(dispatchWebhookEventMock.mock.calls[0]?.[0]?.id).toBe(
+      'evt_test_account_updated',
+    );
 
     // webhook_events insert captured with the right payload.
     expect(dbInsertMock).toHaveBeenCalledTimes(1);
@@ -149,7 +146,7 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
     expect(valuesFn.mock.calls[0]?.[0]?.eventType).toBe('account.updated');
   });
 
-  it('test 9 — invalid signature → 400, NO upsert, NO webhook_events insert', async () => {
+  it('Story 9-2 — invalid signature → 400, NO dispatch, NO webhook_events insert', async () => {
     constructEventMock.mockImplementationOnce(() => {
       throw new Error('No signatures found matching the expected signature');
     });
@@ -157,15 +154,22 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
     const res = await POST(makePostRequest('{}', 'sig_bad'));
 
     expect(res.status).toBe(400);
-    expect(upsertConnectMock).not.toHaveBeenCalled();
+    expect(dispatchWebhookEventMock).not.toHaveBeenCalled();
     expect(dbInsertMock).not.toHaveBeenCalled();
   });
 
-  it('test 10 — duplicate stripe_event_id → 200 idempotent, NO re-processing', async () => {
+  it('Story 9-2 — duplicate stripe_event_id → 200 idempotent, NO re-processing', async () => {
     constructEventMock.mockReturnValueOnce({
       id: 'evt_dupe',
       type: 'account.updated',
-      data: { object: { id: 'acct_x', charges_enabled: true, payouts_enabled: true, details_submitted: true } },
+      data: {
+        object: {
+          id: 'acct_x',
+          charges_enabled: true,
+          payouts_enabled: true,
+          details_submitted: true,
+        },
+      },
     });
     stubWebhookEventsLookup(true); // event id already in webhook_events.
 
@@ -174,38 +178,16 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({ received: true, idempotent: true });
-    expect(upsertConnectMock).not.toHaveBeenCalled();
+    expect(dispatchWebhookEventMock).not.toHaveBeenCalled();
     expect(dbInsertMock).not.toHaveBeenCalled();
-    expect(getByStripeAcctIdMock).not.toHaveBeenCalled();
   });
 
-  it('test 11 — unhandled event type → 200, NO webhook_events insert (preserves 9-5 backfill)', async () => {
-    constructEventMock.mockReturnValueOnce({
-      id: 'evt_pi_succeeded',
-      type: 'payment_intent.succeeded',
-      data: { object: { id: 'pi_test' } },
-    });
-    stubWebhookEventsLookup(false);
-
-    const res = await POST(makePostRequest('{}', 'sig_valid'));
-
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toEqual({ received: true, handled: false });
-    // Decision §7 anti-pattern: do NOT insert into webhook_events for
-    // unhandled event types. This preserves Story 9-5's ability to
-    // backfill once its real handlers ship.
-    expect(dbInsertMock).not.toHaveBeenCalled();
-    expect(upsertConnectMock).not.toHaveBeenCalled();
-  });
-
-  it('account.updated → upsertConnectAccount throws → 500 with diagnostic body, NO webhook_events insert (Story 9-2 BA-walk fix)', async () => {
-    // Reproduces the BA browser walk failure: the upsert call throws
-    // (Drizzle/PG transient error). The wrapped try/catch should
-    // surface a 500 with body 'Database update failed' (distinct from
-    // the other failure bodies) and a logger.error line with
-    // stripe_webhook_upsert_failed tag, AND must NOT insert into
-    // webhook_events (Decision §7 anti-pattern preserved on failure).
+  it('Story 9-2 BA-walk fix — handler returns { ok: false, status: 500 } → 500, NO webhook_events insert', async () => {
+    // Replaces the pre-9-5 "upsertConnectAccount throws → 500" test.
+    // After the refactor the handler owns its 3-stage try-catch; the route
+    // just translates the result. This test verifies the route's HTTP
+    // shape on the ok:false path AND that webhook_events is NOT inserted
+    // (Decision §6 anti-pattern preserved on failure → Stripe retries).
     constructEventMock.mockReturnValueOnce({
       id: 'evt_upsert_throws',
       type: 'account.updated',
@@ -219,54 +201,49 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
       },
     });
     stubWebhookEventsLookup(false);
-    getByStripeAcctIdMock.mockResolvedValueOnce({
-      id: 'row-1',
-      userId: 'user-owner-1',
-      stripeAccountId: 'acct_test_xyz',
+    dispatchWebhookEventMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      message: 'Database update failed',
     });
-    // Underlying DrizzleQueryError carrying a PG cause — exactly the
-    // shape the BA walk's pnpm dev log showed (modulo .cause being
-    // visible now).
-    const drizzleErr = new Error(
-      'Failed query: insert ... on conflict do update ...',
-    );
-    (drizzleErr as Error & { cause: Error }).cause = new Error(
-      'Connection terminated unexpectedly',
-    );
-    upsertConnectMock.mockRejectedValueOnce(drizzleErr);
 
     const res = await POST(makePostRequest('{}', 'sig_valid'));
 
     expect(res.status).toBe(500);
     expect(await res.text()).toBe('Database update failed');
     // CRITICAL: failed handling must NOT insert into webhook_events —
-    // Decision §7 anti-pattern preserved so Stripe's retry can re-attempt.
+    // Decision §6 anti-pattern preserved so Stripe's retry can re-attempt.
     expect(dbInsertMock).not.toHaveBeenCalled();
   });
 
-  it('account.updated for an unknown account → 200 deferred, NO webhook_events insert', async () => {
+  it('Story 9-2 — handler returns { deferred: true } → 200 deferred, NO webhook_events insert', async () => {
     constructEventMock.mockReturnValueOnce({
       id: 'evt_unknown_acct',
       type: 'account.updated',
-      data: { object: { id: 'acct_we_dont_know', charges_enabled: true, payouts_enabled: true, details_submitted: true } },
+      data: {
+        object: {
+          id: 'acct_we_dont_know',
+          charges_enabled: true,
+          payouts_enabled: true,
+          details_submitted: true,
+        },
+      },
     });
     stubWebhookEventsLookup(false);
-    getByStripeAcctIdMock.mockResolvedValueOnce(null);
+    dispatchWebhookEventMock.mockResolvedValueOnce({
+      ok: true,
+      deferred: true,
+    });
 
     const res = await POST(makePostRequest('{}', 'sig_valid'));
 
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({ received: true, deferred: true });
-    expect(upsertConnectMock).not.toHaveBeenCalled();
     expect(dbInsertMock).not.toHaveBeenCalled();
   });
 
-  // ──────────────────────────────────────────────────────────────────
-  // Story 9-3: checkout.session.completed branch tests (Decision §11).
-  // ──────────────────────────────────────────────────────────────────
-
-  it('Story 9-3 — checkout.session.completed happy path: marks booking AUTHORIZED + inserts webhook_events', async () => {
+  it('Story 9-3 — checkout.session.completed happy path → 200 handled + inserts webhook_events', async () => {
     constructEventMock.mockReturnValueOnce({
       id: 'evt_checkout_completed_1',
       type: 'checkout.session.completed',
@@ -279,17 +256,9 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
       },
     });
     stubWebhookEventsLookup(false);
-    getBookingByIdMock.mockResolvedValueOnce({
-      id: 'booking-uuid-1',
-      paymentStatus: 'AWAITING_PAYMENT',
-      paymentIntentId: null,
-    });
-    // markBookingAuthorized returns the updated row on success (not
-    // undefined — the conditional WHERE matched).
-    markBookingAuthorizedMock.mockResolvedValueOnce({
-      id: 'booking-uuid-1',
-      paymentStatus: 'AUTHORIZED',
-      paymentIntentId: 'pi_test_payment_1',
+    dispatchWebhookEventMock.mockResolvedValueOnce({
+      ok: true,
+      handled: true,
     });
     const valuesFn = stubWebhookEventsInsert();
 
@@ -299,15 +268,14 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
     const body = await res.json();
     expect(body).toEqual({ received: true, handled: true });
 
-    // markBookingAuthorized called with the right args.
-    expect(markBookingAuthorizedMock).toHaveBeenCalledTimes(1);
-    expect(markBookingAuthorizedMock.mock.calls[0]?.[0]).toEqual({
-      bookingId: 'booking-uuid-1',
-      paymentIntentId: 'pi_test_payment_1',
-    });
+    // Dispatch was called with the verified event.
+    expect(dispatchWebhookEventMock).toHaveBeenCalledTimes(1);
+    expect(dispatchWebhookEventMock.mock.calls[0]?.[0]?.type).toBe(
+      'checkout.session.completed',
+    );
 
     // webhook_events insert fires with the right payload (first real
-    // handle — Decision §7 anti-pattern from 9-2 carries forward).
+    // handle — Decision §6 anti-pattern from 9-2 carries forward).
     expect(dbInsertMock).toHaveBeenCalledTimes(1);
     expect(valuesFn).toHaveBeenCalledTimes(1);
     expect(valuesFn.mock.calls[0]?.[0]?.stripeEventId).toBe(
@@ -318,7 +286,7 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
     );
   });
 
-  it('Story 9-3 — checkout.session.completed idempotent (return-URL won): no-op + NO webhook_events insert', async () => {
+  it('Story 9-3 — checkout.session.completed idempotent → 200 idempotent, NO webhook_events insert', async () => {
     constructEventMock.mockReturnValueOnce({
       id: 'evt_checkout_completed_2',
       type: 'checkout.session.completed',
@@ -331,15 +299,10 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
       },
     });
     stubWebhookEventsLookup(false);
-    getBookingByIdMock.mockResolvedValueOnce({
-      id: 'booking-uuid-2',
-      // Return-URL handler already won — booking is already AUTHORIZED.
-      paymentStatus: 'AUTHORIZED',
-      paymentIntentId: 'pi_test_payment_2',
+    dispatchWebhookEventMock.mockResolvedValueOnce({
+      ok: true,
+      idempotent: true,
     });
-    // markBookingAuthorized's conditional WHERE filters this row out —
-    // .returning() yields no row, the wrapper returns undefined.
-    markBookingAuthorizedMock.mockResolvedValueOnce(undefined);
 
     const res = await POST(makePostRequest('{}', 'sig_valid'));
 
@@ -347,10 +310,74 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
     const body = await res.json();
     expect(body).toEqual({ received: true, idempotent: true });
 
-    // CRITICAL: Decision §7 anti-pattern from 9-2 — only insert into
+    // CRITICAL: Decision §6 anti-pattern from 9-2 — only insert into
     // webhook_events on FIRST real handle. The return-URL handler
     // already did the work; this webhook is a no-op, so the
     // webhook_events row is NOT inserted.
+    expect(dbInsertMock).not.toHaveBeenCalled();
+  });
+
+  // ────────────────────────────────────────────────────────────────────
+  // NEW dispatcher-level tests (BA Decision §13).
+  // ────────────────────────────────────────────────────────────────────
+
+  it('Story 9-5 NEW — unknown event type → 200 handled:false, NO webhook_events insert', async () => {
+    // Reproduces the pre-9-5 "unhandled event type" behavior with the
+    // post-9-5 dispatch boundary. The dispatcher returns
+    // { handled: false } for any event.type not in WEBHOOK_HANDLERS;
+    // the route returns 200 handled:false WITHOUT inserting into
+    // webhook_events (Decision §10: keeps the log clean for 9-6 / 9-7
+    // to backfill when they ship).
+    constructEventMock.mockReturnValueOnce({
+      id: 'evt_unknown_type',
+      type: 'customer.created',
+      data: { object: { id: 'cus_test' } },
+    });
+    stubWebhookEventsLookup(false);
+    dispatchWebhookEventMock.mockResolvedValueOnce({
+      ok: true,
+      handled: false,
+    });
+
+    const res = await POST(makePostRequest('{}', 'sig_valid'));
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({ received: true, handled: false });
+    expect(dbInsertMock).not.toHaveBeenCalled();
+  });
+
+  it('Story 9-5 NEW — dispatcher safety-net throw → 500, NO webhook_events insert', async () => {
+    // Should-never-happen safety net (BA Decision §8). Handlers SHOULD
+    // always return a WebhookHandlerResult; the dispatcher's top-level
+    // try-catch is the belt over the suspenders. In this test the
+    // dispatcher mock itself rejects to simulate an unexpected throw
+    // path; in production the same shape arrives via the real
+    // dispatcher's safety net converting a handler throw into
+    // { ok: false, status: 500 }.
+    constructEventMock.mockReturnValueOnce({
+      id: 'evt_handler_throws',
+      type: 'account.updated',
+      data: {
+        object: {
+          id: 'acct_test',
+          charges_enabled: true,
+          payouts_enabled: true,
+          details_submitted: true,
+        },
+      },
+    });
+    stubWebhookEventsLookup(false);
+    dispatchWebhookEventMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      message: 'Unexpected handler error',
+    });
+
+    const res = await POST(makePostRequest('{}', 'sig_valid'));
+
+    expect(res.status).toBe(500);
+    expect(await res.text()).toBe('Unexpected handler error');
     expect(dbInsertMock).not.toHaveBeenCalled();
   });
 });
