@@ -33,15 +33,29 @@ export async function listActiveBookingsForSpaceOnDate(
     );
 }
 
-// payment_status / payment_reference stay NULL — Doc B §6.1 forward-compat
-// note reserves them for Phase 2 (Stripe). Drizzle defaults omitted columns
-// to NULL.
+// Story 9-3: signature extended with three optional fields populated by
+// the booking-with-payment flow (`createBookingWithPaymentAction`):
+//
+//   • paymentStatus — 'AWAITING_PAYMENT' on pre-claim, transitions to
+//     'AUTHORIZED' via return-URL handler / webhook backstop.
+//   • totalCents — Stripe Checkout line-item total (cents).
+//   • platformFeeCents — DeskHive's 15% cut (cents); Stripe routes the
+//     remainder to the connected account on capture.
+//
+// Phase 1 callers (REST API `/api/bookings`) omit these — Drizzle
+// defaults `payment_intent_id` + `payment_status` to NULL,
+// `total_cents` + `platform_fee_cents` to 0 (PG column defaults).
+// The Phase 1 `payment_reference` column stays NULL too (Doc B §6.1
+// forward-compat reserves it for an unrelated future use).
 export async function createBooking(input: {
   guestUserId: string;
   spaceId: string;
   deskId: string;
   bookingDate: string;
   totalPriceCents: number;
+  paymentStatus?: 'AWAITING_PAYMENT' | 'AUTHORIZED';
+  totalCents?: number;
+  platformFeeCents?: number;
 }): Promise<Booking> {
   const [row] = await db
     .insert(bookingsTable)
@@ -157,6 +171,41 @@ export async function rejectBooking(
     .update(bookingsTable)
     .set({ status: 'REJECTED', updatedAt: new Date() })
     .where(and(eq(bookingsTable.id, id), eq(bookingsTable.status, 'PENDING')))
+    .returning();
+  return row;
+}
+
+/**
+ * Story 9-3: mark a pre-claimed booking as AUTHORIZED after the Guest
+ * completes Stripe Checkout. Called by the return-from-Checkout Server
+ * Component AND the `checkout.session.completed` webhook backstop —
+ * idempotent UPDATE (running twice with the same paymentIntentId is a
+ * no-op transition).
+ *
+ * The conditional WHERE clause restricts the update to rows still in
+ * the pre-claim state (`payment_status = 'AWAITING_PAYMENT'`) so a
+ * webhook arriving AFTER the return-URL handler already wrote
+ * `AUTHORIZED` becomes a no-op (`returning()` is empty). The handler
+ * detects the no-op and skips inserting into `webhook_events` —
+ * mirrors 9-2's "only insert on first real handle" anti-pattern.
+ */
+export async function markBookingAuthorized(args: {
+  bookingId: string;
+  paymentIntentId: string;
+}): Promise<Booking | undefined> {
+  const [row] = await db
+    .update(bookingsTable)
+    .set({
+      paymentIntentId: args.paymentIntentId,
+      paymentStatus: 'AUTHORIZED',
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(bookingsTable.id, args.bookingId),
+        eq(bookingsTable.paymentStatus, 'AWAITING_PAYMENT'),
+      ),
+    )
     .returning();
   return row;
 }

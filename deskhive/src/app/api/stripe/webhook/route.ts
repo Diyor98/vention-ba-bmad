@@ -7,6 +7,10 @@ import {
   getConnectAccountByStripeAccountId,
   upsertConnectAccount,
 } from '@/db/queries/stripe-connect';
+import {
+  getBookingById,
+  markBookingAuthorized,
+} from '@/db/queries/bookings';
 import { logger } from '@/lib/logger';
 
 /**
@@ -158,6 +162,136 @@ export async function POST(req: Request): Promise<Response> {
       });
     } catch (err) {
       logger.error('stripe_webhook_event_insert_failed', {
+        eventId: event.id,
+        error: errMessage(err),
+        cause: errCause(err),
+      });
+      return new Response('Idempotency log failed', { status: 500 });
+    }
+
+    return Response.json({ received: true, handled: true }, { status: 200 });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Story 9-3 (BA Decision §6): narrow `checkout.session.completed`
+  // branch. Backstop for the return-URL handler — if the Guest closes
+  // their browser between paying and the redirect, this webhook arrives
+  // asynchronously and writes payment_intent_id + payment_status='AUTHORIZED'
+  // to the pre-claimed booking row.
+  //
+  // Idempotency layers:
+  //   • Top-of-route check on webhook_events.stripe_event_id (Stripe-
+  //     delivery dedup).
+  //   • markBookingAuthorized's conditional WHERE filters out rows
+  //     already in AUTHORIZED state — if the return-URL handler won
+  //     the race, this handler returns no row from .returning() and
+  //     we skip the webhook_events insert (mirrors 9-2's "only insert
+  //     on first real handle" anti-pattern from its Decision §7).
+  //
+  // NO Stripe API calls here (Decision §6 anti-pattern). The Session
+  // payload's `payment_intent` is a string ID — write it directly to
+  // the booking row without fetching the PI object. The PI ID is
+  // trustworthy because the entire webhook payload was signature-
+  // verified upstream.
+  //
+  // Story 9-5 will absorb this branch alongside payment_intent.* /
+  // charge.refunded / payout.paid / checkout.session.expired.
+  // ─────────────────────────────────────────────────────────────────────
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const bookingId = session.metadata?.bookingId;
+    if (!bookingId) {
+      logger.warn('stripe_webhook_checkout_no_booking_id', {
+        eventId: event.id,
+        sessionId: session.id,
+      });
+      // Acknowledge so Stripe stops retrying. Decision §7 anti-pattern
+      // from 9-2: do NOT insert into webhook_events — the handler
+      // didn't actually do work.
+      return Response.json({ received: true, deferred: true }, { status: 200 });
+    }
+
+    // Webhook payloads carry `payment_intent` as a string ID by default
+    // (we did NOT expand on the webhook delivery; only the return-URL
+    // handler expands). Coerce defensively in case Stripe sends an
+    // expanded object on some future event.
+    const paymentIntentId =
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : (session.payment_intent?.id ?? null);
+    if (!paymentIntentId) {
+      logger.warn('stripe_webhook_checkout_no_payment_intent', {
+        eventId: event.id,
+        sessionId: session.id,
+        bookingId,
+      });
+      return Response.json({ received: true, deferred: true }, { status: 200 });
+    }
+
+    // Lookup first so we can distinguish "booking doesn't exist (logic
+    // error)" from "already AUTHORIZED (return-URL won)". The lookup
+    // is in its own try/catch — DB failure here is retriable.
+    let existingBooking;
+    try {
+      existingBooking = await getBookingById(bookingId);
+    } catch (err) {
+      logger.error('stripe_webhook_checkout_booking_lookup_failed', {
+        eventId: event.id,
+        bookingId,
+        error: errMessage(err),
+        cause: errCause(err),
+      });
+      return new Response('Booking lookup failed', { status: 500 });
+    }
+
+    if (!existingBooking) {
+      // Could happen if the webhook arrives before
+      // `createBookingWithPaymentAction` completes its booking-row
+      // insert (extremely unlikely — Stripe webhook delivery is async
+      // and the action commits the row before calling Stripe). Treat
+      // as a defer / Stripe will retry naturally; do NOT insert into
+      // webhook_events.
+      logger.warn('stripe_webhook_checkout_booking_not_found', {
+        eventId: event.id,
+        bookingId,
+      });
+      return Response.json({ received: true, deferred: true }, { status: 200 });
+    }
+
+    let updated;
+    try {
+      updated = await markBookingAuthorized({ bookingId, paymentIntentId });
+    } catch (err) {
+      logger.error('stripe_webhook_checkout_update_failed', {
+        eventId: event.id,
+        bookingId,
+        error: errMessage(err),
+        cause: errCause(err),
+      });
+      return new Response('Booking update failed', { status: 500 });
+    }
+
+    if (!updated) {
+      // Return-URL handler already won the race (or a prior webhook
+      // already authorized this row). markBookingAuthorized's
+      // conditional WHERE filtered the row out — no state change here.
+      // Do NOT insert into webhook_events (Decision §7 anti-pattern:
+      // only on first real handle).
+      logger.info('stripe_webhook_checkout_already_authorized', {
+        eventId: event.id,
+        bookingId,
+      });
+      return Response.json({ received: true, idempotent: true }, { status: 200 });
+    }
+
+    try {
+      await db.insert(webhookEventsTable).values({
+        stripeEventId: event.id,
+        eventType: event.type,
+        payload: JSON.parse(JSON.stringify(event)),
+      });
+    } catch (err) {
+      logger.error('stripe_webhook_checkout_event_insert_failed', {
         eventId: event.id,
         error: errMessage(err),
         cause: errCause(err),

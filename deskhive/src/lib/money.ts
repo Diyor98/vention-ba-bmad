@@ -94,6 +94,87 @@ export function dollarsToCents(input: string): DollarsParseResult {
   return { ok: true, cents: dollars * 100 + cents };
 }
 
+// Story 9-3: DeskHive's platform fee rate, in basis points.
+//
+// 1500 bps = 15% per Phase 2 PRD §4.4 FR-PAY-7. Storing the rate as an
+// integer in basis points keeps `calculatePlatformFee` integer-only
+// (no float multiplication). Phase 2 is a single-fee-rate marketplace;
+// the constant lives next to the math. **Phase 3 migration**: when
+// per-owner or per-region rates become a real requirement (e.g., a
+// `platform_settings` table or env-driven configuration), this constant
+// becomes a parameter sourced from the appropriate seam. Until then,
+// hardcoding-with-comment matches 9-2's `country: 'US'` pattern.
+const PLATFORM_FEE_BPS = 1500;
+
+/**
+ * Story 9-3: DeskHive's platform fee on a booking total, in cents.
+ *
+ * Returns `Math.floor(amountCents * feeBps / 10000)` — toward-zero
+ * rounding (BA Decision §2a). Platform never collects more than the
+ * nominal 15% of the booking; any sub-cent remainder accrues to the
+ * owner payout via `calculateOwnerPayout(amountCents, feeCents) =
+ * amountCents - feeCents`.
+ *
+ * Examples:
+ *   calculatePlatformFee(2500)      → 375   (15% of $25.00 = $3.75)
+ *   calculatePlatformFee(10000)     → 1500  (15% of $100.00 = $15.00)
+ *   calculatePlatformFee(1)         → 0     (Math.floor(0.15) — sub-cent)
+ *   calculatePlatformFee(0)         → 0
+ *   calculatePlatformFee(333, 1000) → 33    (10% of 333¢)
+ *
+ * Throws on non-integer or negative input — DB invariants prevent these
+ * at runtime, but the typed throw catches regressions in tests / new
+ * call sites.
+ *
+ * The optional `feeBps` parameter exists for forward-compat: Phase 3's
+ * per-owner-rate seam will pass a sourced rate; Phase 2 callers omit
+ * the argument and get the hardcoded default.
+ */
+export function calculatePlatformFee(
+  amountCents: number,
+  feeBps: number = PLATFORM_FEE_BPS,
+): number {
+  if (!Number.isInteger(amountCents) || amountCents < 0) {
+    throw new Error(`Invalid amount cents: ${amountCents}`);
+  }
+  if (!Number.isInteger(feeBps) || feeBps < 0) {
+    throw new Error(`Invalid fee bps: ${feeBps}`);
+  }
+  // Order of operations matters: multiply BEFORE dividing to avoid
+  // truncating to zero on small amounts. amountCents and feeBps both
+  // fit comfortably in Number's exact-integer range (<2^53) for any
+  // realistic Phase 2 booking total.
+  return Math.floor((amountCents * feeBps) / 10000);
+}
+
+/**
+ * Story 9-3: owner payout from a booking total. Derived from
+ * `amountCents - feeCents` — no rounding step, so the platform-fee
+ * `Math.floor` truncation drift accrues to the owner. Pair with
+ * `calculatePlatformFee`: compute fee once, derive payout from it.
+ *
+ * Throws on non-integer or negative input. Throws if `feeCents >
+ * amountCents` (defensive — would yield a negative payout, indicating
+ * a caller bug).
+ */
+export function calculateOwnerPayout(
+  amountCents: number,
+  feeCents: number,
+): number {
+  if (!Number.isInteger(amountCents) || amountCents < 0) {
+    throw new Error(`Invalid amount cents: ${amountCents}`);
+  }
+  if (!Number.isInteger(feeCents) || feeCents < 0) {
+    throw new Error(`Invalid fee cents: ${feeCents}`);
+  }
+  if (feeCents > amountCents) {
+    throw new Error(
+      `Fee (${feeCents}) cannot exceed amount (${amountCents})`,
+    );
+  }
+  return amountCents - feeCents;
+}
+
 /**
  * Formats integer cents as a dollar string suitable for an HTML input
  * value. Always 2 decimal places.

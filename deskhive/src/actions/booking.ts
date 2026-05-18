@@ -8,13 +8,8 @@ import {
   requireOwnership,
   AuthError,
 } from '@/lib/auth/guards';
-import { isPgUniqueViolation } from '@/lib/db-errors';
-import { isPastDate } from '@/lib/format';
-import { createBookingSchema } from '@/lib/validation/booking';
-import { getActiveDeskById } from '@/db/queries/desks';
-import { getPublishedSpaceById, getSpaceById } from '@/db/queries/spaces';
+import { getSpaceById } from '@/db/queries/spaces';
 import {
-  createBooking,
   getBookingById,
   cancelBooking,
   confirmBooking,
@@ -26,158 +21,18 @@ import type { Role } from '@/db/schema';
 // failures must NEVER roll back the booking transaction; the actions
 // call notify* with `.catch(...)` rather than `await ... try { } catch`.
 import {
-  notifyBookingRequested,
   notifyBookingConfirmed,
   notifyBookingRejected,
   notifyBookingCancelledByGuest,
 } from '@/lib/bookings';
 
-export type CreateBookingActionState =
-  | { status: 'idle' }
-  // Story 6-3 (BA revision 2026-05-12): the action returns a success state
-  // instead of redirecting. The client fires the toast on /spaces/[id]
-  // (the current page); the user controls navigation to /my-bookings via
-  // the toast's "View in My Bookings" action button. This makes the toast
-  // appear in the context where the user just clicked, and gives the
-  // action button real work to do.
-  | { status: 'success' }
-  | { status: 'error'; code: 'FORBIDDEN'; message: string }
-  | { status: 'error'; code: 'VALIDATION_ERROR'; fields: Record<string, string> }
-  | { status: 'error'; code: 'PAST_DATE'; message: string }
-  | { status: 'error'; code: 'DESK_NOT_FOUND'; message: string }
-  | { status: 'error'; code: 'DOUBLE_BOOKING'; message: string }
-  | { status: 'error'; code: 'INTERNAL_ERROR'; message: string };
-
-export async function createBookingAction(
-  _prevState: CreateBookingActionState,
-  formData: FormData,
-): Promise<CreateBookingActionState> {
-  const spaceId = String(formData.get('spaceId') ?? '');
-  const deskId = String(formData.get('deskId') ?? '');
-  const bookingDate = String(formData.get('bookingDate') ?? '');
-
-  // Auth: 401 → redirect to /login with callback; 403 → state.
-  let session;
-  try {
-    session = await requireSession();
-    requireRole(session, 'GUEST');
-  } catch (err) {
-    if (err instanceof AuthError) {
-      const status = err.response.status;
-      if (status === 401) {
-        // spaceId from the form lets us build the callback without a
-        // pre-auth DB call. Even if a tampered spaceId leads to a bogus
-        // /spaces/X URL, the user just lands on a 404 after login — no
-        // security implication since callbackUrl validation is same-origin.
-        const callback = `/spaces/${spaceId}?date=${bookingDate}`;
-        redirect(`/login?callbackUrl=${encodeURIComponent(callback)}`);
-      }
-      if (status === 403) {
-        return {
-          status: 'error',
-          code: 'FORBIDDEN',
-          message: 'Only guests can book desks.',
-        };
-      }
-    }
-    logger.error('create_booking_action_auth_failed', { error: String(err) });
-    return {
-      status: 'error',
-      code: 'INTERNAL_ERROR',
-      message: 'Something went wrong.',
-    };
-  }
-
-  // Validation
-  const parsed = createBookingSchema.safeParse({ deskId, bookingDate });
-  if (!parsed.success) {
-    const fields: Record<string, string> = {};
-    for (const issue of parsed.error.issues) {
-      const key = String(issue.path[0] ?? '');
-      if (key && !fields[key]) fields[key] = issue.message;
-    }
-    return { status: 'error', code: 'VALIDATION_ERROR', fields };
-  }
-
-  if (isPastDate(parsed.data.bookingDate)) {
-    return {
-      status: 'error',
-      code: 'PAST_DATE',
-      // Verbatim PRD message — do not paraphrase (US-3.3 AC-5).
-      message: 'Booking date cannot be in the past',
-    };
-  }
-
-  // Existence — collapse "desk missing/inactive" and "space not published"
-  // into one user-facing code per the AC-8 design.
-  const desk = await getActiveDeskById(parsed.data.deskId);
-  if (!desk) {
-    return {
-      status: 'error',
-      code: 'DESK_NOT_FOUND',
-      message: 'This desk is not available.',
-    };
-  }
-  const space = await getPublishedSpaceById(desk.spaceId);
-  if (!space) {
-    return {
-      status: 'error',
-      code: 'DESK_NOT_FOUND',
-      message: 'This desk is not available.',
-    };
-  }
-
-  // Insert. The partial unique index uniq_active_booking_per_desk_per_date
-  // (Doc B §6.2) is the source of truth on conflicts.
-  let result: CreateBookingActionState | null = null;
-  let created: Awaited<ReturnType<typeof createBooking>> | undefined;
-  try {
-    created = await createBooking({
-      guestUserId: String(session.user.id),
-      spaceId: desk.spaceId,
-      deskId: desk.id,
-      bookingDate: parsed.data.bookingDate,
-      totalPriceCents: desk.dailyPriceCents,
-    });
-  } catch (err) {
-    if (isPgUniqueViolation(err, 'uniq_active_booking_per_desk_per_date')) {
-      result = {
-        status: 'error',
-        code: 'DOUBLE_BOOKING',
-        // Verbatim PRD message — do not paraphrase (US-3.3 AC-3).
-        message: 'This desk is already booked for that date',
-      };
-    } else {
-      const msg = err instanceof Error ? err.message : String(err);
-      logger.error('create_booking_action_db_failed', { error: msg });
-      result = {
-        status: 'error',
-        code: 'INTERNAL_ERROR',
-        message: 'Something went wrong. Please try again.',
-      };
-    }
-  }
-  if (result) return result;
-
-  // Story 8-3: fire-and-forget post-commit notification. Email failure
-  // must NOT roll back the booking — caught via .catch + logger.warn.
-  if (created) {
-    notifyBookingRequested(created.id).catch((err) => {
-      logger.warn('notify_booking_requested_failed', { error: String(err) });
-    });
-  }
-
-  revalidatePath(`/spaces/${desk.spaceId}`);
-  revalidatePath('/my-bookings');
-  // Story 6-3 (BA revision 2026-05-12): no redirect on success. Returning
-  // 'success' lets <BookDeskButton> fire the toast on /spaces/[id] (the
-  // current page); the user clicks the toast's action button to navigate
-  // to /my-bookings if they want, or stays on Space Detail to book another
-  // desk. Replaces the prior redirect('/my-bookings?booked=1') cross-nav
-  // pattern — the toast lives in the action context now, action button is
-  // a real link, no soft no-op.
-  return { status: 'success' };
-}
+// Story 9-3: Phase 1's `createBookingAction` + `CreateBookingActionState`
+// were DELETED here (BA Decision §3 + AC-5). The Guest booking path is
+// now `createBookingWithPaymentAction` in
+// `src/actions/booking-with-payment.ts` — single source of truth.
+// `cancelBookingAction` / `confirmBookingAction` / `rejectBookingAction`
+// below stay; Stories 9-4 + 9-6 extend them with Stripe capture /
+// cancel / refund.
 
 export type CancelBookingActionState =
   | { status: 'idle' }

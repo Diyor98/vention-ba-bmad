@@ -25,6 +25,10 @@ function mkBooking(deskId: string): Booking {
     totalPriceCents: 2500,
     paymentStatus: null,
     paymentReference: null,
+    // Story 9-3 fields — Phase 1 fixtures use the column defaults.
+    paymentIntentId: null,
+    totalCents: 0,
+    platformFeeCents: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

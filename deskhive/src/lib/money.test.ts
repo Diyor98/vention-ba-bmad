@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { dollarsToCents, centsToDollars } from './money';
+import {
+  dollarsToCents,
+  centsToDollars,
+  calculatePlatformFee,
+  calculateOwnerPayout,
+} from './money';
 
 describe('dollarsToCents', () => {
   describe('happy path', () => {
@@ -205,4 +210,51 @@ describe('round-trip invariants', () => {
       expect(reparsed).toEqual({ ok: true, cents });
     });
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Story 9-3 — platform fee + owner payout helpers
+// ─────────────────────────────────────────────────────────────────────
+
+describe('calculatePlatformFee', () => {
+  it('computes 15% of a typical booking total ($25.00 → $3.75)', () => {
+    // BA Decision §2 happy path: 1500 bps default, Math.floor rounding.
+    expect(calculatePlatformFee(2500)).toBe(375);
+  });
+
+  it('respects custom feeBps + edge cases (parameterized)', () => {
+    // Custom rates
+    expect(calculatePlatformFee(2500, 1000)).toBe(250); // 10%
+    expect(calculatePlatformFee(2500, 500)).toBe(125); // 5%
+    expect(calculatePlatformFee(10000, 1500)).toBe(1500); // 15% of $100 = $15
+    // Edge cases
+    expect(calculatePlatformFee(0)).toBe(0);
+    // Math.floor truncates sub-cent fees toward zero — the platform
+    // doesn't collect fractional cents. $0.01 * 15% = 0.0015¢ → 0.
+    expect(calculatePlatformFee(1)).toBe(0);
+    // $0.07 * 15% = 1.05¢ → 1¢ (Math.floor)
+    expect(calculatePlatformFee(7)).toBe(1);
+    // Defensive throws
+    expect(() => calculatePlatformFee(-100)).toThrow(/Invalid amount/);
+    expect(() => calculatePlatformFee(100.5)).toThrow(/Invalid amount/);
+    expect(() => calculatePlatformFee(100, -10)).toThrow(/Invalid fee bps/);
+    expect(() => calculatePlatformFee(100, 1.5)).toThrow(/Invalid fee bps/);
+  });
+});
+
+describe('calculateOwnerPayout', () => {
+  it('returns amount minus fee + throws on bad inputs', () => {
+    // BA Decision §2: payout is integer subtraction, no rounding step.
+    // Floor-rounding of the fee means the owner gets sub-cent remainders.
+    expect(calculateOwnerPayout(2500, 375)).toBe(2125);
+    expect(calculateOwnerPayout(10000, 1500)).toBe(8500);
+    expect(calculateOwnerPayout(7, 1)).toBe(6); // pair with calculatePlatformFee(7)
+    expect(calculateOwnerPayout(0, 0)).toBe(0);
+    // Defensive throws
+    expect(() => calculateOwnerPayout(-100, 0)).toThrow(/Invalid amount/);
+    expect(() => calculateOwnerPayout(100, -10)).toThrow(/Invalid fee cents/);
+    expect(() => calculateOwnerPayout(100.5, 0)).toThrow(/Invalid amount/);
+    // Fee cannot exceed amount (defensive against caller bugs)
+    expect(() => calculateOwnerPayout(100, 200)).toThrow(/cannot exceed/);
+  });
 });

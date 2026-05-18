@@ -60,6 +60,10 @@ function makeInfo(opts: {
       totalPriceCents: 2500,
       paymentStatus: null,
       paymentReference: null,
+      // Story 9-3 fields — Phase 1 fixtures use the column defaults.
+      paymentIntentId: null,
+      totalCents: 0,
+      platformFeeCents: 0,
       createdAt: new Date('2026-05-13T10:00:00Z'),
       updatedAt: new Date('2026-05-13T10:00:00Z'),
     },

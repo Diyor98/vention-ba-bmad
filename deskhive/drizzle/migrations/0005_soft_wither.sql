@@ -1,0 +1,44 @@
+-- Story 9-3: Booking with Payment via Stripe Checkout (Phase 2 Epic 9).
+-- Three additive columns + one CHECK constraint on the existing
+-- `bookings.payment_status` column. No data migration: Phase 1 seeded
+-- rows stay unchanged.
+--
+-- New columns (BA Decision §1):
+--   • payment_intent_id TEXT NULL — populated by the return-URL handler
+--     OR the `checkout.session.completed` webhook backstop after the
+--     Guest authorizes payment on Stripe Checkout. NULL while the Guest
+--     is mid-Checkout (the AWAITING_PAYMENT pre-claim state). Phase 1
+--     rows stay NULL (no Stripe interaction).
+--   • total_cents INTEGER NOT NULL DEFAULT 0 — booking total at create
+--     time, materialized from desk.daily_price_cents. DEFAULT 0 covers
+--     Phase 1 backfill of pre-existing rows.
+--   • platform_fee_cents INTEGER NOT NULL DEFAULT 0 — DeskHive's 15%
+--     platform fee (BA Decision §2). Owner payout = total_cents -
+--     platform_fee_cents (derived, not stored). DEFAULT 0 covers Phase 1.
+--
+-- New constraint (BA Decision §3):
+--   • bookings_payment_status_check — enforces payment_status IN
+--     ('AWAITING_PAYMENT', 'AUTHORIZED'). Existing Phase 1 NULL rows
+--     continue to satisfy (PG CHECK allows NULL by default). Stories
+--     9-4 + 9-6 extend via DROP/ADD CONSTRAINT pattern:
+--       9-4 → adds 'CAPTURED'
+--       9-6 → adds 'REFUNDED'
+--     Same migration shape 9-2b used for spaces.status.
+--
+-- ── Rollback (reversibility per established convention) ──────────
+-- ALTER TABLE "bookings" DROP CONSTRAINT "bookings_payment_status_check";
+-- ALTER TABLE "bookings" DROP COLUMN "platform_fee_cents";
+-- ALTER TABLE "bookings" DROP COLUMN "total_cents";
+-- ALTER TABLE "bookings" DROP COLUMN "payment_intent_id";
+--
+-- Safe IFF no Story 9-3+ bookings have been created (those would carry
+-- non-default values in the new columns + AWAITING_PAYMENT /
+-- AUTHORIZED in payment_status — the constraint drop removes the
+-- enforcement, the column drops remove the data). For dev rollback
+-- after BA-walk testing, the constraint drop is the only load-bearing
+-- step; the columns can stay for forward-compat with a re-roll.
+-- ──────────────────────────────────────────────────────────────────
+ALTER TABLE "bookings" ADD COLUMN "payment_intent_id" text;--> statement-breakpoint
+ALTER TABLE "bookings" ADD COLUMN "total_cents" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "bookings" ADD COLUMN "platform_fee_cents" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "bookings" ADD CONSTRAINT "bookings_payment_status_check" CHECK ("bookings"."payment_status" IN ('AWAITING_PAYMENT', 'AUTHORIZED'));

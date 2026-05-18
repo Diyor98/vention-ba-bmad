@@ -117,6 +117,24 @@ export const bookingsTable = pgTable(
     // Doc A §7.4 forward-compat — nullable in Phase 1, written to in Phase 2.
     paymentStatus: text('payment_status'),
     paymentReference: text('payment_reference'),
+    // Story 9-3: Stripe Checkout / Payment Intent linkage. Populated by
+    // the return-URL handler OR the `checkout.session.completed` webhook
+    // backstop. NULL while the Guest is mid-Checkout (the AWAITING_PAYMENT
+    // pre-claim state). Phase 1 seeded rows stay NULL — they have no
+    // Stripe interaction.
+    paymentIntentId: text('payment_intent_id'),
+    // Story 9-3: booking total in cents, materialized at create-time from
+    // desk.dailyPriceCents. Kept alongside totalPriceCents (Phase 1's name)
+    // for forward-compat — Phase 3 may distinguish line-item totals from
+    // booking totals (e.g., with promotional codes). For Phase 2: totalCents
+    // === totalPriceCents at create-time. DEFAULT 0 covers Phase 1 backfill.
+    totalCents: integer('total_cents').notNull().default(0),
+    // Story 9-3: DeskHive's 15% platform fee, calculated via
+    // calculatePlatformFee(totalCents) in src/lib/money.ts. Owner payout =
+    // totalCents - platformFeeCents (not stored, derived). DEFAULT 0 covers
+    // Phase 1 backfill — those bookings have no Stripe charge, so no fee
+    // was ever collected.
+    platformFeeCents: integer('platform_fee_cents').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -124,6 +142,17 @@ export const bookingsTable = pgTable(
     check(
       'bookings_status_check',
       sql`${t.status} IN ('PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED')`,
+    ),
+    // Story 9-3: payment_status CHECK constraint. Phase 1 declared the
+    // column nullable with no CHECK; 9-3 introduces 'AWAITING_PAYMENT' +
+    // 'AUTHORIZED'. Existing NULL rows continue to satisfy the constraint
+    // (PG CHECK allows NULL by default). Stories 9-4 + 9-6 extend via
+    // DROP/ADD CONSTRAINT — same pattern 9-2b used for spaces.status:
+    //   9-4 → adds 'CAPTURED'
+    //   9-6 → adds 'REFUNDED'
+    check(
+      'bookings_payment_status_check',
+      sql`${t.paymentStatus} IN ('AWAITING_PAYMENT', 'AUTHORIZED')`,
     ),
     // Document B §6.2 — THE marquee correctness constraint.
     uniqueIndex('uniq_active_booking_per_desk_per_date')

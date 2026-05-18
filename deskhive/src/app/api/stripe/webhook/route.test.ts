@@ -14,12 +14,16 @@ const {
   constructEventMock,
   getByStripeAcctIdMock,
   upsertConnectMock,
+  getBookingByIdMock,
+  markBookingAuthorizedMock,
   dbSelectMock,
   dbInsertMock,
 } = vi.hoisted(() => ({
   constructEventMock: vi.fn(),
   getByStripeAcctIdMock: vi.fn(),
   upsertConnectMock: vi.fn(),
+  getBookingByIdMock: vi.fn(),
+  markBookingAuthorizedMock: vi.fn(),
   dbSelectMock: vi.fn(),
   dbInsertMock: vi.fn(),
 }));
@@ -35,6 +39,12 @@ vi.mock('@/lib/stripe', () => ({
 vi.mock('@/db/queries/stripe-connect', () => ({
   getConnectAccountByStripeAccountId: getByStripeAcctIdMock,
   upsertConnectAccount: upsertConnectMock,
+}));
+
+// Story 9-3: bookings query mocks for the new checkout.session.completed branch.
+vi.mock('@/db/queries/bookings', () => ({
+  getBookingById: getBookingByIdMock,
+  markBookingAuthorized: markBookingAuthorizedMock,
 }));
 
 vi.mock('@/db/client', () => ({
@@ -84,6 +94,8 @@ beforeEach(() => {
   constructEventMock.mockReset();
   getByStripeAcctIdMock.mockReset();
   upsertConnectMock.mockReset();
+  getBookingByIdMock.mockReset();
+  markBookingAuthorizedMock.mockReset();
   dbSelectMock.mockReset();
   dbInsertMock.mockReset();
   process.env = { ...ORIGINAL_ENV, STRIPE_WEBHOOK_SECRET: 'whsec_test_secret' };
@@ -247,6 +259,98 @@ describe('POST /api/stripe/webhook (Story 9-2 Decision §14 tests 8-11)', () => 
     const body = await res.json();
     expect(body).toEqual({ received: true, deferred: true });
     expect(upsertConnectMock).not.toHaveBeenCalled();
+    expect(dbInsertMock).not.toHaveBeenCalled();
+  });
+
+  // ──────────────────────────────────────────────────────────────────
+  // Story 9-3: checkout.session.completed branch tests (Decision §11).
+  // ──────────────────────────────────────────────────────────────────
+
+  it('Story 9-3 — checkout.session.completed happy path: marks booking AUTHORIZED + inserts webhook_events', async () => {
+    constructEventMock.mockReturnValueOnce({
+      id: 'evt_checkout_completed_1',
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_test_session_1',
+          payment_intent: 'pi_test_payment_1',
+          metadata: { bookingId: 'booking-uuid-1' },
+        },
+      },
+    });
+    stubWebhookEventsLookup(false);
+    getBookingByIdMock.mockResolvedValueOnce({
+      id: 'booking-uuid-1',
+      paymentStatus: 'AWAITING_PAYMENT',
+      paymentIntentId: null,
+    });
+    // markBookingAuthorized returns the updated row on success (not
+    // undefined — the conditional WHERE matched).
+    markBookingAuthorizedMock.mockResolvedValueOnce({
+      id: 'booking-uuid-1',
+      paymentStatus: 'AUTHORIZED',
+      paymentIntentId: 'pi_test_payment_1',
+    });
+    const valuesFn = stubWebhookEventsInsert();
+
+    const res = await POST(makePostRequest('{}', 'sig_valid'));
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({ received: true, handled: true });
+
+    // markBookingAuthorized called with the right args.
+    expect(markBookingAuthorizedMock).toHaveBeenCalledTimes(1);
+    expect(markBookingAuthorizedMock.mock.calls[0]?.[0]).toEqual({
+      bookingId: 'booking-uuid-1',
+      paymentIntentId: 'pi_test_payment_1',
+    });
+
+    // webhook_events insert fires with the right payload (first real
+    // handle — Decision §7 anti-pattern from 9-2 carries forward).
+    expect(dbInsertMock).toHaveBeenCalledTimes(1);
+    expect(valuesFn).toHaveBeenCalledTimes(1);
+    expect(valuesFn.mock.calls[0]?.[0]?.stripeEventId).toBe(
+      'evt_checkout_completed_1',
+    );
+    expect(valuesFn.mock.calls[0]?.[0]?.eventType).toBe(
+      'checkout.session.completed',
+    );
+  });
+
+  it('Story 9-3 — checkout.session.completed idempotent (return-URL won): no-op + NO webhook_events insert', async () => {
+    constructEventMock.mockReturnValueOnce({
+      id: 'evt_checkout_completed_2',
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_test_session_2',
+          payment_intent: 'pi_test_payment_2',
+          metadata: { bookingId: 'booking-uuid-2' },
+        },
+      },
+    });
+    stubWebhookEventsLookup(false);
+    getBookingByIdMock.mockResolvedValueOnce({
+      id: 'booking-uuid-2',
+      // Return-URL handler already won — booking is already AUTHORIZED.
+      paymentStatus: 'AUTHORIZED',
+      paymentIntentId: 'pi_test_payment_2',
+    });
+    // markBookingAuthorized's conditional WHERE filters this row out —
+    // .returning() yields no row, the wrapper returns undefined.
+    markBookingAuthorizedMock.mockResolvedValueOnce(undefined);
+
+    const res = await POST(makePostRequest('{}', 'sig_valid'));
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({ received: true, idempotent: true });
+
+    // CRITICAL: Decision §7 anti-pattern from 9-2 — only insert into
+    // webhook_events on FIRST real handle. The return-URL handler
+    // already did the work; this webhook is a no-op, so the
+    // webhook_events row is NOT inserted.
     expect(dbInsertMock).not.toHaveBeenCalled();
   });
 });

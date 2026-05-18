@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { formatCents, todayIso } from '@/lib/format';
 import { logger } from '@/lib/logger';
 import { CancelBookingButton } from './cancel-booking-button';
+import { JustBookedToast } from './just-booked-toast';
 import type { Booking, BookingStatus, Desk, Space } from '@/db/schema';
 
 type Row = { booking: Booking; desk: Desk; space: Space };
@@ -67,6 +68,10 @@ export default async function MyBookingsPage() {
       className="container-content"
       style={{ paddingTop: '3rem', paddingBottom: '4rem' }}
     >
+      {/* Story 9-3: fires the BOOKING_SUCCESS toast when the user lands here
+          via /my-bookings?just_booked=1 (return-from-Stripe-Checkout redirect).
+          Renders nothing; pure effect on the search param. */}
+      <JustBookedToast />
       <header className="mb-8">
         <h1 className="page-h1">My bookings</h1>
         <p

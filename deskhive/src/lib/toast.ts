@@ -47,6 +47,22 @@ export const TOAST_COPY = {
   // created space with zero desks is unbookable). BA Decision §3.
   SPACE_CREATED_TITLE: 'Space created',
   SPACE_CREATED_DESCRIPTION: 'Now add a desk to make it bookable.',
+  // Story 9-3: booking-with-payment surfaces. Three new strings for the
+  // distinct failure modes the new flow introduces; BOOKING_SUCCESS_*
+  // above stay unchanged (Decision §10).
+  // - STRIPE_NOT_ACTIVE fires when the space's owner has no active
+  //   Connect row (charges_enabled / payouts_enabled false). The
+  //   message is intentionally vague — guests don't need to know
+  //   about Stripe; they just need to know to try a different space.
+  // - PAYMENT_INIT fires when the action couldn't create the Stripe
+  //   Checkout Session (Stripe API failure, network error, etc.).
+  // - CANCELLED_PAYMENT fires when the Guest clicks Cancel on the
+  //   Stripe-hosted Checkout page and is redirected back to
+  //   /spaces/[id]?booking_cancelled=1 (handled by the space-detail
+  //   page in a future polish; the copy lives here for completeness).
+  BOOKING_FAILED_STRIPE_NOT_ACTIVE: "This space can't accept bookings right now.",
+  BOOKING_FAILED_PAYMENT_INIT: "Payment couldn't start. Please try again.",
+  BOOKING_CANCELLED_PAYMENT: 'Payment cancelled — your card was not charged.',
 } as const;
 
 type ToastAction = { label: string; onClick: () => void };
