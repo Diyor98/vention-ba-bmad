@@ -23,7 +23,7 @@ Story 9-2 (Stripe Connect onboarding) populates the DB with each owner's `charge
 2. Making owner-created spaces default to `DRAFT` instead of auto-publishing.
 3. Adding a `publishSpaceAction` Server Action that flips DRAFT → PUBLISHED, gated on the owner's Connect state being active.
 4. Surfacing a "Publish" button + DRAFT badge in `/owner/spaces` and `/owner/spaces/[id]`.
-5. Adding a bounded second seed user `owner-no-connect@deskhive.local` so the gated-path E2E test has a stable target.
+5. Adding a bounded second seed user `owner-pending-onboarding@deskhive.local` (with a scrub-on-seed step) so the gated-path E2E test has a stable target even after BA walks complete Connect onboarding for that user.
 
 After 9-2b ships:
 - A space owner who has NOT completed Connect onboarding can create spaces, but those spaces stay in DRAFT and don't appear publicly. Clicking Publish surfaces a clear "complete Stripe onboarding first" error.
@@ -42,8 +42,8 @@ After 9-2b ships:
 - `/owner/spaces` list UI: DRAFT badge on unpublished spaces; Publish button per row (or per detail page — Decision §3 picks).
 - `/owner/spaces/[id]` detail UI: same DRAFT badge + Publish action.
 - Public-listing query (`src/db/queries/spaces.ts`) — VERIFY it already filters `status = 'PUBLISHED'`. If not (i.e., if it filters with `status != 'SUSPENDED'`), update to be inclusive-list (`status = 'PUBLISHED'`) so DRAFT spaces stay private.
-- Seed update — add `owner-no-connect@deskhive.local` user + NO `stripe_connect_accounts` row (so they're in the "not yet onboarded" state by construction).
-- Playwright fixture (`tests/fixtures/auth-helpers.ts`) — add `owner-no-connect` role shorthand.
+- Seed update — add `owner-pending-onboarding@deskhive.local` user + a `scrubPendingOnboardingConnectRow` step that deletes any `stripe_connect_accounts` row for that user on every seed (so they're returned to the "not yet onboarded" state even after a BA walk).
+- Playwright fixture (`tests/fixtures/auth-helpers.ts`) — add `owner-pending-onboarding` role shorthand.
 - Unit tests for `publishSpaceAction` (4 cases per Decision §9).
 - E2E tests for publish-gating (2 cases per Decision §7).
 - Memory entry: extend `reference_stripe_service_pattern.md` with the publish-gating section.
@@ -224,12 +224,12 @@ await db.insert(spacesTable).values({
 
 ---
 
-### Decision 5: `owner-no-connect@deskhive.local` bounded seed user
+### Decision 5: `owner-pending-onboarding@deskhive.local` bounded seed user + scrub-on-seed
 
 **Rationale:** The gated-path E2E test (Decision §7 test #2) needs a stable owner who is in SPACE_OWNER role + host mode but has NO `stripe_connect_accounts` row (or has a row with all flags = false). The seeded `owner@deskhive.local` has a synthetic complete-Connect row (Story 9-2 Decision §8), so it can't satisfy this test.
 
 Three options:
-- **(A) Add a second seeded owner user** `owner-no-connect@deskhive.local` with the SPACE_OWNER role but no Connect row.
+- **(A) Add a second seeded owner user** `owner-pending-onboarding@deskhive.local` with the SPACE_OWNER role + a seed step that DELETEs any `stripe_connect_accounts` row for that user on every `pnpm db:seed`.
 - **(B) Programmatically delete `owner@deskhive.local`'s Connect row at test setup + restore in teardown.** Same pattern Decision §9 in 9-2 uses for the initial-state test.
 - **(C) Use an unauthenticated path that triggers the same error code.** Nope — `publishSpaceAction` requires SPACE_OWNER auth.
 
@@ -239,26 +239,52 @@ Three options:
 
 **Why this is a "bounded exception":** the project's general principle is "no test users beyond the minimal seed" (Story 7-PREP-1 AC-2). Story 7-PREP-1 itself opened the door to bounded exceptions when justified by paying-down-test-debt. 9-2b's gated-path test is exactly that — without the new user, the gated path has no automated coverage at all.
 
+#### Naming history: `owner-no-connect` → `owner-pending-onboarding` (post-BA-walk follow-up)
+
+The user was originally seeded as `owner-no-connect@deskhive.local`. During the 9-2b BA browser walk, the BA verified the gated UI by clicking the disabled-Publish affordance, following the "Go to Settings →" link, and completing a real Stripe Express test-mode onboarding flow. That left the user with an active `stripe_connect_accounts` row — and the seed user's name then *lied about the state*. On the next `pnpm db:seed`, the user would have been a no-op (idempotent on email) and the gated-path E2E test would have silently flipped to a false-negative happy path.
+
+The rename + scrub-on-seed pattern fixes this:
+
+1. **Honest name** — `owner-pending-onboarding` describes the *enforced* state, not a one-time initial condition. A reader of the seed script sees the name and immediately understands the contract.
+2. **`scrubPendingOnboardingConnectRow` runs every seed** — deletes any `stripe_connect_accounts` row for this user, idempotent whether or not a row exists. The seed is now self-healing: `pnpm db:seed` always returns the user to the pending state, regardless of what BA walks or manual probes did in the browser between runs.
+3. **Legacy user left alone** — the pre-rename `owner-no-connect@deskhive.local` stays in the DB as a harmless orphan. Auto-deletion would have to cascade-orphan any spaces the BA published during their verification walk (the BA created at least one published space "Space Austin"), since `spaces.ownerId` has no `onDelete: cascade`. The new fixture doesn't reference the legacy user at all, so leaving it in place costs nothing; the BA can manually clean it up if they want.
+4. **Belt-and-suspenders in the test fixture** — `tests/e2e/publish-gating.spec.ts`'s `beforeEach` keeps its own scrub (`clearPendingOwnerConnectRow`) so a parallel test or a between-seed-runs walk can't corrupt the test's perceived state at runtime.
+5. **Test owns the Connect-row lifecycle** — both tests sign in as the same pending-onboarding user; the happy path INSERTs a synthetic Connect row mid-test (`setPendingOwnerActiveConnectRow`) and then asserts the Publish button is enabled; the gated path leaves the row absent and asserts the disabled state. Eliminates the cross-file race that existed when the happy path used `owner@deskhive.local` (whose Connect row is mutated by `connect-onboarding.spec.ts`). The describe is configured `mode: 'serial'` to also eliminate the intra-file race on the shared user's Connect row — cheap given there are only 2 tests.
+6. **Per-test space cleanup is by exact name, not LIKE prefix** — `deleteSpaceByExactName(name)` in `afterEach` removes only the row the test created; a `beforeAll` sweep with `LIKE 'PG9-2b%'` handles leftovers from prior aborted runs. Avoids the parallelism footgun where one worker's broad cleanup nukes another worker's in-flight space.
+
+**Why option (A) with rename rather than option (b) ("fresh signUpEmail at test setup"):** future Theme B stories (9-3 booking-creation gating, 9-4 capture/cancel, 9-6 refund) will need similar "owner can't take payments yet" scenarios. A stable seeded user with a self-healing scrub step is reusable across all of them; per-test signup would re-implement the same setup in each story + leak orphan users into the DB on every run unless every test added its own cleanup hook. The scrub-on-seed pattern is also a real ergonomic win during manual BA verification — the BA can manually run `pnpm db:seed` to reset the test user without restarting anything else.
+
 **Implementation:**
 
 ```typescript
 // scripts/seed.ts — additive block, idempotent
-const ownerNoConnectEmail = 'owner-no-connect@deskhive.local';
-const ownerNoConnectPassword = 'OwnerNoConnect1!';
-// ... use the same auth.api.signUpEmail pattern as the existing owner@ seed
-// ... assign role SPACE_OWNER
-// ... DO NOT create a stripe_connect_accounts row for this user
-console.log(`Seeded ${ownerNoConnectEmail} (no Connect row; for publish-gating E2E).`);
+const SEED_OWNER_PENDING_ONBOARDING_EMAIL =
+  'owner-pending-onboarding@deskhive.local';
+const SEED_OWNER_PENDING_ONBOARDING_PASSWORD = 'PendingOnboard1!';
+const SEED_OWNER_PENDING_ONBOARDING_FULL_NAME = 'Owner Pending Onboarding';
+
+async function scrubPendingOnboardingConnectRow(): Promise<void> {
+  // Deletes any `stripe_connect_accounts` row for this user. Idempotent —
+  // runs after `seedUser` to return the user to the gated state regardless
+  // of what manual BA-walk onboarding may have done in the browser.
+}
+
+// In main(), sequenced:
+//   1. seedUser({ ...PENDING_ONBOARDING... })     // idempotent on email
+//   2. scrubPendingOnboardingConnectRow()         // after seedUser
+//
+// The pre-rename `owner-no-connect@deskhive.local` is intentionally
+// NOT auto-cleaned-up by the seed — see point 3 above.
 ```
 
 **Playwright fixture:**
 
 ```typescript
-// tests/fixtures/auth-helpers.ts — add to the ROLE_EMAIL map
+// tests/fixtures/auth-helpers.ts — ROLE_EMAIL map
 const ROLE_EMAIL = {
   guest: 'guest@deskhive.local',
   owner: 'owner@deskhive.local',
-  'owner-no-connect': 'owner-no-connect@deskhive.local',  // NEW
+  'owner-pending-onboarding': 'owner-pending-onboarding@deskhive.local',
   admin: 'admin@deskhive.local',
   // ...
 };
@@ -266,9 +292,9 @@ const ROLE_EMAIL = {
 
 **Anti-pattern forbidden:**
 - Do NOT skip this seed user and rely on programmatic state mutation (Option B).
-- Do NOT give `owner-no-connect@deskhive.local` an existing space — they should create one mid-test so the test exercises the full create-then-attempt-publish flow.
-
-**Open question for BA:** is the bounded-seed-exception acceptable here, mirroring 7-PREP-1? **Strawman recommends YES.**
+- Do NOT give `owner-pending-onboarding@deskhive.local` an existing space — they should create one mid-test so the test exercises the full create-then-attempt-publish flow.
+- Do NOT skip the scrub-on-seed step. A long-lived seed user without a state-resetting seed step is brittle to BA walks — the original `owner-no-connect@deskhive.local` failure mode the rename was introduced to prevent.
+- Do NOT rely on the test's `beforeEach` scrub alone — the seed scrub catches the manual-verification case where a developer/BA runs `pnpm db:seed` without running the test, expecting the user to be in the pending state.
 
 ---
 
@@ -295,7 +321,7 @@ const ROLE_EMAIL = {
 
 1. **Happy publish path** — `owner@deskhive.local` (with synthetic complete-Connect row from 9-2) navigates to `/owner/spaces/new`, creates a space → space appears in `/owner/spaces` with DRAFT badge → owner clicks Publish → toast confirms → space transitions to PUBLISHED → DRAFT badge disappears → Publish button disappears.
 
-2. **Gated publish path** — `owner-no-connect@deskhive.local` (no Connect row, per Decision §5) navigates to `/owner/spaces/new`, creates a space → space appears with DRAFT badge → owner clicks Publish → error toast surfaces `STRIPE_NOT_ACTIVE` text + link to `/owner/settings` → space stays in DRAFT.
+2. **Gated publish path** — `owner-pending-onboarding@deskhive.local` (no Connect row by construction, per Decision §5's scrub-on-seed contract) navigates to `/owner/spaces/new`, creates a space → space appears with DRAFT badge → owner clicks Publish → error toast surfaces `STRIPE_NOT_ACTIVE` text + link to `/owner/settings` → space stays in DRAFT.
 
 **E2E test file:** `tests/e2e/publish-gating.spec.ts` (new). Single `test.describe` block; no need for `test.describe.serial` since the two tests use different seeded owners.
 
@@ -306,7 +332,7 @@ const ROLE_EMAIL = {
 
 **Anti-pattern forbidden:**
 - Do NOT skip the gated-path test — it's the only proof that the Connect-state check actually fires.
-- Do NOT seed a pre-existing DRAFT space for `owner-no-connect@deskhive.local`; the test exercises the full create-then-publish flow.
+- Do NOT seed a pre-existing DRAFT space for `owner-pending-onboarding@deskhive.local`; the test exercises the full create-then-publish flow.
 
 ---
 
@@ -322,8 +348,8 @@ Estimate, not directive.
 - `deskhive/src/app/(owner)/owner/spaces/page.tsx` — DRAFT badge + Publish button per row.
 - `deskhive/src/app/(owner)/owner/spaces/[id]/page.tsx` — same.
 - `deskhive/src/db/queries/spaces.ts` — verify and (if needed) update public-listing status filter (Decision §6).
-- `deskhive/scripts/seed.ts` — add `owner-no-connect@deskhive.local` (Decision §5).
-- `deskhive/tests/fixtures/auth-helpers.ts` — add `owner-no-connect` role shorthand (Decision §5).
+- `deskhive/scripts/seed.ts` — add `owner-pending-onboarding@deskhive.local` + `scrubPendingOnboardingConnectRow` (Decision §5).
+- `deskhive/tests/fixtures/auth-helpers.ts` — add `owner-pending-onboarding` role shorthand (Decision §5).
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — 9-2b status entry under Epic 9.
 - `_bmad-output/implementation-artifacts/9-2b-publish-gating.md` — story file.
 - Memory: `reference_stripe_service_pattern.md` (extend with publish-gating section).
@@ -375,7 +401,7 @@ Extend `reference_stripe_service_pattern.md` with a new section under the existi
 - Application-level vs. DB-level default split (Decision §4).
 - `publishSpaceAction` shape + four-error-code discriminated union (Decision §2).
 - Cross-tenant `NOT_FOUND`-not-`FORBIDDEN` reuse (cross-references Story 7-5's pattern).
-- Bounded `owner-no-connect@deskhive.local` seed user (Decision §5) — note as second precedent after Story 7-PREP-1's `guest@deskhive.local`.
+- Bounded `owner-pending-onboarding@deskhive.local` seed user + scrub-on-seed pattern (Decision §5) — note as second precedent after Story 7-PREP-1's `guest@deskhive.local`, and as the template for any future long-lived seed user whose state can be mutated by BA browser walks.
 - Forward-reference: Story 9-3's booking-creation path will likely add a similar Connect-state-active check at the booking-create boundary (not at the space-publish boundary).
 
 **No new memory file** — extend `reference_stripe_service_pattern.md`.
@@ -402,7 +428,7 @@ Extend `reference_stripe_service_pattern.md` with a new section under the existi
 
 **Setup:**
 - Story 9-2 has shipped and is at `done` on `main`.
-- `pnpm db:seed` has run after pulling 9-2b (creates `owner-no-connect@deskhive.local`).
+- `pnpm db:seed` has run after pulling 9-2b + the fixture-rename follow-up (creates `owner-pending-onboarding@deskhive.local`, scrubs any Connect row for that user; the legacy `owner-no-connect@deskhive.local` user is left in place as a harmless orphan because deletion would cascade-orphan BA-walk-published spaces).
 - `owner@deskhive.local` still has the synthetic Connect row from 9-2's seed (verifies idempotent re-seed).
 
 **Checks (8 points, refined post-lock):**
@@ -413,7 +439,7 @@ Extend `reference_stripe_service_pattern.md` with a new section under the existi
 4. `pnpm build` — 39 routes (unchanged from 9-2).
 5. `git diff --stat` shows ONLY files in Decision §8. Zero changes to `src/lib/stripe.ts`, `src/lib/payments/connect.ts`, `src/app/(owner)/owner/settings/*`, `src/app/api/stripe/webhook/route.ts`, email infrastructure.
 6. **Happy publish path:** sign in as `owner@deskhive.local` → `/owner/spaces/new` → create space "Test Draft" → land on `/owner/spaces` → see "Test Draft" with DRAFT badge → click Publish → toast confirms → DRAFT badge gone, Publish button gone → space appears in public `/spaces` listing.
-7. **Gated publish path:** sign in as `owner-no-connect@deskhive.local` → `/owner/spaces/new` → create space "Gated Draft" → see DRAFT badge → click Publish → toast says "Complete Stripe onboarding before publishing" with link to `/owner/settings` → space STILL has DRAFT badge → space does NOT appear in public `/spaces` listing.
+7. **Gated publish path:** sign in as `owner-pending-onboarding@deskhive.local` → `/owner/spaces/new` → create space "Gated Draft" → see DRAFT badge → click Publish → toast says "Complete Stripe onboarding before publishing" with link to `/owner/settings` → space STILL has DRAFT badge → space does NOT appear in public `/spaces` listing.
 8. **Phase 1 regression:** existing seeded PUBLISHED spaces still appear in `/spaces`; admin-created spaces from `/admin/spaces/new` (if BA tests this path) still auto-publish.
 
 ---
@@ -428,7 +454,7 @@ After 9-2b ships:
 **Dependencies cleared by 9-2b:**
 - Publish gating works end-to-end.
 - The DRAFT enum state exists for any future story that needs it.
-- The bounded `owner-no-connect@deskhive.local` seed user can be reused by Stories 9-3 / 9-4 / 9-6 for gated-path E2E testing.
+- The bounded `owner-pending-onboarding@deskhive.local` seed user (with scrub-on-seed) can be reused by Stories 9-3 / 9-4 / 9-6 for gated-path E2E testing.
 
 **Open seams 9-2b leaves for later stories:**
 - Story 9-3 introduces the booking-with-payment-intent flow + likely its own Connect-state gate.

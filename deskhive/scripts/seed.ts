@@ -41,16 +41,28 @@ const SEED_GUEST_EMAIL = 'guest@deskhive.local';
 const SEED_GUEST_PASSWORD = 'GuestPass1!';
 const SEED_GUEST_FULL_NAME = 'Test Guest';
 
-// Story 9-2b (Phase 2): seed a SECOND SPACE_OWNER without any Stripe
-// Connect row, so the gated-publish E2E test has a stable "Connect-
-// incomplete owner" target. Mirrors the bounded-exception precedent of
-// `guest@deskhive.local` from Story 7-PREP-1 (BA Decision §5). DO NOT
-// seed a `stripe_connect_accounts` row OR any spaces for this user —
-// the gated-path E2E exercises the full create-then-attempt-publish
-// flow against a virgin owner.
-const SEED_OWNER_NO_CONNECT_EMAIL = 'owner-no-connect@deskhive.local';
-const SEED_OWNER_NO_CONNECT_PASSWORD = 'OwnerNoConnect1!';
-const SEED_OWNER_NO_CONNECT_FULL_NAME = 'Owner Without Connect';
+// Story 9-2b (Phase 2): seed a SECOND SPACE_OWNER in a "pending
+// Stripe Connect onboarding" state, so the gated-publish E2E test has
+// a stable target. Mirrors the bounded-exception precedent of
+// `guest@deskhive.local` from Story 7-PREP-1 (BA Decision §5).
+//
+// Originally seeded as `owner-no-connect@deskhive.local`, renamed
+// post-9-2b BA-walk: the BA verified the gated UI by clicking through
+// the Connect onboarding affordance, which left the user with an
+// active `stripe_connect_accounts` row — the previous name then lied
+// about the state. The renamed user is paired with a scrub step that
+// DELETEs any existing Connect row on every `pnpm db:seed`, so the
+// fixture is robust to manual onboarding walks. See
+// `scrubPendingOnboardingConnectRow` below + Decision §5 in
+// `docs/design/9-2b-publish-gating-ba-decisions.md` for full context.
+//
+// DO NOT seed a `stripe_connect_accounts` row OR any spaces for this
+// user — the gated-path E2E exercises the full create-then-attempt-
+// publish flow against a virgin owner.
+const SEED_OWNER_PENDING_ONBOARDING_EMAIL =
+  'owner-pending-onboarding@deskhive.local';
+const SEED_OWNER_PENDING_ONBOARDING_PASSWORD = 'PendingOnboard1!';
+const SEED_OWNER_PENDING_ONBOARDING_FULL_NAME = 'Owner Pending Onboarding';
 
 // Story 7-4 (Phase 2): seed four applicant GUESTs + four applications
 // (2 PENDING + 1 APPROVED w/ atomic promotion + 1 REJECTED w/ reason).
@@ -323,6 +335,43 @@ async function seedOwnerSpace(): Promise<string | null> {
  */
 const SEED_OWNER_CONNECT_ACCOUNT_ID = 'acct_seed_for_e2e_only';
 
+/**
+ * Story 9-2b (post-BA-walk hardening): keep the `owner-pending-
+ * onboarding@deskhive.local` user in a "no Connect row" state regardless
+ * of what manual onboarding walks may have done in the browser. Runs on
+ * every `pnpm db:seed`; idempotent whether or not a row exists.
+ *
+ * Why this exists: the BA browser walk for 9-2b verified the gated UI by
+ * clicking the disabled-Publish affordance → following the Settings link
+ * → completing real Stripe Express onboarding (test mode). That left the
+ * user with an active Connect row, which would silently break the
+ * gated-path E2E test on the next CI run. The fixture now scrubs on
+ * seed so re-running `pnpm db:seed` always returns the user to the
+ * pending state — same idempotency contract as the other seed steps.
+ */
+async function scrubPendingOnboardingConnectRow(): Promise<void> {
+  const [owner] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.email, SEED_OWNER_PENDING_ONBOARDING_EMAIL))
+    .limit(1);
+  if (!owner) {
+    console.warn(
+      `Pending-onboarding owner not found (${SEED_OWNER_PENDING_ONBOARDING_EMAIL}); skipping Connect scrub.`,
+    );
+    return;
+  }
+  const result = await db
+    .delete(stripeConnectAccountsTable)
+    .where(eq(stripeConnectAccountsTable.userId, owner.id))
+    .returning({ id: stripeConnectAccountsTable.id });
+  if (result.length > 0) {
+    console.log(
+      `Scrubbed ${result.length} stripe_connect_accounts row(s) for ${SEED_OWNER_PENDING_ONBOARDING_EMAIL} (returning to pending state).`,
+    );
+  }
+}
+
 async function seedOwnerConnectAccount(): Promise<void> {
   const [owner] = await db
     .select({ id: usersTable.id })
@@ -473,16 +522,26 @@ async function main() {
     role: 'SPACE_OWNER',
   });
 
-  // Story 9-2b: second SPACE_OWNER without a Connect row. Used by the
-  // gated-publish E2E test. seedUser is idempotent on email; we never
-  // call `seedOwnerConnectAccount` or `seedOwnerSpace` for this user —
-  // they remain a pristine "Connect-incomplete" target by design.
+  // Story 9-2b (post-BA-walk hardening): the legacy
+  // `owner-no-connect@deskhive.local` user stays in the DB as a
+  // harmless orphan — automatic deletion would have to cascade-orphan
+  // any spaces the BA published during their verification walk
+  // (`spaces.ownerId` has no `onDelete: cascade`). Cleanup is left as a
+  // manual operation if the BA wants to clear it; the new fixture
+  // doesn't reference the legacy user at all.
+
+  // Story 9-2b: second SPACE_OWNER in "pending Connect onboarding" state.
+  // Used by the gated-publish E2E test. seedUser is idempotent on email;
+  // we never call `seedOwnerConnectAccount` or `seedOwnerSpace` for this
+  // user. The scrub step below explicitly removes any Connect row a BA
+  // walk may have created — see `scrubPendingOnboardingConnectRow`.
   await seedUser({
-    email: SEED_OWNER_NO_CONNECT_EMAIL,
-    password: SEED_OWNER_NO_CONNECT_PASSWORD,
-    fullName: SEED_OWNER_NO_CONNECT_FULL_NAME,
+    email: SEED_OWNER_PENDING_ONBOARDING_EMAIL,
+    password: SEED_OWNER_PENDING_ONBOARDING_PASSWORD,
+    fullName: SEED_OWNER_PENDING_ONBOARDING_FULL_NAME,
     role: 'SPACE_OWNER',
   });
+  await scrubPendingOnboardingConnectRow();
 
   // Story 7-PREP-1: fresh GUEST with no application — for E2E State A
   // coverage. No `seedApplication` call follows this user; they remain
