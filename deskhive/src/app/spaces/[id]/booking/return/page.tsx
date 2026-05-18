@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { revalidatePath } from 'next/cache';
 import { requireSession } from '@/lib/auth/guards';
 import { getBookingById, markBookingAuthorized } from '@/db/queries/bookings';
 import { retrieveCheckoutSession } from '@/lib/payments/checkout';
@@ -13,7 +12,8 @@ import { logger } from '@/lib/logger';
  * carries `?session_id=cs_xxx` (Stripe expanded the
  * `{CHECKOUT_SESSION_ID}` placeholder in our `success_url`).
  *
- * Locked 7-step flow:
+ * Locked 6-step flow (originally 7 — Step 6 `revalidatePath` dropped
+ * per the 9-3 BA-walk follow-up; see "BA-walk follow-up" note below):
  *   1. Read `session_id`. Missing / malformed → redirect with error.
  *   2. Retrieve Session + expanded PaymentIntent via
  *      `retrieveCheckoutSession` (the sub-module wrapper).
@@ -24,8 +24,7 @@ import { logger } from '@/lib/logger';
  *      `booking.guestUserId === session.user.id` (cross-tenant defense).
  *   5. `markBookingAuthorized({ bookingId, paymentIntentId })` —
  *      conditional UPDATE that's a no-op if the webhook already won.
- *   6. revalidatePath('/my-bookings') + revalidatePath('/spaces/[id]').
- *   7. redirect('/my-bookings?just_booked=1') — existing /my-bookings
+ *   6. redirect('/my-bookings?just_booked=1') — existing /my-bookings
  *      page fires the Story 6-3 success toast.
  *
  * A Server Component (not a Server Action) — Stripe's redirect is a
@@ -33,6 +32,26 @@ import { logger } from '@/lib/logger';
  * a Server Component is consumed by the rendering layer for both
  * internal and external URLs; this works in 9-3 because we only
  * redirect internally.
+ *
+ * ── BA-walk follow-up (Next.js 16 render-time `revalidatePath` ban) ──
+ * The original Step 6 called `revalidatePath('/my-bookings')` +
+ * `revalidatePath('/spaces/[id]')`. Next.js 16 rejects this at runtime:
+ *   "Route used 'revalidatePath' during render which is unsupported.
+ *    To ensure revalidation is performed consistently it must always
+ *    happen outside of renders and cached functions."
+ *
+ * Both calls are dropped (not wrapped in a Server Action) because they
+ * were redundant: the immediate `redirect('/my-bookings?just_booked=1')`
+ * below triggers a fresh top-level navigation. `/my-bookings`'s Server
+ * Component re-runs against the DB with no router-cache hit to
+ * invalidate; `/spaces/[id]` similarly re-runs on next visit. The
+ * `markBookingAuthorized` UPDATE already happened at Step 5 — the DB
+ * is the source of truth the next render reads from.
+ *
+ * Same shape as Story 9-2's BA-walk-found defensive fix
+ * (commit `0d384e0`): discover a Next.js 16 strictness issue in a real
+ * walk, document the cause, ship a narrow fix that preserves the
+ * behavioral contract.
  */
 
 type SearchParams = { session_id?: string };
@@ -147,10 +166,11 @@ export default async function BookingReturnPage({
     redirect(`/spaces/${spaceId}?booking_error=update_failed`);
   }
 
-  // ─── Step 6: Revalidate paths ───────────────────────────────────
-  revalidatePath('/my-bookings');
-  revalidatePath(`/spaces/${spaceId}`);
-
-  // ─── Step 7: Redirect to /my-bookings with toast signal ─────────
+  // ─── Step 6: Redirect to /my-bookings with toast signal ─────────
+  // Original Step 6 was `revalidatePath('/my-bookings')` +
+  // `revalidatePath('/spaces/[id]')` — dropped per the BA-walk follow-
+  // up (Next.js 16 forbids `revalidatePath` during render; both calls
+  // were redundant given the `redirect()` triggers a fresh top-level
+  // navigation, see the header comment for rationale).
   redirect('/my-bookings?just_booked=1');
 }
