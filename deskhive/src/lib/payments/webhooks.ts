@@ -623,12 +623,67 @@ export async function handleChargeRefunded(
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// handlePayoutPaid — Story 9-7 NEW. **Audit-only** webhook handler.
+//
+// Last Theme B handler. Second proof of 9-5's dispatcher extensibility
+// design (after 9-6's `handleChargeRefunded`): exactly 1 new function +
+// 1 new map entry. Route shell + `dispatchWebhookEvent` + types all
+// unchanged.
+//
+// Stripe fires `payout.paid` on its test-mode-simulated daily schedule
+// when funds settle to a connected account's bank. PRD §6.4 + §4.3 say
+// this event fires the "Payout sent" email — but emails are Story 8-4
+// territory (deferred from all webhook handlers in 9-2 / 9-3 / 9-5 /
+// 9-6). And `/owner/payouts` reads payouts directly from Stripe at
+// page-load time (BA Decision §1 — no local cache table), so there's
+// no DB state to update from the webhook.
+//
+// **The handler is purely audit-only**: it logs the event for ops
+// visibility and returns `{ ok: true, handled: true }` so the route
+// inserts a `webhook_events` row. Story 8-4 will later hook into this
+// row (either via `webhook_events` query OR by extending this handler)
+// to send the receipt email.
+//
+// **Semantic stretch note (BA Decision §4 lock):** this handler does
+// no DB writes or email sends, but returns `{ handled: true }` so
+// `webhook_events` gets the row inserted for Story 8-4's downstream
+// consumption. "Handled" here means "recorded for audit", not "DB
+// state transitioned".
+//
+// Idempotency: Layer 1 (route-entry `webhook_events.stripe_event_id`
+// check) handles dedup. No per-handler conditional WHERE — there's no
+// booking row to UPDATE.
+// ─────────────────────────────────────────────────────────────────────
+export async function handlePayoutPaid(
+  event: Stripe.Event,
+): Promise<WebhookHandlerResult> {
+  const payout = event.data.object as Stripe.Payout;
+  // Defensive log for ops visibility. `payout.id` is the canonical
+  // identifier (`po_*`); `payout.amount` is in cents; `payout.currency`
+  // is the Stripe currency code (`usd` for Phase 2). All values come
+  // from the signature-verified event payload — no Stripe API call.
+  logger.info('stripe_webhook_payout_paid_acknowledged', {
+    eventId: event.id,
+    payoutId: payout.id,
+    amountCents: payout.amount,
+    currency: payout.currency,
+  });
+  // No DB writes — payouts are read direct from Stripe at page-load
+  // time (BA Decision §1). No email send — Story 8-4 wires that up
+  // later. Return handled:true so the route inserts webhook_events
+  // for the audit trail.
+  return { ok: true, handled: true };
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Dispatcher map + entry point.
 // ─────────────────────────────────────────────────────────────────────
 
 /**
- * Map keyed by Stripe event type. Story 9-7 (`payout.paid`) extends
- * this map by adding one handler function + one entry.
+ * Map keyed by Stripe event type. Theme B is COMPLETE after 9-7 —
+ * `payout.paid` is the final handler in Epic 9. Phase 3 may add
+ * `payout.failed` / `payout.canceled` / `payment_intent.payment_failed`
+ * / `charge.dispute.created` when product needs arise.
  */
 export const WEBHOOK_HANDLERS: Readonly<
   Record<string, (event: Stripe.Event) => Promise<WebhookHandlerResult>>
@@ -638,10 +693,13 @@ export const WEBHOOK_HANDLERS: Readonly<
   'checkout.session.expired': handleCheckoutSessionExpired,
   'payment_intent.succeeded': handlePaymentIntentSucceeded,
   'payment_intent.canceled': handlePaymentIntentCanceled,
-  // Story 9-6: NEW. First proof of 9-5's dispatcher extensibility design
+  // Story 9-6: FIRST proof of 9-5's dispatcher extensibility design
   // (1 new function + 1 new map entry; no route refactor; no
   // dispatchWebhookEvent change).
   'charge.refunded': handleChargeRefunded,
+  // Story 9-7: SECOND proof of 9-5's dispatcher extensibility design +
+  // FINAL Theme B handler. Audit-only — see handlePayoutPaid docstring.
+  'payout.paid': handlePayoutPaid,
 };
 
 /**

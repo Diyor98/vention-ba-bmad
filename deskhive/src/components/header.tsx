@@ -19,9 +19,12 @@ import { UserPill } from './user-pill';
 //      logo + "Browse spaces" + "My bookings" + <UserPill> (Switch to hosting + Log out)
 //
 //   4. SPACE_OWNER in Host mode:
-//      logo + "Dashboard" + "My spaces" + "Bookings" + "Settings" + <UserPill> (Switch to traveling + Log out)
-//      Host nav targets: /owner, /owner/spaces, /owner/bookings, /owner/settings.
+//      logo + "Dashboard" + "My spaces" + "Bookings" + "Payouts" + "Settings" + <UserPill> (Switch to traveling + Log out)
+//      Host nav targets: /owner, /owner/spaces, /owner/bookings, /owner/payouts, /owner/settings.
 //      Settings lives at /owner/settings — Story 9-2's Stripe Connect onboarding surface.
+//      Payouts added in Story 9-7 — PRD §4.7 order: Dashboard + My spaces +
+//      Bookings + Payouts (Settings is post-9-2 addition, placed after Payouts
+//      to preserve the PRD §4.7 relative ordering of the four PRD-mentioned items).
 //
 //   5. SUPER_ADMIN (role === 'SUPER_ADMIN'):
 //      logo + "Browse spaces" + "Admin" + <UserPill> (Log out — no mode switch)
@@ -80,6 +83,9 @@ export async function Header() {
               </Link>
               <Link href="/owner/bookings" className="nav-link">
                 Bookings
+              </Link>
+              <Link href="/owner/payouts" className="nav-link">
+                Payouts
               </Link>
               <Link href="/owner/settings" className="nav-link">
                 Settings

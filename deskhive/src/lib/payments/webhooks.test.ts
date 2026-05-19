@@ -81,6 +81,8 @@ import {
   handleCheckoutSessionExpired,
   // Story 9-6: charge.refunded backstop handler.
   handleChargeRefunded,
+  // Story 9-7: payout.paid audit-only handler.
+  handlePayoutPaid,
   dispatchWebhookEvent,
   WEBHOOK_HANDLERS,
 } from './webhooks';
@@ -454,6 +456,56 @@ describe('handleChargeRefunded (Story 9-6 NEW refund backstop)', () => {
     expect(
       markBookingCancelledAndRefundedByPaymentIntentMock,
     ).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// handlePayoutPaid — Story 9-7 NEW. Audit-only handler — no DB writes,
+// no email sends. Returns { handled: true } so the route inserts
+// webhook_events for Story 8-4's downstream consumption (semantic
+// stretch note per BA Decision §4: "handled" = "recorded for audit",
+// not "DB state transitioned").
+//
+// 2 locked cases (BA Decision §9 / AC-9):
+//   • Happy: synthetic Stripe.Payout event → { ok: true, handled: true }.
+//   • Malformed defensive: event with missing payout fields → still
+//     returns { handled: true } (audit-only handler has no DB calls
+//     that could fail; logger captures whatever's there).
+// ─────────────────────────────────────────────────────────────────────
+
+describe('handlePayoutPaid (Story 9-7 NEW audit-only handler)', () => {
+  it('happy path — synthetic Stripe.Payout event → { handled: true }', async () => {
+    const result = await handlePayoutPaid(
+      makeEvent('payout.paid', 'evt_payout_paid_1', {
+        id: 'po_test_paid_1',
+        amount: 2125,
+        currency: 'usd',
+        status: 'paid',
+        arrival_date: 1748736000,
+      }),
+    );
+
+    // Returns { handled: true } so the route inserts webhook_events —
+    // the audit trail IS the work product (BA Decision §4 semantic-
+    // stretch note). No DB calls; no email sends.
+    expect(result).toEqual({ ok: true, handled: true });
+  });
+
+  it('malformed payload defensive — missing payout fields → still { handled: true }', async () => {
+    // BA Decision §4 lenient stance: audit-only handler has no DB calls
+    // that could fail on malformed input. Logger captures whatever
+    // fields are present. Return { handled: true } so the audit row is
+    // still inserted (Story 8-4 may want the raw event payload even on
+    // partially-malformed events).
+    const result = await handlePayoutPaid(
+      makeEvent('payout.paid', 'evt_payout_paid_malformed', {
+        // missing id, amount, currency — only present in test-mode
+        // edge cases or unusual Stripe API behavior; defensive
+        // coverage to ensure the handler doesn't crash.
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, handled: true });
   });
 });
 

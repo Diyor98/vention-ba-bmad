@@ -1,6 +1,6 @@
 # Story 9-7: Space Owner Payouts View
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -270,7 +270,7 @@ so that **(1) PRD §4.6 FR-OWNER-1's `/owner/payouts` sub-route is finally reali
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 — Prep + 9-6 baseline check + audit existing files.**
+- [x] **Task 0 — Prep + 9-6 baseline check + audit existing files.**
   - Verify baseline CI clean: `pnpm typecheck` / `lint` / `test` (404 expected) / `build` (41 routes expected) / `test:e2e` (61 expected, modulo the documented hazards).
   - Confirm Story 9-6 is at `done` on `main` (`git log --oneline` shows `bb94bd4` + `428734d` + `adb3594`).
   - Re-read [docs/design/9-7-owner-payouts-view-ba-decisions.md](docs/design/9-7-owner-payouts-view-ba-decisions.md) end-to-end (13 locked decisions + the §4 semantic-stretch note).
@@ -282,55 +282,55 @@ so that **(1) PRD §4.6 FR-OWNER-1's `/owner/payouts` sub-route is finally reali
   - Verify `stripe listen` is available locally: `stripe --version`.
   - Verify the operator prereqs from the BA decisions doc — Stripe test-mode active, `STRIPE_*` env vars present, seed run, `owner@deskhive.local` Connect row in real state (re-onboard via `/owner/settings` if seed has reset to synthetic per the carry-forward operator hazard).
 
-- [ ] **Task 1 — New Stripe sub-module `src/lib/payments/payouts.ts`** (AC-3):
+- [x] **Task 1 — New Stripe sub-module `src/lib/payments/payouts.ts`** (AC-3):
   - Create [src/lib/payments/payouts.ts](deskhive/src/lib/payments/payouts.ts) with single export `listPayouts({ stripeAccountId, limit? })` returning `StripeServiceResult<{ payouts: Stripe.Payout[] }>`.
   - Internal call: `stripe.payouts.list({ limit: args.limit ?? 25 }, { stripeAccount: args.stripeAccountId })`. **Load-bearing**: `stripeAccount` MUST be in the SECOND `RequestOptions` arg.
   - `mapStripeError` helper identical to 9-2 / 9-3 / 9-4 / 9-6's shape (`[stripe-payouts]` prefix for the `console.error` ops log).
   - File-header docstring matches the convention from `refunds.ts` (9-6) — explains the 6th-sub-module status + read-only API call (vs Theme B's prior 5 write-only sub-modules) + Phase 3 forward-flag for cache table.
 
-- [ ] **Task 2 — NEW `handlePayoutPaid` webhook handler** (AC-4):
+- [x] **Task 2 — NEW `handlePayoutPaid` webhook handler** (AC-4):
   - Edit [src/lib/payments/webhooks.ts](deskhive/src/lib/payments/webhooks.ts). Add the handler function (mirrors 9-6's `handleChargeRefunded` shape but with no DB writes) + ONE new map entry `'payout.paid': handlePayoutPaid`.
   - Returns `{ ok: true, handled: true }` always (semantic stretch note from BA Decision §4 — "handled" = "recorded for audit" not "DB state transitioned").
   - `logger.info('stripe_webhook_payout_paid_acknowledged', { eventId, payoutId, amountCents, currency })`.
   - Add a docstring block explaining the audit-only pattern + cross-reference Story 8-4's downstream consumption.
 
-- [ ] **Task 3 — New Server Component route at `/owner/payouts`** (AC-2 + AC-5 + AC-6 + AC-7):
+- [x] **Task 3 — New Server Component route at `/owner/payouts`** (AC-2 + AC-5 + AC-6 + AC-7):
   - Create [src/app/(owner)/owner/payouts/page.tsx](deskhive/src/app/(owner)/owner/payouts/page.tsx) with the 7-step lifecycle from AC-2.
   - Implement the 5 rendered states per AC-5 (Connect-not-onboarded / Connect-inactive / zero-payouts / payouts-listed / Stripe-error).
   - Wire `listPayouts({ stripeAccountId, limit: 25 })` per AC-6.
   - Render the `<PayoutStatusBadge>` component (created in Task 4) in the status column.
 
-- [ ] **Task 4 — NEW `<PayoutStatusBadge>` component** (AC-7):
+- [x] **Task 4 — NEW `<PayoutStatusBadge>` component** (AC-7):
   - Create [src/components/payout-status-badge.tsx](deskhive/src/components/payout-status-badge.tsx) with status prop typed as `Stripe.Payout.Status`. Render the 5 visual variants (`paid` / `in_transit` / `pending` / `failed` / `canceled`) using existing brand-token + status-color conventions.
   - Do NOT extend `<StatusBadge>` (Decision §7 anti-pattern).
 
-- [ ] **Task 5 — Header nav verification / addition** (AC-8):
+- [x] **Task 5 — Header nav verification / addition** (AC-8):
   - Per Task 0 audit results — if the "Payouts" link is missing from the Host-mode header nav, add it between "Bookings" and the user-pill per PRD §4.7's locked order. 5-line change.
   - If the link already exists (likely from Story 7-1 nav scaffolding), no work needed; note in DAR.
 
-- [ ] **Task 6 — Unit tests** (AC-9):
+- [x] **Task 6 — Unit tests** (AC-9):
   - Create [src/lib/payments/payouts.test.ts](deskhive/src/lib/payments/payouts.test.ts) with 2 wrapper tests (happy + error). **Critical assertion**: verify `stripeAccount` is in the SECOND arg to `stripe.payouts.list`.
   - Extend [src/lib/payments/webhooks.test.ts](deskhive/src/lib/payments/webhooks.test.ts) with 2 new tests for `handlePayoutPaid` (happy + malformed-payload defensive).
   - Mock at `@/lib/stripe` boundary for the wrapper tests; no mocks needed for the handler tests (audit-only handler has no DB calls).
   - Target: 404 + 4 = **408**.
 
-- [ ] **Task 7 — E2E (deferred per AC-10 lock)**:
+- [x] **Task 7 — E2E (deferred per AC-10 lock)**:
   - 0 new E2E. If dev-agent ships the optional unactivated-empty-state E2E (BA Decision §10 carry-forward), document in DAR + target moves to 62.
   - Run `pnpm test:e2e` → target 61 (or 62 if optional shipped).
 
-- [ ] **Task 8 — Local CI parity** (AC-13):
+- [x] **Task 8 — Local CI parity** (AC-13):
   - `pnpm typecheck` clean.
   - `pnpm lint` clean.
   - `pnpm test` — ~408 expected.
   - `pnpm build` — **42 routes** (+1 for `/owner/payouts`). Document in DAR.
   - `pnpm test:e2e` — 61 expected (modulo the documented hazards from prior stories).
 
-- [ ] **Task 9 — `git diff` verification + quick smoke test** (AC-13):
+- [x] **Task 9 — `git diff` verification + quick smoke test** (AC-13):
   - `git diff --stat` matches the AC-13 file list. Zero entries in the carved-out files (Stripe singleton, other 5 payments sub-modules, the route shell at `route.ts`, action files, schema/migrations, email infrastructure, UI files outside `/owner/payouts` + the nav file + the new badge component, toast.ts, seed.ts).
   - Quick smoke test: `pnpm dev` running, sign in as `owner@deskhive.local` → click "Payouts" in the header nav (or navigate directly to `/owner/payouts`) → verify whichever state renders matches the owner's current Connect + payouts state.
   - **AC-13 §6–§15 (full BA browser walk including all 5 rendered states + `stripe listen` setup + `payout.paid` webhook walk + Epic 9 closure walk)** is DEFERRED to BA's review pass per the established precedent.
 
-- [ ] **Task 10 — Memory + sprint-status + DAR + single commit (no push)** (AC-12 + AC-13):
+- [x] **Task 10 — Memory + sprint-status + DAR + single commit (no push)** (AC-12 + AC-13):
   - Extend `~/.claude/.../memory/reference_stripe_service_pattern.md` with the Story 9-7 section per AC-12.
   - Update `~/.claude/.../memory/MEMORY.md` index entry's one-liner for `reference_stripe_service_pattern.md`.
   - Update `_bmad-output/implementation-artifacts/sprint-status.yaml`: add `9-7-owner-payouts-view: review` to Epic 9 (after `9-6-cancellation-with-refund: done`); update `last_updated` parenthetical. **Do NOT flip `epic-9: in-progress` → `done` in the dev-story commit** — that happens in the post-greenlight `docs:` follow-up.
@@ -459,19 +459,56 @@ Claude Opus 4.7 (1M context).
 
 ### Debug Log References
 
-_TBD — filled during dev-story implementation._
+- `pnpm typecheck` clean (one minor fix: `Stripe.Payout.Status` is NOT exposed as a named union in the Stripe SDK's `.d.ts`; switched to indexed access `Stripe.Payout['status']`).
+- `pnpm lint` clean.
+- `pnpm test` — **408 passed + 1 skipped** (404 baseline + 4 new — exactly per AC-9 target; **no bonus tests this story**).
+- `pnpm build` — **42 routes** (41 baseline + 1 new `/owner/payouts`). First route count increase since Story 9-3's `/spaces/[id]/booking/return`.
+- `pnpm test:e2e` — **51 passed, 5 failed (documented hazards), 5 did not run = 61 total**. Matches AC-10's unchanged target. Zero new regressions from 9-7.
 
 ### Completion Notes
 
-_TBD — filled during dev-story implementation._
+- **PRD §4.7 nav order reconciliation:** PRD §4.7 locked the Host-mode nav as `Dashboard + My spaces + Bookings + Payouts + user-pill` — but the existing header had Settings inserted between Bookings and the user-pill (Story 9-2's Stripe Connect onboarding surface, post-dating PRD §4.7). 9-7 inserts "Payouts" between Bookings and Settings — preserves PRD's relative order of the four PRD-mentioned items + keeps Settings as the post-9-2 trailing item. Documented in the header.tsx comment block.
+- **Stripe SDK TS types gotcha:** `Stripe.Payout.Status` is NOT exposed as a named union in the SDK's type declarations. The component file initially typed the prop as `Stripe.Payout.Status` and the typecheck failed with `TS2694: Namespace 'Stripe.Payout' has no exported member 'Status'`. Fixed by switching to indexed-access `type PayoutStatus = Stripe.Payout['status']`. Resolves to the union `'paid' | 'pending' | 'in_transit' | 'canceled' | 'failed'`. Documented in the component file's comment.
+- **Net unit-test count: +4 (BA-stated ~4; NO bonus this story).** Story 9-7 is the smallest Theme B story by test surface — the deliberate "last-story scope discipline" per BA Decision §13's scope-creep guard. 2 wrapper tests + 2 handler tests; no bonus regression coverage needed (the wrapper test's load-bearing assertion on `stripeAccount` arg position is the critical safety net). Page-render unit tests deferred per BA Decision §9 (Server Component testing is heavyweight; BA walk covers all 5 rendered states).
+- **Net E2E-test count: +0 → 61 target met unchanged.** BA Decision §10 locked 0 new. Optional unactivated-empty-state E2E NOT shipped (Decision §10's optional override) — the empty-state logic is pure application-layer with no Stripe involvement; BA walk + the wrapper unit tests cover it adequately.
+- **Route count: 42** (41 + 1). First route count increase since Story 9-3 (which added `/spaces/[id]/booking/return`). Theme B's final user-facing route surface.
+- **6th sub-module + final Theme B handler — dispatcher extensibility validated.** 9-6's `charge.refunded` was the first proof of 9-5's design; 9-7's `payout.paid` is the second. Both adds = exactly 1 function + 1 map entry. Route shell at `src/app/api/stripe/webhook/route.ts` UNCHANGED. `dispatchWebhookEvent` UNCHANGED. `WebhookHandlerResult` type UNCHANGED. The dispatcher design is validated as extensible — future Phase 3 handlers (`payout.failed`, `charge.dispute.created`, `payment_intent.payment_failed`) follow the same shape.
+- **`stripeAccount` arg position safety-net test.** The wrapper test asserts `expect(params).not.toHaveProperty('stripeAccount')` + `expect(opts.stripeAccount).toBe('acct_test_connected')` — explicitly catches the accidental-refactor case where someone flattens the call into `stripe.payouts.list({ limit: 25, stripeAccount: ... })`. Misplacing the arg silently returns the platform's own payouts (wrong scope) — a subtle bug class that this test prevents from regressing.
+- **Pre-flight Connect-state gate** keeps Stripe round-trips off the un-transacting paths. States 1 (no Connect row / incomplete onboarding) and 2 (Connect-inactive) short-circuit BEFORE `listPayouts` fires — pure DB-row-based decision via the existing `getConnectAccountByUserId` helper from 9-2. The 9-2b publish gate + 9-3 booking-create gate established this pattern; 9-7 is the 4th instance.
+- **Empty-state-with-CTA UX.** The `/owner/payouts` URL is bookmarkable; un-onboarded owners landing there get the helpful empty-state + CTA instead of a hostile silent redirect. Same pattern as `/owner/spaces` for owners with zero spaces (Story 7-5). All 3 pre-payouts empty states (no-Connect / inactive / zero-payouts) follow this shape.
+- **AC-13 §6–§15 (full BA browser walk including all 5 rendered states + `stripe listen` + `payout.paid` event walk + Epic 9 closure walk)** is DEFERRED to BA's review pass per the established precedent. BA needs: (1) `owner@deskhive.local` Connect in REAL state (re-onboard via `/owner/settings` if seed reset to synthetic — recurring operator hazard); (2) `stripe listen --forward-to localhost:3000/api/stripe/webhook` + `STRIPE_WEBHOOK_SECRET` swap to CLI value + `pnpm dev` restart; (3) at least one materialized test-mode payout for the State #4 happy-path walk (Stripe simulates payouts daily; `stripe trigger payout.paid` is the manual short-circuit if a fresh payout hasn't materialized yet).
+- **Theme B closure path** (post-greenlight): the standard `docs:` follow-up commit flips `9-7-owner-payouts-view: review` → `done` AND `epic-9: in-progress` → `done` (the Theme B closure marker). The optional Epic 9 retrospective workflow then becomes available per BMad standard — 9 proposed retrospective topics documented in the BA decisions doc's Forward-looking flags section.
+- **Phase 3 forward-flags catalog** (preserved in memory):
+  - Local payouts cache table → dashboard "this-month payouts" stat card (Story 7-5 Decision §1 finally enabled).
+  - Per-payout drill-down via `stripe.payouts.listLineItems`.
+  - Cursor-based pagination UI for `/owner/payouts`.
+  - Multi-currency support (Phase 2 USD-only).
+  - Admin-side `/admin/payouts` view.
+  - `payout.failed` / `payout.canceled` handlers for richer lifecycle tracking.
+  - `payment_intent.payment_failed` handler (no current Phase 2 consumer).
 
 ### File List
 
-_TBD — filled during dev-story implementation._
+**New (in-tree):**
+- `deskhive/src/lib/payments/payouts.ts` — `listPayouts` Stripe Connect Payouts list wrapper (6th and final Theme B sub-module)
+- `deskhive/src/lib/payments/payouts.test.ts` — 2 wrapper unit tests with load-bearing `stripeAccount` arg-position assertion
+- `deskhive/src/app/(owner)/owner/payouts/page.tsx` — Server Component route with 5-state rendering logic
+- `deskhive/src/components/payout-status-badge.tsx` — `<PayoutStatusBadge>` component (Stripe payout status → existing badge-* CSS tokens)
+
+**Modified (in-tree):**
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — `9-7-owner-payouts-view: review`; last_updated parenthetical refreshed
+- `_bmad-output/implementation-artifacts/9-7-owner-payouts-view.md` — Status → review, tasks `[x]`, DAR filled in
+- `deskhive/src/components/header.tsx` — added "Payouts" link in Host-mode nav variant (between Bookings + Settings, preserving PRD §4.7 relative order); comment block updated
+- `deskhive/src/lib/payments/webhooks.ts` — added `handlePayoutPaid` audit-only handler + map entry; final Theme B handler
+- `deskhive/src/lib/payments/webhooks.test.ts` — added 2 new handler tests (happy + malformed-defensive)
+
+**Out-of-tree (memory):**
+- `~/.claude/.../memory/reference_stripe_service_pattern.md` — extended with full Story 9-7 section (6th sub-module + read-only API pattern + audit-only handler semantic-stretch + 5-state rendering + `<PayoutStatusBadge>` + header nav + Theme B closure markers + 9 proposed Epic 9 retrospective topics + Phase 3 forward-flag catalog)
+- `~/.claude/.../memory/MEMORY.md` — index entry one-liner refreshed to reflect 9-7 additions + Theme B completion
 
 ### Change Log
 
 | Date | Change | Commit |
 |---|---|---|
-| 2026-05-19 | Story drafted by `bmad-create-story` from locked BA decisions document (commit `0abb2e0`). Last Theme B story; Epic 9 closes after 9-7 ships at greenlight. | _TBD (filled by dispatch commit)_ |
-| 2026-05-19 | _TBD (filled by `docs:` follow-up after BA greenlight + push — same pattern as Stories 9-1 + 9-2 + 9-2b + 9-3 + 9-4 + 9-5 + 9-6; the post-greenlight follow-up ALSO flips `epic-9: in-progress` → `done` as Theme B's closure marker)_ | _TBD_ |
+| 2026-05-19 | Story drafted by `bmad-create-story` from locked BA decisions document (commit `0abb2e0`). Last Theme B story; Epic 9 closes after 9-7 ships at greenlight. | `0dda7c8` |
+| 2026-05-19 | Story implemented; new `/owner/payouts` Server Component route with 5 rendered states (no-Connect / inactive / zero-payouts / payouts-listed / Stripe-error); new 6th and FINAL Theme B sub-module `src/lib/payments/payouts.ts` (read-only `listPayouts` wrapper; load-bearing `stripeAccount` in 2nd RequestOptions arg with safety-net test); NEW `handlePayoutPaid` audit-only webhook handler — SECOND proof of 9-5's dispatcher extensibility design (exactly 1 new function + 1 new map entry; route + dispatcher + types all unchanged); semantic-stretch lock: "handled" = "recorded for audit" not "DB state transitioned"; new `<PayoutStatusBadge>` component (Option b — separate from `<StatusBadge>` to avoid type-coupling 3 enums); header nav extended with "Payouts" link in Host-mode variant (PRD §4.7 relative order preserved); 4 new unit tests (no bonus this story — deliberate last-story scope discipline); 0 new E2E (target 61 unchanged); +1 new route (42 total). Memory entry extended; MEMORY.md index refreshed. Single commit per AC-13 — awaiting BA browser walk via `stripe listen` before push. After greenlight + `docs:` follow-up, `epic-9: in-progress` → `done` (Theme B closure). | _TBD (filled by `docs:` follow-up after BA greenlight + push; same pattern as Stories 9-1 + 9-2 + 9-2b + 9-3 + 9-4 + 9-5 + 9-6)_ |
