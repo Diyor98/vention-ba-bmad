@@ -80,6 +80,18 @@ export const TOAST_COPY = {
     description:
       'Cancellations within 24 hours of the booking date are non-refundable.',
   },
+  // Story 9-6 BA-walk supplement (BA decisions doc §9 follow-up): the
+  // eligible-refund success path needs its own toast — generic
+  // CANCEL_SUCCESS ("Booking cancelled.") under-conveys that a refund
+  // was processed and tells the Guest nothing about the 5-10 business-
+  // day settlement window. Only the title is a frozen constant here;
+  // the description interpolates the formatted refund amount and is
+  // built dynamically at the call site (same convention as Story 7-4's
+  // APPLICATION_APPROVED_TITLE — see the comment above that constant).
+  // Phase 1 + Phase 2 PENDING-cancel paths continue to use the generic
+  // CANCEL_SUCCESS (no money moved on those paths — no refund-timing
+  // info to convey).
+  CANCEL_REFUND_SUCCESS_TITLE: 'Booking cancelled',
 } as const;
 
 type ToastAction = { label: string; onClick: () => void };

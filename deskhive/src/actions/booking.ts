@@ -77,7 +77,14 @@ export type CancelBookingActionState =
   | { status: 'idle' }
   // Story 6-3: explicit 'success' variant so <CancelBookingButton> can fire
   // a confirmation toast on a successful cancel (BA Decisions §10).
-  | { status: 'success' }
+  //
+  // Story 9-6 BA-walk supplement: optional `refundAmountCents` carries the
+  // refund amount when the eligible-refund branch ran. The button reads
+  // this to pick the right toast variant — refund-success (Phase 2
+  // CONFIRMED+CAPTURED path) vs generic cancel-success (Phase 1 + Phase 2
+  // PENDING+AUTHORIZED paths, where no money moved). Undefined OR absent
+  // on the non-refund paths.
+  | { status: 'success'; refundAmountCents?: number }
   | { status: 'error'; code: 'FORBIDDEN'; message: string }
   | { status: 'error'; code: 'NOT_FOUND'; message: string }
   | { status: 'error'; code: 'CANNOT_CANCEL'; message: string }
@@ -188,6 +195,15 @@ export async function cancelBookingAction(
   // Cast: schema column is `text` (string), but the CHECK constraint
   // enforces the BookingStatus union — safe narrow.
   const previousStatus = booking.status as BookingStatus;
+
+  // Story 9-6 BA-walk supplement: track the refund amount for the
+  // eligible-refund branch so the action's return value can carry it
+  // back to the button for toast dispatch. Undefined on the Phase 1 +
+  // Phase 2 PENDING+AUTHORIZED paths (no money moved → generic
+  // CANCEL_SUCCESS toast). Set to booking.totalCents AFTER
+  // markBookingCancelledAndRefunded succeeds on the eligible-refund
+  // branch.
+  let refundedAmountCents: number | undefined = undefined;
 
   if (isPhase1Pending) {
     // Phase 1 path: pure DB cancel, no Stripe involvement. Existing
@@ -315,6 +331,11 @@ export async function cancelBookingAction(
         message: 'This booking has already been cancelled or rejected.',
       };
     }
+    // BA-walk supplement: capture the refund amount for the toast.
+    // Phase 2 full-refund-only: equals booking.totalCents (same value
+    // passed to markBookingCancelledAndRefunded above + written to
+    // bookings.refund_amount_cents).
+    refundedAmountCents = booking.totalCents;
   } else {
     // Terminal state (CANCELLED / REJECTED / already-REFUNDED) OR an
     // unexpected edge case (paymentIntentId set but payment_status not
@@ -337,7 +358,15 @@ export async function cancelBookingAction(
   revalidatePath('/my-bookings');
   revalidatePath(`/spaces/${booking.spaceId}`);
   // Story 6-3: 'success' instead of 'idle' so the client can fire a toast.
-  return { status: 'success' };
+  // Story 9-6 BA-walk supplement: when the eligible-refund branch ran,
+  // carry the refund amount back to the button so it dispatches the
+  // refund-success toast variant (with the formatted dollar amount +
+  // 5-10 business-day timing). On Phase 1 + Phase 2 PENDING-cancel
+  // paths, refundedAmountCents is undefined — button falls back to the
+  // generic CANCEL_SUCCESS toast (Phase 1 carry-forward).
+  return refundedAmountCents !== undefined
+    ? { status: 'success', refundAmountCents: refundedAmountCents }
+    : { status: 'success' };
 }
 
 export type ConfirmBookingActionState =

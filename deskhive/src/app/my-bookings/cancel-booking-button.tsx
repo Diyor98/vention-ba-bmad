@@ -7,6 +7,7 @@ import {
   type CancelBookingActionState,
 } from '@/actions/booking';
 import { toastSuccess, toastError, TOAST_COPY } from '@/lib/toast';
+import { formatCents } from '@/lib/format';
 
 const initialState: CancelBookingActionState = { status: 'idle' };
 
@@ -28,12 +29,29 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
   // Story 9-6: extended to also fire toastError on REFUND_INELIGIBLE
   // (Phase 2 within-24h refusal). Same ref-guard pattern guards against
   // double-fire.
+  //
+  // Story 9-6 BA-walk supplement: success path branches on
+  // state.refundAmountCents to pick the right toast variant.
+  //   • refundAmountCents defined → eligible-refund branch ran; fire the
+  //     refund-success toast with the formatted dollar amount + 5-10
+  //     business-day timing (CANCEL_REFUND_SUCCESS_TITLE + dynamic
+  //     description per the APPLICATION_APPROVED_TITLE convention).
+  //   • refundAmountCents undefined → Phase 1 or Phase 2 PENDING+AUTHORIZED
+  //     branch ran (no money moved); fall through to the generic
+  //     CANCEL_SUCCESS toast (Phase 1 carry-forward).
   const lastFiredState = useRef<CancelBookingActionState | null>(null);
   useEffect(() => {
     if (lastFiredState.current === state) return;
     if (state.status === 'success') {
       lastFiredState.current = state;
-      toastSuccess(TOAST_COPY.CANCEL_SUCCESS);
+      if (state.refundAmountCents !== undefined) {
+        const formatted = formatCents(state.refundAmountCents);
+        toastSuccess(TOAST_COPY.CANCEL_REFUND_SUCCESS_TITLE, {
+          description: `Refund of ${formatted} is being processed. It will appear on your original payment method within 5–10 business days.`,
+        });
+      } else {
+        toastSuccess(TOAST_COPY.CANCEL_SUCCESS);
+      }
     } else if (state.status === 'error' && state.code === 'REFUND_INELIGIBLE') {
       lastFiredState.current = state;
       toastError(

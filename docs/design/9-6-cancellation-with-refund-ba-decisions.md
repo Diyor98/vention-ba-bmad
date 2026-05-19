@@ -657,6 +657,8 @@ CANCEL_REFUND_INELIGIBLE: {
 - Do NOT introduce ad-hoc strings at the call site — all toast text lives in `TOAST_COPY`.
 - Do NOT change the existing `CANCEL_SUCCESS` copy — Story 6-3 lock, preserved.
 
+**BA walk supplement (2026-05-19):** success toast for the eligible-refund branch added in follow-up commit `fix: add refund-success toast to eligible-refund cancel path (BA walk fix)`. Specifies the in-app confirmation pattern for guest cancels with refund; Phase 1 generic cancel toast unchanged. The BA-walk uncovered that the original Decision §9 only specified the `CANCEL_REFUND_INELIGIBLE` failure toast — the success path silently fell through to the Phase 1 generic `CANCEL_SUCCESS` ("Booking cancelled."), which under-conveyed the refund processing + the 5–10 business-day settlement window. New `CANCEL_REFUND_SUCCESS_TITLE` constant added to `TOAST_COPY`; description interpolates the formatted refund amount at the call site (same convention as `APPLICATION_APPROVED_TITLE`). Final wording: title `"Booking cancelled"` + description `"Refund of $X.XX is being processed. It will appear on your original payment method within 5–10 business days."` where `$X.XX` is `formatCents(refundAmountCents)` from `src/lib/format.ts`. Action's success-state shape extended with optional `refundAmountCents` field — only populated on the eligible-refund branch; absent on Phase 1 + Phase 2 PENDING+AUTHORIZED paths (no money moved → button falls through to the generic toast).
+
 ---
 
 ### Decision 10: Error code expansions on `CancelBookingActionState`

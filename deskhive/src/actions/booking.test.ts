@@ -514,7 +514,11 @@ describe('cancelBookingAction (Story 9-6 — Decision §12 tests)', () => {
 
     const result = await cancelBookingAction({ status: 'idle' }, makeFormData());
 
-    expect(result).toEqual({ status: 'success' });
+    // BA-walk supplement: success state carries refundAmountCents so the
+    // button can dispatch the refund-success toast (with formatted amount
+    // + 5-10 business-day timing). Phase 2 full-refund-only: equals
+    // booking.totalCents.
+    expect(result).toEqual({ status: 'success', refundAmountCents: 2500 });
     // Eligibility check fired with booking_date.
     expect(isRefundEligibleMock).toHaveBeenCalledWith('2026-12-31');
     // Refund called with the locked per-booking-id key.
@@ -631,5 +635,54 @@ describe('cancelBookingAction (Story 9-6 — Decision §12 tests)', () => {
     expect(cancelBookingMock).not.toHaveBeenCalled();
     expect(markBookingCancelledAndVoidedMock).not.toHaveBeenCalled();
     expect(markBookingCancelledAndRefundedMock).not.toHaveBeenCalled();
+  });
+
+  // ──────────────────────────────────────────────────────────────────
+  // Story 9-6 BA-walk supplement — non-refund cancel paths return
+  // success WITHOUT refundAmountCents. The button reads the absence
+  // and falls through to the generic CANCEL_SUCCESS toast (Phase 1
+  // carry-forward); the refund-success toast (with the formatted
+  // dollar amount + 5-10 business-day timing) MUST NOT fire on paths
+  // where no money moved.
+  // ──────────────────────────────────────────────────────────────────
+  it('BA-walk supplement — Phase 1 + Phase 2 PENDING cancel paths return success WITHOUT refundAmountCents', async () => {
+    // Sub-case 1: Phase 1 PENDING (no PI). Existing cancelBooking helper
+    // runs; no refund concept; success state must omit refundAmountCents.
+    stubAuthedGuest();
+    getBookingByIdMock.mockResolvedValueOnce(phase1PendingBooking());
+    cancelBookingMock.mockResolvedValueOnce({
+      id: BOOKING_ID,
+      status: 'CANCELLED',
+    });
+
+    const phase1Result = await cancelBookingAction(
+      { status: 'idle' },
+      makeFormData(),
+    );
+
+    expect(phase1Result).toEqual({ status: 'success' });
+    expect(phase1Result).not.toHaveProperty('refundAmountCents');
+
+    // Sub-case 2: Phase 2 PENDING+AUTHORIZED. Stripe auth release fires
+    // but no funds move; success state must omit refundAmountCents.
+    stubAuthedGuest();
+    getBookingByIdMock.mockResolvedValueOnce(phase2PendingAuthorizedBooking());
+    cancelPaymentIntentMock.mockResolvedValueOnce({
+      ok: true,
+      data: { paymentIntentId: PI_ID, status: 'canceled' },
+    });
+    markBookingCancelledAndVoidedMock.mockResolvedValueOnce({
+      id: BOOKING_ID,
+      status: 'CANCELLED',
+      paymentStatus: 'VOIDED',
+    });
+
+    const phase2Result = await cancelBookingAction(
+      { status: 'idle' },
+      makeFormData(),
+    );
+
+    expect(phase2Result).toEqual({ status: 'success' });
+    expect(phase2Result).not.toHaveProperty('refundAmountCents');
   });
 });
