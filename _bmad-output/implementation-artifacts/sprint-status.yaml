@@ -161,6 +161,7 @@ development_status:
   8-2-application-emails: done
   8-3-booking-emails: done
   8-4-payment-driven-emails: review
+  # PAUSED 2026-05-19 mid-BA-walk — implementation commit 61dbc37 on origin/main pending receipt/refund/payout email walks. Sprint-status stays at 'review' until BA walk completes. Resume after design rework.
   8-polish-1-email-design-polish: done
   epic-8-retrospective: optional
 
