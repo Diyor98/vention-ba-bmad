@@ -49,7 +49,7 @@ Generated 2026-05-20. Closes the 20-screen prototype-integration epic.
 | 14 | HostSpaceNew | `/owner/spaces/new` | ✅ done — DESIGN-INT-10 (pragmatic stepper) |
 | 15 | HostSpaceEdit | `/owner/spaces/[id]` | ✅ done — DESIGN-INT-8 |
 | 16 | HostBookings | `/owner/bookings` | ✅ done — DESIGN-INT-6 |
-| 17 | HostPayouts | `/owner/payouts` | ✅ done — DESIGN-INT-5 |
+| 17 | HostPayouts | `/owner/payouts` | ✅ done — DESIGN-INT-5 + **DESIGN-INT-11 polish** (banner / stat labels / payout-history Card / Payout ID + Stripe ref columns; commit `<inserted on push>`) |
 | 18 | HostOnboarding | `/owner/settings` | ✅ done — DESIGN-INT-11 |
 | 19 | AdminUsers | `/admin/users` | ✅ done — DESIGN-INT-15 (Phase 3 wiring deferred) |
 | 20 | SystemHealth | `/system/health` | ✅ done — DESIGN-INT-16 (Phase 3 wiring deferred) |

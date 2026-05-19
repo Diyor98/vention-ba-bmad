@@ -1,5 +1,11 @@
 import Link from 'next/link';
-import { AlertTriangle, Banknote, Calendar, Clock } from 'lucide-react';
+import {
+  AlertTriangle,
+  Banknote,
+  Calendar,
+  Clock,
+  Filter,
+} from 'lucide-react';
 import { requireSession } from '@/lib/auth/guards';
 import { getConnectAccountByUserId } from '@/db/queries/stripe-connect';
 import { listPayouts } from '@/lib/payments/payouts';
@@ -9,147 +15,69 @@ import { formatCents } from '@/lib/format';
 import { logger } from '@/lib/logger';
 
 /**
- * Story 9-7: Space Owner payouts view. PRD §4.6 FR-OWNER-1 +
- * §7.2 New Screens #5 — table of Stripe Connect payouts (date / amount /
- * status). Reads payouts DIRECTLY from Stripe Connect API on every
- * page-load (BA Decision §1 — no local cache table in 9-7; Phase 3
- * forward-flag for the cache).
+ * Story 9-7 + DESIGN-INT-5 + DESIGN-INT-11 polish: Space Owner payouts
+ * view. Reads payouts directly from Stripe Connect API on every
+ * page-load (BA Decision §1).
  *
- * Auth + role + mode gate is handled by `(owner)/layout.tsx` (Story 7-1).
- * `requireSession()` here is defensive (mirrors `/owner/settings`
- * pattern from 9-2) — the layout already short-circuits unauthenticated
- * + role-mismatched callers.
- *
- * Renders 5 distinct states (BA Decision §5):
- *
- *   1. No Connect row OR onboarding_completed === false
- *      → "Set up payouts" empty-state + CTA → /owner/settings
- *      No Stripe API call fires.
- *   2. charges_enabled !== true OR payouts_enabled !== true
- *      → "Payouts are paused" empty-state + CTA → /owner/settings
- *      No Stripe API call fires.
- *   3. Connect-active + payouts.length === 0
- *      → "No payouts yet" empty-state
- *      Stripe API DID fire (returned empty array).
- *   4. Connect-active + payouts.length > 0
- *      → table of date / amount / status with <PayoutStatusBadge>
- *      Stripe API call returned data.
- *   5. Stripe API error
- *      → inline fallback message + logger.error for ops
- *
- * Pagination: single-page-only `limit: 25` per BA Decision §6. Phase 3
- * will add cursor-based "Show more". The single new route adds +1 to
- * the build's route count (41 → 42).
+ * Renders the prototype's HostPayouts shape:
+ *   1. Connect status banner (top)
+ *      - Missing Connect row OR onboardingCompleted=false → amber
+ *        'Stripe Connect not set up' with 'Connect Stripe →' CTA
+ *      - Onboarded but charges/payouts capability disabled → amber
+ *        'Stripe Connect not set up' with 'Continue setup →' CTA
+ *      - Fully active → no banner
+ *   2. 3-card stat grid (Lifetime payouts / Pending / Next payout date)
+ *   3. Payout history Card (header with title + Filter affordance,
+ *      body table with Payout ID + Date + Amount + Status + Stripe ref)
  */
 export default async function OwnerPayoutsPage() {
   const session = await requireSession();
   const userId = String(session.user.id);
   const account = await getConnectAccountByUserId(userId);
 
-  // State #1 — Connect row absent OR onboarding not completed.
-  // Pure DB-row-based gate; no Stripe API call fires (BA Decision §5
-  // anti-pattern: don't waste a Stripe round-trip on un-transacting
-  // owners).
-  if (!account || !account.onboardingCompleted) {
-    return (
-      <main className="container-content admin-page">
-        <PayoutsHeader />
-        <EmptyStateCard
-          heading="Set up payouts"
-          body="Set up payouts to see your earnings history."
-          ctaLabel="Complete onboarding"
-        />
-      </main>
-    );
-  }
+  const stripeNotSetUp = !account || !account.onboardingCompleted;
+  const stripeIncomplete =
+    !!account &&
+    account.onboardingCompleted &&
+    (!account.chargesEnabled || !account.payoutsEnabled);
+  const stripeOK =
+    !!account &&
+    account.onboardingCompleted &&
+    account.chargesEnabled &&
+    account.payoutsEnabled;
 
-  // State #2 — Onboarded but Connect-inactive (charges_enabled or
-  // payouts_enabled flipped false). Same shape as State #1; no Stripe
-  // API call fires.
-  if (!account.chargesEnabled || !account.payoutsEnabled) {
-    return (
-      <main className="container-content admin-page">
-        <PayoutsHeader />
-        {/* DESIGN-INT-5 — amber banner for the paused state. */}
-        <div className="banner" data-testid="payouts-paused-banner" style={{ marginBottom: '1.5rem' }}>
-          <span className="banner-icon" aria-hidden="true">
-            <AlertTriangle />
-          </span>
-          <div className="banner-body">
-            <h3>Payouts are paused</h3>
-            <p>Charges or payouts aren&apos;t enabled on your Stripe account. Re-onboard to receive funds.</p>
-          </div>
-          <div className="banner-actions">
-            <Link href="/owner/settings" className="btn btn-primary">Re-onboard</Link>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  // Connect-active path — call Stripe.
-  const result = await listPayouts({
-    stripeAccountId: account.stripeAccountId,
-    // limit defaults to 25 per BA Decision §6; explicit for readability.
-    limit: 25,
-  });
-
-  // State #5 — Stripe API error. Render inline fallback; log for ops.
-  if (!result.ok) {
-    logger.error('owner_payouts_page_stripe_failed', {
-      userId,
+  // Connect-active branch — fetch payouts from Stripe. Inactive branches
+  // skip the Stripe API call entirely (no need to round-trip when we
+  // know payouts can't be settled yet — preserves Story 9-7 §5 §1).
+  let payouts: Awaited<ReturnType<typeof listPayouts>> | null = null;
+  if (stripeOK) {
+    payouts = await listPayouts({
       stripeAccountId: account.stripeAccountId,
-      error: result.error,
+      limit: 25,
     });
-    return (
-      <main className="container-content admin-page">
-        <PayoutsHeader />
-        <div
-          className="form-card"
-          style={{ padding: '1.5rem', maxWidth: '34rem' }}
-          role="alert"
-        >
-          <p>Payouts temporarily unavailable. Please refresh in a moment.</p>
-        </div>
-      </main>
-    );
+    if (!payouts.ok) {
+      logger.error('owner_payouts_page_stripe_failed', {
+        userId,
+        stripeAccountId: account.stripeAccountId,
+        error: payouts.error,
+      });
+    }
   }
 
-  const payouts = result.data.payouts;
-
-  // State #3 — Connect-active + zero payouts yet.
-  if (payouts.length === 0) {
-    return (
-      <main className="container-content admin-page">
-        <PayoutsHeader />
-        <div
-          className="form-card"
-          style={{ padding: '1.5rem', maxWidth: '34rem' }}
-        >
-          <p className="muted">
-            No payouts yet. Once a booking is confirmed and captured, your
-            share will be paid out within a few days.
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  // DESIGN-INT-5 — Aggregate stat-card numbers from the Stripe payouts
-  // list. All derivations use payout.amount + payout.status + arrival_date.
-  // No new Stripe API call, no new DB query.
-  const paidSum = payouts
+  // Aggregates — derived from the Stripe response (no second round-trip).
+  // Always defined so the layout stays consistent across states; show $0
+  // when the page isn't Connect-active yet.
+  const allPayouts =
+    payouts && payouts.ok ? payouts.data.payouts : [];
+  const paidSum = allPayouts
     .filter((p) => p.status === 'paid')
     .reduce((sum, p) => sum + p.amount, 0);
-  const pendingSum = payouts
+  const pendingSum = allPayouts
     .filter((p) => p.status === 'pending' || p.status === 'in_transit')
     .reduce((sum, p) => sum + p.amount, 0);
-  // This is a Server Component — render-time impurity from Date.now() is
-  // fine (each request gets a fresh "now"). The react-hooks/purity rule
-  // is overly conservative here; disable for this line only.
   // eslint-disable-next-line react-hooks/purity
   const nowMs = Date.now();
-  const nextPayout = payouts
+  const nextPayout = allPayouts
     .filter(
       (p) =>
         (p.status === 'pending' || p.status === 'in_transit') &&
@@ -163,23 +91,85 @@ export default async function OwnerPayoutsPage() {
       })
     : '—';
 
-  // State #4 — happy path: render the table.
+  const stripeApiErrored = !!payouts && !payouts.ok;
+
   return (
     <main className="container-content admin-page">
       <PayoutsHeader />
+
+      {/* DESIGN-INT-11 polish — Connect banner. Two variants share the
+          amber treatment per the prototype:
+            • not-set-up: 'Connect Stripe →' CTA
+            • capability-incomplete: 'Continue setup →' CTA
+          A finer per-step counter ("step N of 4") is deferred — our
+          `stripe_connect_accounts` row tracks the 3 booleans Stripe
+          exposes (onboarding_completed / charges_enabled /
+          payouts_enabled) but not the multi-step progress signal the
+          prototype's HOST_PROFILE.stripeStep carries. Adding that would
+          require either a real Stripe `/v1/accounts/{id}` round-trip
+          (out of "no new API calls" scope) or a new schema column. */}
+      {stripeNotSetUp && (
+        <div
+          className="banner"
+          data-testid="payouts-connect-banner-not-set-up"
+          style={{ marginBottom: '1.5rem' }}
+        >
+          <span className="banner-icon" aria-hidden="true">
+            <AlertTriangle />
+          </span>
+          <div className="banner-body">
+            <h3>Stripe Connect not set up</h3>
+            <p>
+              Earnings will stay in pending until you connect a bank
+              account.
+            </p>
+          </div>
+          <div className="banner-actions">
+            <Link href="/owner/settings" className="btn btn-primary">
+              Connect Stripe →
+            </Link>
+          </div>
+        </div>
+      )}
+      {stripeIncomplete && (
+        <div
+          className="banner"
+          data-testid="payouts-connect-banner-incomplete"
+          style={{ marginBottom: '1.5rem' }}
+        >
+          <span className="banner-icon" aria-hidden="true">
+            <AlertTriangle />
+          </span>
+          <div className="banner-body">
+            <h3>Stripe Connect not set up</h3>
+            <p>
+              Charges or payouts aren&apos;t enabled yet. Earnings stay in
+              pending until setup is complete.
+            </p>
+          </div>
+          <div className="banner-actions">
+            <Link href="/owner/settings" className="btn btn-primary">
+              Continue setup →
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Stat grid — always rendered for consistent layout. Inactive
+          Connect states show $0 / $0 / —. */}
       <div
         className="stat-grid"
         data-testid="payouts-stat-grid"
         style={{ marginBottom: '1.5rem' }}
       >
         <StatCard
-          label="Lifetime paid out"
+          label="Lifetime payouts"
           value={formatCents(paidSum)}
           Icon={Banknote}
           testid="stat-lifetime"
         />
         <StatCard
-          label="Pending payout"
+          label="Pending"
           value={formatCents(pendingSum)}
           Icon={Clock}
           attention={pendingSum > 0}
@@ -192,35 +182,126 @@ export default async function OwnerPayoutsPage() {
           testid="stat-next"
         />
       </div>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th scope="col">Date</th>
-            <th scope="col">Amount</th>
-            <th scope="col">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {payouts.map((payout) => (
-            <tr key={payout.id}>
-              {/* arrival_date is a Unix timestamp in seconds (Stripe
-                  convention). Multiply by 1000 for JS Date ms. */}
-              <td className="tnum">
-                {new Date(payout.arrival_date * 1000).toLocaleDateString(
-                  'en-US',
-                  { year: 'numeric', month: 'short', day: 'numeric' },
-                )}
-              </td>
-              <td className="tnum">{formatCents(payout.amount)}</td>
-              <td>
-                <PayoutStatusBadge status={payout.status} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+
+      {/* Payout history card. */}
+      <section
+        className="form-card"
+        data-testid="payout-history-card"
+        aria-labelledby="payout-history-heading"
+      >
+        <div className="form-card-head">
+          <h2 id="payout-history-heading">Payout history</h2>
+          <button
+            type="button"
+            className="btn-ghost"
+            disabled
+            aria-disabled="true"
+            title="Phase 3 — filtering not wired yet"
+            style={{
+              height: '2rem',
+              padding: '0 0.75rem',
+              fontSize: 13,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+            }}
+          >
+            <Filter size={14} aria-hidden="true" />
+            Filter
+          </button>
+        </div>
+        <div className="table-wrap" style={{ borderRadius: 0, border: 0 }}>
+          <table className="table compact">
+            <thead>
+              <tr>
+                <th style={{ width: '18%' }}>Payout ID</th>
+                <th style={{ width: '20%' }}>Date</th>
+                <th className="num" style={{ width: '14%' }}>
+                  Amount
+                </th>
+                <th style={{ width: '14%' }}>Status</th>
+                <th style={{ width: '34%' }}>Stripe ref</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stripeApiErrored ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="muted"
+                    style={{ padding: '1.5rem', textAlign: 'center' }}
+                    role="alert"
+                  >
+                    Payouts temporarily unavailable. Please refresh in a
+                    moment.
+                  </td>
+                </tr>
+              ) : allPayouts.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="muted"
+                    style={{ padding: '1.5rem', textAlign: 'center' }}
+                  >
+                    {stripeOK
+                      ? 'No payouts yet. Once a booking is confirmed and captured, your share will be paid out within a few days.'
+                      : 'Connect Stripe to start receiving payouts.'}
+                  </td>
+                </tr>
+              ) : (
+                allPayouts.map((payout) => (
+                  <tr key={payout.id}>
+                    <td
+                      className="cell-id"
+                      data-testid={`payout-short-${payout.id}`}
+                    >
+                      {shortPayoutId(payout.id)}
+                    </td>
+                    <td className="tnum">
+                      {new Date(payout.arrival_date * 1000).toLocaleDateString(
+                        'en-US',
+                        {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        },
+                      )}
+                    </td>
+                    <td className="num tnum">{formatCents(payout.amount)}</td>
+                    <td>
+                      <PayoutStatusBadge status={payout.status} />
+                    </td>
+                    <td className="cell-id">{middleTruncate(payout.id)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </main>
   );
+}
+
+/**
+ * Short stakeholder-friendly form of the Stripe payout id. Prototype
+ * used synthetic 'PO-2218' ids; we display the real id truncated to
+ * the first 10 chars + ellipsis so cross-referencing with Stripe
+ * dashboard URLs (which also key on the full id) stays unambiguous.
+ */
+function shortPayoutId(id: string): string {
+  if (id.length <= 10) return id;
+  return `${id.slice(0, 10)}…`;
+}
+
+/**
+ * Middle-truncate a Stripe payout id for the Stripe ref column.
+ * Preserves the prefix + last 6 chars so the id remains identifiable
+ * without sprawling across the column.
+ */
+function middleTruncate(id: string): string {
+  if (id.length <= 16) return id;
+  return `${id.slice(0, 9)}…${id.slice(-6)}`;
 }
 
 function PayoutsHeader() {
@@ -230,29 +311,6 @@ function PayoutsHeader() {
         <h1 className="page-h1">Payouts</h1>
         <p className="sub muted">Payout history from Stripe Connect.</p>
       </div>
-    </div>
-  );
-}
-
-function EmptyStateCard({
-  heading,
-  body,
-  ctaLabel,
-}: {
-  heading: string;
-  body: string;
-  ctaLabel: string;
-}) {
-  return (
-    <div
-      className="form-card"
-      style={{ padding: '1.5rem', maxWidth: '34rem' }}
-    >
-      <h3 className="h3 mb-2">{heading}</h3>
-      <p className="mb-4">{body}</p>
-      <Link href="/owner/settings" className="btn btn-primary">
-        {ctaLabel}
-      </Link>
     </div>
   );
 }
