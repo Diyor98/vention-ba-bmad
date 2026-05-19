@@ -12,7 +12,7 @@ export default async function LoginPage({
       <div className="mb-6 text-center">
         <h1 className="page-h1">Welcome back</h1>
         <p className="mt-2 muted-strong" style={{ fontSize: '14px' }}>
-          Log in to manage your bookings.
+          Sign in to manage your bookings.
         </p>
       </div>
 

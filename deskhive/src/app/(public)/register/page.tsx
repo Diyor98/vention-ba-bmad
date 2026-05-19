@@ -7,7 +7,7 @@ export default function RegisterPage() {
       <div className="mb-6 text-center">
         <h1 className="page-h1">Create your account</h1>
         <p className="mt-2 muted-strong" style={{ fontSize: '14px' }}>
-          Find a desk, book a day, get to work.
+          Free to join. You&apos;ll book your first desk in 60 seconds.
         </p>
       </div>
 
