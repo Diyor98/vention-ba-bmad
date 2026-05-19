@@ -94,8 +94,13 @@ export default async function OwnerSettingsPage() {
             <h3 className="h3 mb-2">Onboarding complete</h3>
             <p className="mb-4">
               Your Stripe Connect account is active. Bookings on your spaces
-              will be charged through Stripe once Story 9-3 ships the payment
-              flow.
+              are charged through Stripe at booking time, and payouts are
+              sent to your bank account on Stripe&apos;s schedule (typically
+              every 1&ndash;2 business days). View your payout history on{' '}
+              <a href="/owner/payouts" className="link">
+                Payouts
+              </a>
+              .
             </p>
             <dl
               style={{
