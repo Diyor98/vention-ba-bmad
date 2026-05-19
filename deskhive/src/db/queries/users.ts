@@ -1,6 +1,34 @@
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { usersTable } from '@/db/schema';
+import { usersTable, type Role } from '@/db/schema';
+
+/**
+ * DESIGN-INT-15 — Admin-only directory listing. Returns every user with
+ * their core profile + role + createdAt for the admin users table.
+ * Ordered newest first by createdAt DESC so recent signups surface at
+ * the top.
+ */
+export async function listAllUsers(): Promise<
+  Array<{
+    id: string;
+    email: string;
+    fullName: string;
+    role: Role;
+    createdAt: Date;
+  }>
+> {
+  const rows = await db
+    .select({
+      id: usersTable.id,
+      email: usersTable.email,
+      fullName: usersTable.fullName,
+      role: usersTable.role,
+      createdAt: usersTable.createdAt,
+    })
+    .from(usersTable)
+    .orderBy(desc(usersTable.createdAt));
+  return rows.map((r) => ({ ...r, role: r.role as Role }));
+}
 
 /**
  * Story 8-4: tiny user-by-id query helper. Returns the recipient-shape
