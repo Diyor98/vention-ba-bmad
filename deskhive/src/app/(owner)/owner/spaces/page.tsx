@@ -1,23 +1,31 @@
 import Link from 'next/link';
 import { requireSession } from '@/lib/auth/guards';
 import { listSpacesForOwner } from '@/db/queries/spaces';
+import {
+  getActiveDeskCountBySpaceIds,
+  getMinActiveDailyPriceCentsBySpaceIds,
+} from '@/db/queries/desks';
 import { DataView } from '@/components/data-view';
+import { formatCents } from '@/lib/format';
 
-// Story 7-5: SPACE_OWNER spaces-list. Owner-scoped via listSpacesForOwner
-// (BA Decision §2 — SQL WHERE is the authoritative filter; (owner)/layout
-// is first-line-of-defense role guard). Mirrors /admin/spaces table layout
-// but filtered to spaces owned by the caller.
+// Story 7-5 + DESIGN-INT-7: SPACE_OWNER spaces table. Mirrors the
+// prototype's HostSpaces shape — Space (photo + name) / City / Desks /
+// Day rate / Status / Edit. Owner-scoped via listSpacesForOwner (BA
+// Decision §2 — SQL WHERE is the authoritative filter; (owner)/layout
+// is first-line-of-defense role guard).
 //
-// No status filter chips (Decision §2) — Phase 2 auto-publishes all owner
-// spaces (Decision §4). No sortable columns — admin parity. Default
-// ordering: createdAt DESC.
+// Two aggregate queries (active-desk-count + min-daily-price) keep the
+// table to 3 DB round-trips total regardless of space count.
 export default async function OwnerSpacesPage() {
-  // (owner)/layout.tsx has already enforced SPACE_OWNER; reading the
-  // session here just to get the user id for the query.
   const session = await requireSession();
   const ownerId = String(session.user.id);
 
   const spaces = await listSpacesForOwner(ownerId);
+  const spaceIds = spaces.map((s) => s.id);
+  const [deskCounts, minPrices] = await Promise.all([
+    getActiveDeskCountBySpaceIds(spaceIds),
+    getMinActiveDailyPriceCentsBySpaceIds(spaceIds),
+  ]);
 
   return (
     <main className="container-content admin-page">
@@ -41,58 +49,84 @@ export default async function OwnerSpacesPage() {
           <table className="table">
             <thead>
               <tr>
-                <th style={{ width: '50%' }}>Space</th>
-                <th style={{ width: '24%' }}>City</th>
-                <th style={{ width: '14%' }}>Created</th>
+                <th style={{ width: '36%' }}>Space</th>
+                <th style={{ width: '20%' }}>City</th>
+                <th className="num" style={{ width: '8%' }}>Desks</th>
+                <th className="num" style={{ width: '12%' }}>Day rate</th>
+                <th style={{ width: '12%' }}>Status</th>
                 <th className="action"></th>
               </tr>
             </thead>
             <tbody>
-              {spaces.map((s) => (
-                <tr key={s.id}>
-                  <td>
-                    <Link
-                      href={`/owner/spaces/${s.id}`}
-                      style={{ textDecoration: 'none', color: 'inherit' }}
-                    >
-                      <div className="cell-primary">
-                        <div className="cell-stack">
-                          <span className="top">
-                            {s.name}
-                            {s.status === 'DRAFT' && (
-                              <span
-                                className="badge badge-pending"
-                                style={{ marginLeft: '0.5rem' }}
-                              >
-                                <span className="dot" aria-hidden="true" />
-                                Draft
-                              </span>
-                            )}
-                          </span>
-                          <span className="sub cell-id">{s.id.slice(0, 8)}</span>
+              {spaces.map((s) => {
+                const desks = deskCounts.get(s.id) ?? 0;
+                const minPrice = minPrices.get(s.id);
+                const statusClass =
+                  s.status === 'PUBLISHED'
+                    ? 'badge-confirmed'
+                    : s.status === 'DRAFT'
+                      ? 'badge-pending'
+                      : 'badge-cancelled';
+                const statusLabel =
+                  s.status === 'PUBLISHED'
+                    ? 'Published'
+                    : s.status === 'DRAFT'
+                      ? 'Draft'
+                      : 'Suspended';
+                return (
+                  <tr
+                    key={s.id}
+                    className="clickable"
+                    onClick={undefined}
+                    data-testid={`owner-space-row-${s.id}`}
+                  >
+                    <td>
+                      <Link
+                        href={`/owner/spaces/${s.id}`}
+                        style={{
+                          textDecoration: 'none',
+                          color: 'inherit',
+                          display: 'block',
+                        }}
+                      >
+                        <div className="cell-primary">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={s.primaryImageUrl}
+                            alt=""
+                            className="cell-img"
+                          />
+                          <div className="cell-stack">
+                            <span className="top">{s.name}</span>
+                            <span className="sub cell-id">
+                              {s.id.slice(0, 8)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </Link>
-                  </td>
-                  <td className="muted">{s.city}</td>
-                  <td className="muted tnum">
-                    {new Date(s.createdAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                      timeZone: 'UTC',
-                    })}
-                  </td>
-                  <td className="action">
-                    <Link
-                      href={`/owner/spaces/${s.id}`}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      Edit
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+                      </Link>
+                    </td>
+                    <td className="muted">{s.city}</td>
+                    <td className="num tnum">{desks}</td>
+                    <td className="num tnum">
+                      {minPrice != null ? formatCents(minPrice) : '—'}
+                    </td>
+                    <td>
+                      <span className={`badge ${statusClass}`}>
+                        <span className="dot" aria-hidden="true" />
+                        {statusLabel}
+                      </span>
+                    </td>
+                    <td className="action">
+                      <Link
+                        href={`/owner/spaces/${s.id}`}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        Edit
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -1,7 +1,31 @@
-import { eq, and, asc, inArray, min, sql } from 'drizzle-orm';
+import { eq, and, asc, inArray, min, sql, count } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { desksTable, type Desk } from '@/db/schema';
 import type { CreateDeskInput, EditDeskInput } from '@/lib/validation/desk';
+
+/**
+ * DESIGN-INT-7 — Map of spaceId → active desk count. Mirrors the
+ * min-price helper above; one round-trip with GROUP BY. Caller treats
+ * absent as 0.
+ */
+export async function getActiveDeskCountBySpaceIds(
+  spaceIds: string[],
+): Promise<Map<string, number>> {
+  if (spaceIds.length === 0) return new Map();
+  const rows = await db
+    .select({
+      spaceId: desksTable.spaceId,
+      n: count(),
+    })
+    .from(desksTable)
+    .where(
+      and(inArray(desksTable.spaceId, spaceIds), eq(desksTable.isActive, true)),
+    )
+    .groupBy(desksTable.spaceId);
+  const out = new Map<string, number>();
+  for (const r of rows) out.set(r.spaceId, Number(r.n));
+  return out;
+}
 
 /**
  * DESIGN-FIX-2 — Map of spaceId → minimum active daily_price_cents.
