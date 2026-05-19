@@ -98,6 +98,61 @@ export function AmenitiesForm(props: {
 }
 
 /**
+ * DESIGN-FIX-2 — Pick a small preview slate of amenities for the
+ * landing card. Rules (locked per epic spec):
+ *   1. Always WiFi first if the space has it (else skip).
+ *   2. Then ONE distinguishing amenity in priority order:
+ *      access_24_7 > meeting_rooms > parking > coffee_tea
+ *      > first remaining amenity (alphabetical-by-canonical-order).
+ *   3. Cap at 3 icons total (spec ceiling; rules 1+2 produce at most 2
+ *      slots in practice, the ceiling reserves room for future tuning).
+ *   4. Returns [] for spaces with no amenities so the caller can skip
+ *      the row entirely (no empty state on cards).
+ */
+export function pickAmenityPreview(
+  slugs: ReadonlyArray<string>,
+): AmenityDefinition[] {
+  if (slugs.length === 0) return [];
+  const present = new Set(slugs);
+  const picked: AmenityDefinition[] = [];
+  const defBySlug = new Map(AMENITY_DEFINITIONS.map((d) => [d.slug, d]));
+
+  // Slot 1 — WiFi if present.
+  if (present.has('wifi')) {
+    const w = defBySlug.get('wifi');
+    if (w) picked.push(w);
+  }
+
+  // Slot 2 — distinguishing amenity by priority list.
+  const PRIORITY: ReadonlyArray<AmenitySlug> = [
+    'access_24_7',
+    'meeting_rooms',
+    'parking',
+    'coffee_tea',
+  ];
+  const usedSlugs = new Set(picked.map((p) => p.slug));
+  let distinguishing: AmenityDefinition | undefined;
+  for (const slug of PRIORITY) {
+    if (present.has(slug) && !usedSlugs.has(slug)) {
+      distinguishing = defBySlug.get(slug);
+      break;
+    }
+  }
+  if (!distinguishing) {
+    // Fallback: first remaining slug in canonical order.
+    for (const d of AMENITY_DEFINITIONS) {
+      if (present.has(d.slug) && !usedSlugs.has(d.slug)) {
+        distinguishing = d;
+        break;
+      }
+    }
+  }
+  if (distinguishing) picked.push(distinguishing);
+
+  return picked.slice(0, 3);
+}
+
+/**
  * Read-only icon grid for the public space-detail page. Renders only the
  * selected amenities (no checkboxes). When `slugs` is empty, renders a
  * single dashed-border empty-state line per the brief's "empty states

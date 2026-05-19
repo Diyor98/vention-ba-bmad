@@ -1,7 +1,43 @@
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, inArray, min, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { desksTable, type Desk } from '@/db/schema';
 import type { CreateDeskInput, EditDeskInput } from '@/lib/validation/desk';
+
+/**
+ * DESIGN-FIX-2 — Map of spaceId → minimum active daily_price_cents.
+ * One SQL round-trip via aggregate + IN, scales to the public landing
+ * page's space list. Spaces with no active desks are absent from the
+ * returned map (caller treats absent as "no min price").
+ */
+export async function getMinActiveDailyPriceCentsBySpaceIds(
+  spaceIds: string[],
+): Promise<Map<string, number>> {
+  if (spaceIds.length === 0) return new Map();
+  const rows = await db
+    .select({
+      spaceId: desksTable.spaceId,
+      min: min(desksTable.dailyPriceCents),
+    })
+    .from(desksTable)
+    .where(and(inArray(desksTable.spaceId, spaceIds), eq(desksTable.isActive, true)))
+    .groupBy(desksTable.spaceId);
+  const out = new Map<string, number>();
+  for (const r of rows) {
+    if (r.min != null) {
+      // drizzle-orm `min()` over an integer column returns a string in pg.
+      // Force to integer for downstream formatCents.
+      const n = typeof r.min === 'number' ? r.min : Number.parseInt(String(r.min), 10);
+      if (Number.isFinite(n)) out.set(r.spaceId, n);
+    }
+  }
+  return out;
+}
+
+// Silences the import-but-unused lint warning when only the helper above
+// uses `sql`. (Drizzle's typed builder doesn't expose a typed `MIN` cast,
+// so the helper is written without raw sql today; keep the import here in
+// case a future variant needs it.)
+void sql;
 
 export async function listDesksForSpace(spaceId: string): Promise<Desk[]> {
   return db
