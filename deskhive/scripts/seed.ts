@@ -6,6 +6,7 @@ import { and, eq } from 'drizzle-orm';
 import { auth } from '@/lib/auth/config';
 import { db } from '@/db/client';
 import {
+  AMENITY_SLUGS,
   applicationsTable,
   bookingsTable,
   desksTable,
@@ -13,7 +14,65 @@ import {
   stripeConnectAccountsTable,
   usersTable,
 } from '@/db/schema';
-import type { ApplicationStatus, BookingStatus } from '@/db/schema';
+import type { AmenitySlug, ApplicationStatus, BookingStatus } from '@/db/schema';
+
+// ─────────────────────────────────────────────────────────────
+// Story DESIGN-2: deterministic amenity fixture across the seeded
+// spaces. Each space gets 4–8 amenities; together the 4 seeded
+// fixtures cover all 16 canonical slugs at least once. Distribution
+// is hand-tuned + sliced for repeatable seeds.
+// ─────────────────────────────────────────────────────────────
+const SEEDED_SPACE_AMENITIES: Record<string, AmenitySlug[]> = {
+  // Owner-seeded space — bright Tashkent coworks; 7 amenities.
+  'Seeded Owner Coworks': [
+    'wifi',
+    'coffee_tea',
+    'access_24_7',
+    'meeting_rooms',
+    'standing_desks',
+    'monitors',
+    'whiteboard',
+  ],
+  // Phase 1 admin-owned demo #1 — neighborhood spot in Almaty; 5 amenities.
+  'Almaty Atrium Workspace': [
+    'wifi',
+    'coffee_tea',
+    'printing_scanning',
+    'kitchen',
+    'phone_booths',
+  ],
+  // Phase 1 admin-owned demo #2 — accessible, family-friendly; 6 amenities.
+  'Bishkek Bridge Studio': [
+    'wifi',
+    'lockers',
+    'pet_friendly',
+    'wheelchair_accessible',
+    'parking',
+    'air_conditioning',
+  ],
+  // Phase 1 admin-owned demo #3 — exec / media-friendly; 4 amenities.
+  'Samarkand Skyline Loft': [
+    'wifi',
+    'projector',
+    'meeting_rooms',
+    'phone_booths',
+  ],
+};
+
+// Coverage assertion at module-load: every canonical amenity slug
+// must appear in at least one seeded space. If a future edit drops
+// a slug below 1 coverage, the script fails loudly rather than
+// silently letting the AmenitiesDisplay never render that slug
+// against seed data.
+{
+  const covered = new Set(Object.values(SEEDED_SPACE_AMENITIES).flat());
+  const missing = AMENITY_SLUGS.filter((s) => !covered.has(s));
+  if (missing.length > 0) {
+    throw new Error(
+      `SEEDED_SPACE_AMENITIES is missing coverage for: ${missing.join(', ')}`,
+    );
+  }
+}
 
 const SEED_ADMIN_EMAIL = 'admin@deskhive.local';
 const SEED_ADMIN_PASSWORD = 'SuperAdmin1!';
@@ -291,6 +350,7 @@ async function seedOwnerSpace(): Promise<string | null> {
         'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80',
       status: 'PUBLISHED',
       ownerId: owner.id,
+      amenities: SEEDED_SPACE_AMENITIES[SPACE_NAME] ?? [],
     })
     .returning({ id: spacesTable.id });
 
@@ -319,6 +379,127 @@ async function seedOwnerSpace(): Promise<string | null> {
     `Owner space seeded (${SPACE_NAME}) for ${SEED_OWNER_EMAIL} with 3 desks.`,
   );
   return space.id;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Story DESIGN-2: 3 additional Phase 1 admin-owned demo spaces so
+// the canonical 16-slug amenity set is covered across the seeded
+// fixtures. Idempotent via space-name marker.
+// ─────────────────────────────────────────────────────────────
+type SeededAdminSpace = {
+  name: string;
+  city: string;
+  addressLine: string;
+  description: string;
+  primaryImageUrl: string;
+  desks: Array<{ label: string; dailyPriceCents: number }>;
+};
+
+const SEEDED_ADMIN_SPACES: SeededAdminSpace[] = [
+  {
+    name: 'Almaty Atrium Workspace',
+    city: 'Almaty',
+    addressLine: 'Dostyk Avenue 113',
+    description:
+      'A neighborhood coworks in the Atrium business cluster — quiet bays, a kitchenette, and a print room for late-day deadlines.',
+    primaryImageUrl:
+      'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1600&q=80',
+    desks: [
+      { label: 'Desk 1', dailyPriceCents: 2200 },
+      { label: 'Desk 2', dailyPriceCents: 2200 },
+      { label: 'Desk 3', dailyPriceCents: 2800 },
+    ],
+  },
+  {
+    name: 'Bishkek Bridge Studio',
+    city: 'Bishkek',
+    addressLine: 'Chuy Avenue 154',
+    description:
+      'An accessible, family-friendly studio with covered parking and air-conditioned bays. Lockers available at the front desk.',
+    primaryImageUrl:
+      'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=80',
+    desks: [
+      { label: 'Desk A', dailyPriceCents: 1800 },
+      { label: 'Desk B', dailyPriceCents: 2400 },
+    ],
+  },
+  {
+    name: 'Samarkand Skyline Loft',
+    city: 'Samarkand',
+    addressLine: 'Registan Square 7',
+    description:
+      'A high-ceilinged loft overlooking the Registan. Projector + private meeting room available; phone booths for client calls.',
+    primaryImageUrl:
+      'https://images.unsplash.com/photo-1572025442646-866d16c84a54?auto=format&fit=crop&w=1600&q=80',
+    desks: [
+      { label: 'Loft Desk 1', dailyPriceCents: 3200 },
+      { label: 'Loft Desk 2', dailyPriceCents: 3200 },
+      { label: 'Loft Desk 3', dailyPriceCents: 3800 },
+    ],
+  },
+];
+
+async function seedAdminDemoSpaces(): Promise<void> {
+  for (const fixture of SEEDED_ADMIN_SPACES) {
+    const [existing] = await db
+      .select({ id: spacesTable.id })
+      .from(spacesTable)
+      .where(eq(spacesTable.name, fixture.name))
+      .limit(1);
+    if (existing) {
+      console.log(`Admin demo space already exists (${fixture.name}); skipping.`);
+      continue;
+    }
+
+    const [space] = await db
+      .insert(spacesTable)
+      .values({
+        name: fixture.name,
+        city: fixture.city,
+        addressLine: fixture.addressLine,
+        description: fixture.description,
+        primaryImageUrl: fixture.primaryImageUrl,
+        status: 'PUBLISHED',
+        // Phase 1 admin-owned: ownerId stays NULL (no SPACE_OWNER attached).
+        ownerId: null,
+        amenities: SEEDED_SPACE_AMENITIES[fixture.name] ?? [],
+      })
+      .returning({ id: spacesTable.id });
+
+    await db.insert(desksTable).values(
+      fixture.desks.map((d) => ({
+        spaceId: space.id,
+        label: d.label,
+        dailyPriceCents: d.dailyPriceCents,
+        isActive: true,
+      })),
+    );
+
+    console.log(
+      `Admin demo space seeded (${fixture.name}) in ${fixture.city} with ${fixture.desks.length} desk(s).`,
+    );
+  }
+}
+
+/**
+ * Story DESIGN-2: ensure the 4 fixture spaces always carry the locked
+ * amenity sets, even if the row pre-dates the amenities column (the
+ * migration applied DEFAULT '{}' to existing rows). Idempotent — runs
+ * the same UPDATE on every seed.
+ */
+async function backfillSeededAmenities(): Promise<void> {
+  for (const [spaceName, amenities] of Object.entries(SEEDED_SPACE_AMENITIES)) {
+    const result = await db
+      .update(spacesTable)
+      .set({ amenities, updatedAt: new Date() })
+      .where(eq(spacesTable.name, spaceName))
+      .returning({ id: spacesTable.id });
+    if (result.length > 0) {
+      console.log(
+        `Backfilled amenities on ${spaceName} (${amenities.length} slug(s)).`,
+      );
+    }
+  }
 }
 
 /**
@@ -606,6 +787,16 @@ async function main() {
   if (ownerSpaceId) {
     await seedOwnerBookings(ownerSpaceId);
   }
+
+  // Story DESIGN-2: 3 admin-owned demo spaces with amenities so the
+  // public landing + space-detail pages have non-empty browse data
+  // covering every canonical amenity slug.
+  await seedAdminDemoSpaces();
+
+  // Story DESIGN-2: backfill amenities on any seeded space whose name
+  // is in SEEDED_SPACE_AMENITIES. Idempotent — overrides whatever's
+  // in the row with the locked fixture set on every seed run.
+  await backfillSeededAmenities();
 
   // Story 9-2 BA Decision §8: synthetic Stripe Connect row for the
   // seeded owner so the /owner/settings "onboarding complete" path

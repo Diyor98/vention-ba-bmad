@@ -107,6 +107,7 @@ export async function createSpace(
       primaryImageUrl: input.primaryImageUrl,
       ownerId: ownerId ?? null,
       status,
+      amenities: input.amenities,
     })
     .returning();
   return row;
@@ -126,6 +127,7 @@ export async function updateSpace(
       addressLine: input.addressLine,
       description: input.description,
       primaryImageUrl: input.primaryImageUrl,
+      amenities: input.amenities,
       updatedAt: new Date(),
     })
     .where(eq(spacesTable.id, id))

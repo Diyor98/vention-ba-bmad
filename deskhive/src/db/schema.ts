@@ -14,6 +14,32 @@ import {
 import { sql } from 'drizzle-orm';
 
 // ─────────────────────────────────────────────────────────────
+// AMENITIES — Story DESIGN-2 (canonical, locked 2026-05-19)
+// 16-slug closed enum. Stored as text[] on spacesTable. Adding
+// a new slug requires a new migration + DB-side CHECK update.
+// ─────────────────────────────────────────────────────────────
+export const AMENITY_SLUGS = [
+  'wifi',
+  'access_24_7',
+  'coffee_tea',
+  'parking',
+  'meeting_rooms',
+  'printing_scanning',
+  'kitchen',
+  'phone_booths',
+  'lockers',
+  'air_conditioning',
+  'standing_desks',
+  'monitors',
+  'whiteboard',
+  'projector',
+  'pet_friendly',
+  'wheelchair_accessible',
+] as const;
+
+export type AmenitySlug = (typeof AMENITY_SLUGS)[number];
+
+// ─────────────────────────────────────────────────────────────
 // users — Document B §6.1 + Better Auth additive columns (BA Decision B.1)
 // ─────────────────────────────────────────────────────────────
 export const usersTable = pgTable(
@@ -58,6 +84,10 @@ export const spacesTable = pgTable(
     // relationship. Phase 1 seeded spaces stay NULL — no backfill in this
     // story. Future stories may require non-null or backfill explicitly.
     ownerId: uuid('owner_id').references(() => usersTable.id),
+    // Story DESIGN-2: per-space amenity list. Closed 16-slug enum
+    // (see AMENITY_SLUGS above + CHECK constraint below). Empty array
+    // is the explicit "no amenities" state; NULL is forbidden.
+    amenities: text('amenities').array().notNull().default(sql`'{}'::text[]`),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -70,6 +100,18 @@ export const spacesTable = pgTable(
     // column default stays 'PUBLISHED' — owner-side createSpaceAction
     // passes 'DRAFT' explicitly per BA Decision §4.
     check('spaces_status_check', sql`${t.status} IN ('DRAFT', 'PUBLISHED', 'SUSPENDED')`),
+    // Story DESIGN-2: every amenity in the array must belong to the
+    // canonical 16-slug closed set. Adding a new slug requires a new
+    // migration that DROP/ADDs this CHECK with the new value.
+    check(
+      'spaces_amenities_subset_check',
+      sql`${t.amenities} <@ ARRAY[
+        'wifi', 'access_24_7', 'coffee_tea', 'parking', 'meeting_rooms',
+        'printing_scanning', 'kitchen', 'phone_booths', 'lockers',
+        'air_conditioning', 'standing_desks', 'monitors', 'whiteboard',
+        'projector', 'pet_friendly', 'wheelchair_accessible'
+      ]::text[]`,
+    ),
   ],
 );
 

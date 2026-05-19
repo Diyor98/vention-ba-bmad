@@ -106,6 +106,7 @@ function makeInfo(opts: {
       primaryImageUrl: 'https://example.com/img.jpg',
       status: 'PUBLISHED',
       ownerId: opts.hasOwner ? (opts.ownerId ?? OWNER_ID) : null,
+      amenities: [],
       createdAt: new Date('2026-05-13T10:00:00Z'),
       updatedAt: new Date('2026-05-13T10:00:00Z'),
     },

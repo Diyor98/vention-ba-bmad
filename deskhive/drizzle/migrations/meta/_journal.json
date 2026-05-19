@@ -57,6 +57,13 @@
       "when": 1779142240437,
       "tag": "0007_sudden_nick_fury",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779187251045,
+      "tag": "0008_kind_omega_sentinel",
+      "breakpoints": true
     }
   ]
 }

@@ -66,6 +66,9 @@ export async function createSpaceAction(
     addressLine: formData.get('addressLine'),
     description: formData.get('description'),
     primaryImageUrl: formData.get('primaryImageUrl'),
+    // Story DESIGN-2: amenities is a multi-valued form field. The
+    // FormData API exposes all values for a checkbox group via getAll().
+    amenities: formData.getAll('amenities').map((v) => String(v)),
   });
 
   if (!parsed.success) {
@@ -168,6 +171,9 @@ export async function editSpaceAction(
     addressLine: formData.get('addressLine'),
     description: formData.get('description'),
     primaryImageUrl: formData.get('primaryImageUrl'),
+    // Story DESIGN-2: amenities is a multi-valued form field. The
+    // FormData API exposes all values for a checkbox group via getAll().
+    amenities: formData.getAll('amenities').map((v) => String(v)),
   });
 
   if (!parsed.success) {

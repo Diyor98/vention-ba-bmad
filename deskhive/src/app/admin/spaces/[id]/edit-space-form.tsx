@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { editSpaceAction, type EditSpaceActionState } from '@/actions/space';
+import { AmenitiesForm } from '@/components/amenities';
 import type { Space } from '@/db/schema';
 
 const initialState: EditSpaceActionState = { status: 'idle' };
@@ -126,6 +127,16 @@ export function EditSpaceForm({
         {fieldError('primaryImageUrl') && (
           <p className="field-error">{fieldError('primaryImageUrl')}</p>
         )}
+      </div>
+
+      <div>
+        <label className="field-label" htmlFor="amenities-fieldset">
+          Amenities
+        </label>
+        <p className="field-help">Pick the amenities guests can rely on at this space.</p>
+        <div id="amenities-fieldset" style={{ marginTop: '0.5rem' }}>
+          <AmenitiesForm defaultSelected={space.amenities} />
+        </div>
       </div>
 
       {topLevelError && state.status === 'error' && state.code !== 'VALIDATION_ERROR' && (

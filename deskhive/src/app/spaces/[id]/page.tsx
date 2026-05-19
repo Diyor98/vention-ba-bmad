@@ -5,6 +5,7 @@ import { listActiveDesksForSpace } from '@/db/queries/desks';
 import { listActiveBookingsForSpaceOnDate } from '@/db/queries/bookings';
 import { computeDeskAvailability } from '@/lib/availability';
 import { parseDateParam, formatCents } from '@/lib/format';
+import { AmenitiesDisplay } from '@/components/amenities';
 import { DataView, type DataViewStatus } from '@/components/data-view';
 import { logger } from '@/lib/logger';
 import { BookDeskButton } from './book-desk-button';
@@ -105,6 +106,11 @@ export default async function SpaceDetailPage({
               </p>
             ))}
           </div>
+
+          <h2 className="h2 mb-3" style={{ marginTop: '2rem' }}>
+            Amenities
+          </h2>
+          <AmenitiesDisplay slugs={space.amenities} />
         </section>
 
         <aside
