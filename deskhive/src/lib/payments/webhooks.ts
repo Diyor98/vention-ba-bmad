@@ -91,6 +91,17 @@ import {
   // 9-5 by-PI helpers; uses payment_intent_id as the join.
   markBookingCancelledAndRefundedByPaymentIntent,
 } from '@/db/queries/bookings';
+// Story 8-4: payment-driven email senders. Fired on the {handled:true}
+// rescue paths for 9-5/9-6 handlers + always for 9-7's audit-only payout
+// handler. Skipped on {idempotent:true}/{deferred:true} paths per BA
+// Decision §7. Unified resource-id idempotency keys
+// (receipt-${paymentIntentId} / refund-${paymentIntentId} /
+// payout-${payoutId}) shared with action-side callers; Resend dedups.
+import {
+  sendPaymentReceiptEmail,
+  sendRefundConfirmationEmail,
+  sendPayoutNotificationEmail,
+} from '@/lib/bookings';
 
 /**
  * Result returned by every handler. The route translates this to an
@@ -363,6 +374,12 @@ export async function handlePaymentIntentSucceeded(
     // WHERE filtered the row out — but this is the happy path of "9-4
     // worked AND the webhook fired" — NOT a failure. Do NOT insert
     // into webhook_events (preserved 9-2 / 9-3 pattern).
+    //
+    // Story 8-4 (BA Decision §7): also DO NOT fire the receipt email on
+    // this `idempotent:true` path — the action-side caller already
+    // wrote AND fired its own receipt with the same idempotency key
+    // (`receipt-${paymentIntentId}`). Resend dedup would suppress the
+    // second send anyway, but the explicit skip avoids the round-trip.
     logger.info('stripe_webhook_payment_intent_succeeded_already_captured', {
       eventId: event.id,
       paymentIntentId,
@@ -372,6 +389,24 @@ export async function handlePaymentIntentSucceeded(
 
   // First real handle — the booking was stuck in (PENDING, AUTHORIZED)
   // and we just rescued it. Caller inserts webhook_events.
+  //
+  // Story 8-4: fire the receipt email on the rescue path. Unified
+  // idempotency key shared with confirmBookingAction's action-side
+  // caller (BA Decision §7) — Resend dedups if both somehow fire.
+  // Fire-and-forget per NFR-5 + BA Decision §5; failure NEVER affects
+  // the handler return.
+  sendPaymentReceiptEmail({
+    paymentIntentId,
+    amountCents: paymentIntent.amount,
+    idempotencyKey: `receipt-${paymentIntentId}`,
+  }).catch((err) => {
+    logger.warn('payment_receipt_email_failed', {
+      eventId: event.id,
+      paymentIntentId,
+      error: errMessage(err),
+    });
+  });
+
   return { ok: true, handled: true };
 }
 
@@ -610,6 +645,11 @@ export async function handleChargeRefunded(
     // AND payment_status='CAPTURED') filtered the row out. Happy path —
     // not a failure. Do NOT insert into webhook_events (9-2 / 9-3 / 9-5
     // pattern: only insert on first real handle).
+    //
+    // Story 8-4 (BA Decision §7): also DO NOT fire the refund email on
+    // this `idempotent:true` path — the action-side caller already
+    // wrote AND fired its own refund email with the same idempotency
+    // key (`refund-${paymentIntentId}`).
     logger.info('stripe_webhook_charge_refunded_already_refunded', {
       eventId: event.id,
       paymentIntentId,
@@ -619,6 +659,22 @@ export async function handleChargeRefunded(
 
   // First real handle — the booking was stuck in (CONFIRMED, CAPTURED)
   // and we just rescued it. Caller inserts webhook_events.
+  //
+  // Story 8-4: fire the refund email on the rescue path with the
+  // unified `refund-${paymentIntentId}` idempotency key. Same fire-and-
+  // forget pattern as the receipt path above.
+  sendRefundConfirmationEmail({
+    paymentIntentId,
+    amountCents: refundAmountCents,
+    idempotencyKey: `refund-${paymentIntentId}`,
+  }).catch((err) => {
+    logger.warn('refund_email_failed', {
+      eventId: event.id,
+      paymentIntentId,
+      error: errMessage(err),
+    });
+  });
+
   return { ok: true, handled: true };
 }
 
@@ -668,10 +724,34 @@ export async function handlePayoutPaid(
     amountCents: payout.amount,
     currency: payout.currency,
   });
+
+  // Story 8-4: fire the payout-summary email to the Space Owner. This
+  // is the SOLE caller of sendPayoutNotificationEmail — payouts are
+  // Stripe-initiated, not user-initiated; there's no action-side
+  // analog. Idempotency key `payout-${payout.id}` for Stripe retry
+  // dedup (the same payout.paid event delivered twice by Stripe → same
+  // key → Resend returns the cached send).
+  //
+  // event.account is the connected account id (acct_*) — present on
+  // Connect-platform events. Defensive `?? ''` coerces the (unlikely)
+  // null case to a string the helper logs + skips on.
+  sendPayoutNotificationEmail({
+    stripeAccountId: event.account ?? '',
+    payoutAmountCents: payout.amount,
+    idempotencyKey: `payout-${payout.id}`,
+  }).catch((err) => {
+    logger.warn('payout_email_failed', {
+      eventId: event.id,
+      payoutId: payout.id,
+      error: errMessage(err),
+    });
+  });
+
   // No DB writes — payouts are read direct from Stripe at page-load
-  // time (BA Decision §1). No email send — Story 8-4 wires that up
-  // later. Return handled:true so the route inserts webhook_events
-  // for the audit trail.
+  // time (BA Decision §1 of Story 9-7). The 8-4 email send above is
+  // the only side-effect; the audit-only handler still returns
+  // {handled:true} so webhook_events captures the event id (9-7
+  // semantic-stretch lock: "handled" = "recorded for audit").
   return { ok: true, handled: true };
 }
 

@@ -59,10 +59,21 @@ import type { BookingStatus, Role } from '@/db/schema';
 // Story 8-3: post-commit fire-and-forget notification calls. Email send
 // failures must NEVER roll back the booking transaction; the actions
 // call notify* with `.catch(...)` rather than `await ... try { } catch`.
+//
+// Story 8-4: payment-driven email sender helpers join the import list —
+// confirmBookingAction's Phase 2 happy path fires sendPaymentReceiptEmail
+// AFTER the markBookingConfirmedAndCaptured DB UPDATE succeeds;
+// cancelBookingAction's Phase 2 CONFIRMED+CAPTURED eligible-refund branch
+// fires sendRefundConfirmationEmail AFTER markBookingCancelledAndRefunded
+// succeeds. Both use unified resource-id idempotency keys
+// (`receipt-${paymentIntentId}` / `refund-${paymentIntentId}`) shared
+// with the webhook-side rescue handlers per BA Decision §7.
 import {
   notifyBookingConfirmed,
   notifyBookingRejected,
   notifyBookingCancelledByGuest,
+  sendPaymentReceiptEmail,
+  sendRefundConfirmationEmail,
 } from '@/lib/bookings';
 
 // Story 9-3: Phase 1's `createBookingAction` + `CreateBookingActionState`
@@ -355,6 +366,28 @@ export async function cancelBookingAction(
     logger.warn('notify_booking_cancelled_failed', { error: String(err) });
   });
 
+  // Story 8-4: fire the refund-confirmation email ONLY on the Phase 2
+  // CONFIRMED+CAPTURED eligible-refund branch. The branch is gated by
+  // `refundedAmountCents !== undefined` (set on line ~349 right after
+  // markBookingCancelledAndRefunded succeeds; undefined on Phase 1 +
+  // Phase 2 PENDING-cancel paths where no money moved). Unified
+  // idempotency key `refund-${paymentIntentId}` is shared with
+  // handleChargeRefunded's rescue-path send (BA Decision §7); Resend
+  // dedups whichever fires first.
+  if (refundedAmountCents !== undefined && booking.paymentIntentId) {
+    sendRefundConfirmationEmail({
+      paymentIntentId: booking.paymentIntentId,
+      amountCents: refundedAmountCents,
+      idempotencyKey: `refund-${booking.paymentIntentId}`,
+    }).catch((err) => {
+      logger.warn('refund_email_failed', {
+        bookingId,
+        paymentIntentId: booking.paymentIntentId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+  }
+
   revalidatePath('/my-bookings');
   revalidatePath(`/spaces/${booking.spaceId}`);
   // Story 6-3: 'success' instead of 'idle' so the client can fire a toast.
@@ -564,6 +597,26 @@ export async function confirmBookingAction(
   notifyBookingConfirmed(bookingId, callerId).catch((err) => {
     logger.warn('notify_booking_confirmed_failed', { error: String(err) });
   });
+
+  // Story 8-4: fire the payment-receipt email on the Phase 2 happy path
+  // ONLY. Phase 1 bookings (paymentIntentId IS NULL) have no payment to
+  // receipt; Phase 1 backwards-compat carry-forward — no email change.
+  // Unified idempotency key `receipt-${paymentIntentId}` is shared with
+  // handlePaymentIntentSucceeded's rescue-path send (BA Decision §7);
+  // Resend dedups whichever fires first.
+  if (booking.paymentIntentId) {
+    sendPaymentReceiptEmail({
+      paymentIntentId: booking.paymentIntentId,
+      amountCents: booking.totalCents,
+      idempotencyKey: `receipt-${booking.paymentIntentId}`,
+    }).catch((err) => {
+      logger.warn('payment_receipt_email_failed', {
+        bookingId,
+        paymentIntentId: booking.paymentIntentId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+  }
 
   // Confirm doesn't change desk availability (PENDING and CONFIRMED are
   // both in the partial unique index's covered set), so no /spaces/[id]

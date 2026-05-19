@@ -10,9 +10,19 @@ import type { BookingDispatchInfo } from '@/db/queries/bookings';
 // of the same module can't intercept intra-module function calls, so
 // the query was lifted to a separate module specifically to be mockable
 // here.
-const { sendEmailMock, dispatchInfoMock } = vi.hoisted(() => ({
+const {
+  sendEmailMock,
+  dispatchInfoMock,
+  // Story 8-4: payment-driven email sender helper mocks.
+  getBookingByPaymentIntentIdMock,
+  getConnectAccountByStripeAccountIdMock,
+  getUserByIdMock,
+} = vi.hoisted(() => ({
   sendEmailMock: vi.fn().mockResolvedValue({ status: 'sent' as const }),
   dispatchInfoMock: vi.fn(),
+  getBookingByPaymentIntentIdMock: vi.fn(),
+  getConnectAccountByStripeAccountIdMock: vi.fn(),
+  getUserByIdMock: vi.fn(),
 }));
 
 vi.mock('@/lib/email', async () => {
@@ -32,14 +42,31 @@ vi.mock('@/db/queries/bookings', async () => {
   return {
     ...actual,
     getBookingDispatchInfo: dispatchInfoMock,
+    // Story 8-4: payment-receipt + payment-refund sender helpers use
+    // this to look up the booking from a Stripe paymentIntent id, then
+    // pass booking.id to getBookingDispatchInfo for the recipient bundle.
+    getBookingByPaymentIntentId: getBookingByPaymentIntentIdMock,
   };
 });
+
+// Story 8-4: payout-summary sender helper uses these.
+vi.mock('@/db/queries/stripe-connect', () => ({
+  getConnectAccountByStripeAccountId: getConnectAccountByStripeAccountIdMock,
+}));
+
+vi.mock('@/db/queries/users', () => ({
+  getUserById: getUserByIdMock,
+}));
 
 import {
   notifyBookingRequested,
   notifyBookingConfirmed,
   notifyBookingRejected,
   notifyBookingCancelledByGuest,
+  // Story 8-4 — payment-driven email senders.
+  sendPaymentReceiptEmail,
+  sendRefundConfirmationEmail,
+  sendPayoutNotificationEmail,
 } from './bookings';
 
 const OWNER_ID = '00000000-0000-0000-0000-0000000000a1';
@@ -200,5 +227,111 @@ describe('notifyBookingCancelledByGuest (Story 8-3 Decision §2 previous-status)
     await notifyBookingCancelledByGuest('bookingId', 'CONFIRMED');
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     expect(sendEmailMock.mock.calls[0][0].template).toBe('booking-cancelled-guest');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Story 8-4 — payment-driven email sender helper tests. 3 happy-path
+// tests verifying the lookup + sendEmail call shape, including the
+// unified resource-id idempotency-key shape (BA Decision §7).
+// ─────────────────────────────────────────────────────────────────────
+
+describe('sendPaymentReceiptEmail (Story 8-4)', () => {
+  it('happy path — looks up booking by PI + dispatch info + calls sendEmail with payment-receipt template + receipt-${piId} key', async () => {
+    getBookingByPaymentIntentIdMock.mockResolvedValueOnce({
+      id: 'booking-uuid-1',
+      paymentIntentId: 'pi_test_captured',
+      totalCents: 2500,
+    });
+    dispatchInfoMock.mockResolvedValueOnce(makeInfo({ hasOwner: true }));
+
+    await sendPaymentReceiptEmail({
+      paymentIntentId: 'pi_test_captured',
+      amountCents: 2500,
+      idempotencyKey: 'receipt-pi_test_captured',
+    });
+
+    expect(getBookingByPaymentIntentIdMock).toHaveBeenCalledWith(
+      'pi_test_captured',
+    );
+    expect(dispatchInfoMock).toHaveBeenCalledWith('booking-uuid-1');
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    const call = sendEmailMock.mock.calls[0][0];
+    expect(call.template).toBe('payment-receipt');
+    expect(call.to).toBe('guest@example.com'); // from makeInfo()'s default guest email
+    expect(call.data).toMatchObject({
+      spaceName: 'Sundial Coworks',
+      bookingDate: '2026-08-26',
+      amountCents: 2500,
+    });
+    // BA Decision §7 LOAD-BEARING: unified resource-id idempotency key.
+    expect(call.idempotencyKey).toBe('receipt-pi_test_captured');
+  });
+});
+
+describe('sendRefundConfirmationEmail (Story 8-4)', () => {
+  it('happy path — calls sendEmail with payment-refund template + refund-${piId} key', async () => {
+    getBookingByPaymentIntentIdMock.mockResolvedValueOnce({
+      id: 'booking-uuid-2',
+      paymentIntentId: 'pi_test_refunded',
+      totalCents: 2500,
+    });
+    dispatchInfoMock.mockResolvedValueOnce(makeInfo({ hasOwner: true }));
+
+    await sendRefundConfirmationEmail({
+      paymentIntentId: 'pi_test_refunded',
+      amountCents: 2500,
+      idempotencyKey: 'refund-pi_test_refunded',
+    });
+
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    const call = sendEmailMock.mock.calls[0][0];
+    expect(call.template).toBe('payment-refund');
+    expect(call.idempotencyKey).toBe('refund-pi_test_refunded');
+    expect(call.data).toMatchObject({
+      spaceName: 'Sundial Coworks',
+      bookingDate: '2026-08-26',
+      amountCents: 2500,
+    });
+  });
+});
+
+describe('sendPayoutNotificationEmail (Story 8-4)', () => {
+  it('happy path — looks up Connect account + owner + calls sendEmail with payout-summary template + payout-${id} key', async () => {
+    getConnectAccountByStripeAccountIdMock.mockResolvedValueOnce({
+      id: 'connect-row-1',
+      userId: '00000000-0000-0000-0000-0000000000aa',
+      stripeAccountId: 'acct_test_owner_connect',
+      chargesEnabled: true,
+      payoutsEnabled: true,
+      onboardingCompleted: true,
+    });
+    getUserByIdMock.mockResolvedValueOnce({
+      id: '00000000-0000-0000-0000-0000000000aa',
+      email: 'owner@deskhive.local',
+      fullName: 'Bobur Tashkentov',
+    });
+
+    await sendPayoutNotificationEmail({
+      stripeAccountId: 'acct_test_owner_connect',
+      payoutAmountCents: 21250,
+      idempotencyKey: 'payout-po_test_123',
+    });
+
+    expect(getConnectAccountByStripeAccountIdMock).toHaveBeenCalledWith(
+      'acct_test_owner_connect',
+    );
+    expect(getUserByIdMock).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-0000000000aa',
+    );
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    const call = sendEmailMock.mock.calls[0][0];
+    expect(call.template).toBe('payout-summary');
+    expect(call.to).toBe('owner@deskhive.local');
+    expect(call.idempotencyKey).toBe('payout-po_test_123');
+    expect(call.data).toMatchObject({
+      ownerName: 'Bobur Tashkentov',
+      payoutAmountCents: 21250,
+    });
   });
 });

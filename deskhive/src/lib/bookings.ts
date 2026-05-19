@@ -31,8 +31,11 @@
 import type { BookingStatus } from '@/db/schema';
 import {
   getBookingDispatchInfo,
+  getBookingByPaymentIntentId,
   type BookingDispatchInfo,
 } from '@/db/queries/bookings';
+import { getConnectAccountByStripeAccountId } from '@/db/queries/stripe-connect';
+import { getUserById } from '@/db/queries/users';
 import { sendEmail } from '@/lib/email';
 import { logger } from '@/lib/logger';
 
@@ -227,6 +230,178 @@ export async function notifyBookingCancelledByGuest(
         bookingDate: dateIso,
         appUrl,
       },
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Story 8-4 — payment-driven email sender helpers (3 new functions).
+//
+// All 3 mirror the `notify*` shape above: look up canonical DB state at
+// send-time → call sendEmail with the right recipient + data. The new
+// helpers take a unified resource-id-shaped `idempotencyKey` arg
+// (`receipt-${paymentIntentId}` / `refund-${paymentIntentId}` /
+// `payout-${payoutId}`) passed through to Resend's `Idempotency-Key`
+// header per BA Decision §6 + §7 — so the dual-path design (action-side
+// normal happy path + webhook-side rescue path) dedups whichever fires
+// first.
+//
+// Failure semantics: sendEmail is non-throwing (Story 8-1 contract).
+// The DB lookup or template render can throw — callers (Server Actions
+// + webhook handlers) wrap these in `.catch(...)` and log `warn`. Match
+// the 8-3 `notify*` failure shape. PRD NFR-5 lock: email failures
+// NEVER affect the action / handler return.
+//
+// Resend `Idempotency-Key` dedup-response handling: per Story 8-4 BA
+// Decision §7 supplement + Resend SDK 6.12.3 docs, a second call with
+// the same key returns 200 with the cached email id (no special
+// detection logic needed in sendEmail; the existing happy-path code
+// returns { status: 'sent' }). The Resend 4xx error codes
+// `invalid_idempotent_request` + `concurrent_idempotent_requests` fire
+// only for malformed/conflicting cases (key reused with different
+// params; two simultaneous calls) — surfaced as { status: 'error' }
+// and logged `warn` like any other Resend failure.
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Story 8-4: fires the payment-receipt email to the Guest after a
+ * Payment Intent captures. Called by `confirmBookingAction` (action-side
+ * normal happy path) AND `handlePaymentIntentSucceeded` (webhook-side
+ * rescue path). Same unified idempotency key from both callers; Resend
+ * dedups whichever fires first.
+ */
+export async function sendPaymentReceiptEmail(args: {
+  paymentIntentId: string;
+  amountCents: number;
+  idempotencyKey: string;
+}): Promise<void> {
+  const booking = await getBookingByPaymentIntentId(args.paymentIntentId);
+  if (!booking) {
+    logger.warn(
+      `sendPaymentReceiptEmail: booking not found for paymentIntentId=${args.paymentIntentId}; skipping email`,
+    );
+    return;
+  }
+  const info = await getBookingDispatchInfo(booking.id);
+  if (!info) {
+    logger.warn(
+      `sendPaymentReceiptEmail: dispatch info not found (bookingId=${booking.id}); skipping email`,
+    );
+    return;
+  }
+  const result = await sendEmail({
+    to: info.guest.email,
+    template: 'payment-receipt',
+    data: {
+      guestName: info.guest.fullName,
+      spaceName: info.space.name,
+      bookingDate: info.booking.bookingDate,
+      amountCents: args.amountCents,
+      appUrl: getAppUrl(),
+    },
+    idempotencyKey: args.idempotencyKey,
+  });
+  if (result.status === 'error') {
+    logger.warn('payment_receipt_email_send_failed', {
+      paymentIntentId: args.paymentIntentId,
+      bookingId: booking.id,
+      error: result.error,
+    });
+  }
+}
+
+/**
+ * Story 8-4: fires the refund-confirmation email to the Guest after a
+ * refund processes via `stripe.refunds.create`. Mirrors
+ * `sendPaymentReceiptEmail` shape; called by `cancelBookingAction`'s
+ * eligible-refund branch AND `handleChargeRefunded` rescue path.
+ */
+export async function sendRefundConfirmationEmail(args: {
+  paymentIntentId: string;
+  amountCents: number;
+  idempotencyKey: string;
+}): Promise<void> {
+  const booking = await getBookingByPaymentIntentId(args.paymentIntentId);
+  if (!booking) {
+    logger.warn(
+      `sendRefundConfirmationEmail: booking not found for paymentIntentId=${args.paymentIntentId}; skipping email`,
+    );
+    return;
+  }
+  const info = await getBookingDispatchInfo(booking.id);
+  if (!info) {
+    logger.warn(
+      `sendRefundConfirmationEmail: dispatch info not found (bookingId=${booking.id}); skipping email`,
+    );
+    return;
+  }
+  const result = await sendEmail({
+    to: info.guest.email,
+    template: 'payment-refund',
+    data: {
+      guestName: info.guest.fullName,
+      spaceName: info.space.name,
+      bookingDate: info.booking.bookingDate,
+      amountCents: args.amountCents,
+      appUrl: getAppUrl(),
+    },
+    idempotencyKey: args.idempotencyKey,
+  });
+  if (result.status === 'error') {
+    logger.warn('refund_email_send_failed', {
+      paymentIntentId: args.paymentIntentId,
+      bookingId: booking.id,
+      error: result.error,
+    });
+  }
+}
+
+/**
+ * Story 8-4: fires the payout-summary email to the Space Owner after a
+ * Stripe Connect payout settles. Called SOLELY by `handlePayoutPaid` —
+ * no action-side analog (payouts are Stripe-initiated, not user-
+ * initiated). Idempotency key = `'payout-' + payoutId`.
+ *
+ * Recipient lookup: `getConnectAccountByStripeAccountId` (Story 9-2
+ * helper) returns the Connect row + `userId`; `getUserById` (Story 8-4
+ * helper) returns the Owner's email + name.
+ */
+export async function sendPayoutNotificationEmail(args: {
+  stripeAccountId: string;
+  payoutAmountCents: number;
+  idempotencyKey: string;
+}): Promise<void> {
+  const connectAccount = await getConnectAccountByStripeAccountId(
+    args.stripeAccountId,
+  );
+  if (!connectAccount) {
+    logger.warn(
+      `sendPayoutNotificationEmail: Connect account not found for stripeAccountId=${args.stripeAccountId}; skipping email`,
+    );
+    return;
+  }
+  const owner = await getUserById(connectAccount.userId);
+  if (!owner) {
+    logger.warn(
+      `sendPayoutNotificationEmail: owner user not found for userId=${connectAccount.userId}; skipping email`,
+    );
+    return;
+  }
+  const result = await sendEmail({
+    to: owner.email,
+    template: 'payout-summary',
+    data: {
+      ownerName: owner.fullName,
+      payoutAmountCents: args.payoutAmountCents,
+      appUrl: getAppUrl(),
+    },
+    idempotencyKey: args.idempotencyKey,
+  });
+  if (result.status === 'error') {
+    logger.warn('payout_email_send_failed', {
+      stripeAccountId: args.stripeAccountId,
+      ownerId: owner.id,
+      error: result.error,
     });
   }
 }

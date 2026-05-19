@@ -140,26 +140,31 @@ describe('sendEmail (Story 8-1)', () => {
     expect(sendMock).not.toHaveBeenCalled();
   });
 
-  it('not-implemented template (8-4 placeholder) returns { status: error } without calling Resend', async () => {
-    // Story 8-3 implemented all 8 booking-* templates; this probe now
-    // uses a Story 8-4 placeholder ('payment-receipt') that still throws
-    // 'not implemented' in the renderTemplate switch.
+  it('payment-receipt template (8-4 now wired) renders successfully via the dispatcher', async () => {
+    // Story 8-3 implemented all 8 booking-* templates; this probe
+    // previously verified the 'not implemented' default throw using
+    // 'payment-receipt' as the canary. After Story 8-4 wires all 3
+    // payment-driven templates (payment-receipt / payment-refund /
+    // payout-summary), the renderTemplate switch's default branch is
+    // STRUCTURALLY UNREACHABLE for any TemplateName entry — Phase 2 is
+    // complete. The test now asserts the previously-placeholder template
+    // renders successfully end-to-end (sendEmail returns { status:
+    // 'sent' } and Resend.emails.send was called).
+    sendMock.mockResolvedValueOnce({ data: { id: 'res-payment-receipt' }, error: null });
     const result = await sendEmail({
       to: 'r@example.com',
       template: 'payment-receipt',
       data: {
         guestName: 'Test',
-        amountCents: 2500,
         spaceName: 'Acme',
         bookingDate: '2026-06-01',
+        amountCents: 2500,
+        appUrl: 'http://localhost:3000',
       },
     });
 
-    expect(result.status).toBe('error');
-    if (result.status === 'error') {
-      expect(result.error).toContain('not implemented');
-    }
-    expect(sendMock).not.toHaveBeenCalled();
+    expect(result.status).toBe('sent');
+    expect(sendMock).toHaveBeenCalledTimes(1);
   });
 
   it('compile-time type safety: wrong data shape for a template is a TS error', async () => {

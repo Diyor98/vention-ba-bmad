@@ -114,6 +114,10 @@ vi.mock('@/lib/bookings', () => ({
   notifyBookingConfirmed: notifyBookingConfirmedMock,
   notifyBookingRejected: notifyBookingRejectedMock,
   notifyBookingCancelledByGuest: notifyBookingCancelledByGuestMock,
+  // Story 8-4: action-side email-send fire-and-forget. Mocked here as
+  // no-op resolved promises so the action's .catch chain never fires.
+  sendPaymentReceiptEmail: vi.fn().mockResolvedValue(undefined),
+  sendRefundConfirmationEmail: vi.fn().mockResolvedValue(undefined),
 }));
 // next/cache revalidatePath is called post-success; stub to no-op.
 vi.mock('next/cache', () => ({

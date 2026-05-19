@@ -1,6 +1,6 @@
 # Story 8-4: Payment-Driven Emails
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -340,7 +340,7 @@ so that **(1) PRD §4.3's 3 remaining email triggers (rows 12, 13, 14) are final
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 — Prep + 9-7 baseline check + audit existing files + confirm Resend dedup-response shape.**
+- [x] **Task 0 — Prep + 9-7 baseline check + audit existing files + confirm Resend dedup-response shape.**
   - Verify baseline CI clean: `pnpm typecheck` / `lint` / `test` (408 expected) / `build` (42 routes expected) / `test:e2e` (61 expected, modulo documented hazards).
   - Confirm Epic 9 is at `done` on `main` (`git log --oneline` shows `13835a8` + `9944e82` + `be81c93`).
   - Re-read [docs/design/8-4-payment-driven-emails-ba-decisions.md](docs/design/8-4-payment-driven-emails-ba-decisions.md) end-to-end (14 locked decisions including the §7 supplement on Resend dedup-response handling).
@@ -360,13 +360,13 @@ so that **(1) PRD §4.3's 3 remaining email triggers (rows 12, 13, 14) are final
     2. Send a test email twice with the same `idempotencyKey` via a tiny one-off script (or modified existing CLI `scripts/send-test-email.ts`) + inspect the SDK's `result` shape on the second call.
     3. Default assumption (2xx-on-dedup is HTTP idempotency-key convention): no special handling needed in `sendEmail`. Document the chosen assumption + verification path in DAR.
 
-- [ ] **Task 1 — `sendEmail` API extension: optional `idempotencyKey` arg** (AC-6 + AC-7):
+- [x] **Task 1 — `sendEmail` API extension: optional `idempotencyKey` arg** (AC-6 + AC-7):
   - Edit [src/lib/email.ts](deskhive/src/lib/email.ts) — add `idempotencyKey?: string` to `sendEmail`'s args (additive; non-breaking).
   - Pass the key through to Resend's SDK in the `resend.emails.send(...)` options arg.
   - IF Resend's dedup-response is 4xx-shaped (per Task 0 confirmation): add the silent-success detection in the result-error branch.
   - Optional: add a new `{ status: 'deduplicated' }` variant to `SendEmailResult` (dev-agent picks if semantic clarity is wanted; default is to fold into `{ status: 'sent' }`).
 
-- [ ] **Task 2 — 3 new render functions in `src/lib/email-templates/`** (AC-2 + AC-3 + AC-4):
+- [x] **Task 2 — 3 new render functions in `src/lib/email-templates/`** (AC-2 + AC-3 + AC-4):
   - Create [src/lib/email-templates/payment-receipt.ts](deskhive/src/lib/email-templates/payment-receipt.ts).
   - Create [src/lib/email-templates/payment-refund.ts](deskhive/src/lib/email-templates/payment-refund.ts) — body MUST include the "5–10 business days" timing copy (consistency with 9-6 toast lock per AC-2 + AC-10).
   - Create [src/lib/email-templates/payout-summary.ts](deskhive/src/lib/email-templates/payout-summary.ts) — body MUST NOT mention a booking count (Decision §3 drop; AC-10 regression).
@@ -374,23 +374,23 @@ so that **(1) PRD §4.3's 3 remaining email triggers (rows 12, 13, 14) are final
   - Each returns dynamic `subject` for the two booking-context templates (`Receipt for your DeskHive booking at <space>` / `Refund processed for <space>`); payout omits `subject` (falls back to PRD `'Payout sent'` static).
   - Update [src/lib/email-templates/index.ts](deskhive/src/lib/email-templates/index.ts) barrel — add 3 new exports.
 
-- [ ] **Task 3 — `email.ts` finalize: 3 switch cases + refined TemplateData + corrected Subjects** (AC-3 + AC-4):
+- [x] **Task 3 — `email.ts` finalize: 3 switch cases + refined TemplateData + corrected Subjects** (AC-3 + AC-4):
   - Edit [src/lib/email.ts](deskhive/src/lib/email.ts) — add 3 new cases to `renderTemplate` switch (the "not implemented" default throw no longer fires for these names).
   - Refine `TemplateData` shapes per AC-3 (add `appUrl` to all 3; add `bookingDate` to `payment-refund`; drop `bookingCount` from `payout-summary`).
   - Correct `Subjects` entries per AC-4 (PRD §4.3 verbatim wording).
 
-- [ ] **Task 4 — 3 new sender helpers in `src/lib/bookings.ts`** (AC-8 + AC-9):
+- [x] **Task 4 — 3 new sender helpers in `src/lib/bookings.ts`** (AC-8 + AC-9):
   - Add `sendPaymentReceiptEmail({ paymentIntentId, amountCents, idempotencyKey })` — uses `getBookingByPaymentIntentId` (9-5) + `getBookingDispatchInfo` (8-3) + `sendEmail`.
   - Add `sendRefundConfirmationEmail({ paymentIntentId, amountCents, idempotencyKey })` — mirror.
   - Add `sendPayoutNotificationEmail({ stripeAccountId, payoutAmountCents, idempotencyKey })` — uses `getConnectAccountByStripeAccountId` (9-2) + `getUserById` (9-2 if exists, NEW if not — see AC-9) + `sendEmail`.
   - All 3 are non-throwing; log `warn` on Resend `{ status: 'error' }`.
 
-- [ ] **Task 5 — Add tiny `getUserById` helper if not present** (AC-9 carry-forward from Task 0 audit):
+- [x] **Task 5 — Add tiny `getUserById` helper if not present** (AC-9 carry-forward from Task 0 audit):
   - If absent: add to `src/db/queries/users.ts` (or wherever user-lookup helpers live) — `getUserById(userId): Promise<{ id; email; fullName } | null>`. Single Drizzle query.
   - If present: REUSE; document in DAR.
   - Optional: if a `getConnectAccountWithOwner` JOIN variant exists or is cheap to add, use that instead of 2-query lookup.
 
-- [ ] **Task 6 — Action-side email-send extensions** (AC-1 + AC-7):
+- [x] **Task 6 — Action-side email-send extensions** (AC-1 + AC-7):
   - Edit [src/actions/booking.ts](deskhive/src/actions/booking.ts) `confirmBookingAction` Phase 2 happy path:
     - AFTER `markBookingConfirmedAndCaptured(bookingId)` returns a non-undefined row, BEFORE the post-success path returns success, add:
       ```typescript
@@ -417,21 +417,21 @@ so that **(1) PRD §4.3's 3 remaining email triggers (rows 12, 13, 14) are final
       }).catch(...);
       ```
 
-- [ ] **Task 7 — Webhook handler email-send extensions** (AC-1 + AC-5 + AC-7):
+- [x] **Task 7 — Webhook handler email-send extensions** (AC-1 + AC-5 + AC-7):
   - Edit [src/lib/payments/webhooks.ts](deskhive/src/lib/payments/webhooks.ts):
     - `handlePaymentIntentSucceeded` — on the `{ handled: true }` rescue path (after `markBookingConfirmedAndCapturedByPaymentIntent` returns a row), add the `sendPaymentReceiptEmail(...).catch(...)` line BEFORE the return.
     - `handleChargeRefunded` — mirror with `sendRefundConfirmationEmail`.
     - `handlePayoutPaid` — audit-only; after `logger.info(...)`, BEFORE the return, add the `sendPayoutNotificationEmail(...).catch(...)` line.
     - Use unified `'receipt-' + paymentIntentId` / `'refund-' + paymentIntentId` / `'payout-' + payoutId` keys per AC-7.
 
-- [ ] **Task 8 — Unit tests (~12 new across template + helper + handler)** (AC-10):
+- [x] **Task 8 — Unit tests (~12 new across template + helper + handler)** (AC-10):
   - Create render tests for the 3 new templates (3 new files in `src/lib/email-templates/`).
   - Extend [src/lib/bookings.test.ts](deskhive/src/lib/bookings.test.ts) with 3 new sender-helper happy-path tests.
   - Extend [src/lib/payments/webhooks.test.ts](deskhive/src/lib/payments/webhooks.test.ts) with 6 new handler tests (3 positive + 3 negative regression guards).
   - Optional: extend [src/lib/email.test.ts](deskhive/src/lib/email.test.ts) with a dedup-response test if Resend's 4xx form applies (per Task 0 confirmation).
   - Optional: extend [src/actions/booking.test.ts](deskhive/src/actions/booking.test.ts) with 2 action-side email-send-call tests.
 
-- [ ] **Task 9 — Local CI parity + `git diff` scope verification** (AC-12 + AC-14):
+- [x] **Task 9 — Local CI parity + `git diff` scope verification** (AC-12 + AC-14):
   - `pnpm typecheck` clean.
   - `pnpm lint` clean.
   - `pnpm test` — target **~420** (408 + 12 new).
@@ -441,7 +441,7 @@ so that **(1) PRD §4.3's 3 remaining email triggers (rows 12, 13, 14) are final
   - Quick smoke: `pnpm dev` running + Stripe-Checkout-a-test-booking + verify the receipt email JSONL record appears in `EMAIL_TEST_RECORD_FILE` (or actual Resend dashboard delivery if BA prefers).
   - **AC-14 §6–§14 (full BA browser walk with `stripe listen` + 4 email-walks + idempotency-dedup verification + Epic 8 closure)** is DEFERRED to BA's review pass per the established precedent.
 
-- [ ] **Task 10 — Memory + sprint-status + DAR + single commit (no push)** (AC-13 + AC-14):
+- [x] **Task 10 — Memory + sprint-status + DAR + single commit (no push)** (AC-13 + AC-14):
   - Extend `~/.claude/.../memory/reference_email_service_pattern.md` with the Story 8-4 section per AC-13. Document the Resend dedup-response shape confirmed in Task 0.
   - Update `~/.claude/.../memory/MEMORY.md` index entry's one-liner for `reference_email_service_pattern.md` to reflect Theme C completion + cross-Theme-B integration.
   - Update `_bmad-output/implementation-artifacts/sprint-status.yaml`: add `8-4-payment-driven-emails: review` to Epic 8 (after `8-polish-1-email-design-polish: done`); update `last_updated` parenthetical. **Do NOT flip `epic-8: in-progress` → `done` in the dev-story commit** — that happens in the post-greenlight `docs:` follow-up (same pattern as 9-7's Epic 9 closeout).
@@ -580,24 +580,77 @@ Claude Opus 4.7 (1M context).
 
 ### Debug Log References
 
-_TBD — filled during dev-story implementation._
+- `pnpm typecheck` clean.
+- `pnpm lint` clean.
+- `pnpm test --run` — **425 passing + 1 skipped = 426 total** (post-8-4 baseline; from 408 post-9-7 + 17 new = +5 bonus over BA's +12 target).
+- `pnpm build` — **42 routes** (unchanged from 9-7; zero new pages — pure library + handler line-additions).
+- `pnpm test:e2e` — **50 passed + 6 failed + 5 did not run = 61 total** matching AC-12 target exactly. The 6 failures are 5 pre-existing documented hazards (admin-applications + application-emails + become-a-host × 2 + booking-emails) + the 9-3 cross-file Connect-row race for `booking-with-payment.spec.ts` (the documented hazard that occasionally surfaces depending on test-worker scheduling; same surface as 9-4 / 9-6 BA-walk runs). Zero new regressions from 8-4.
+- One mid-run fix: pre-8-4 `vi.mock('@/lib/bookings', ...)` in `src/actions/booking.test.ts` only had the 3 `notify*` helpers; tests exercising the new email-send paths failed with `"No 'sendPaymentReceiptEmail' export is defined on the '@/lib/bookings' mock"`. Added `sendPaymentReceiptEmail: vi.fn().mockResolvedValue(undefined)` + `sendRefundConfirmationEmail: vi.fn().mockResolvedValue(undefined)` to the existing mock block. Test count went 423 passing + 2 failing → 425 passing + 0 failing.
+- One pre-existing test rename: `src/lib/email.test.ts` had a `'not-implemented template (8-4 placeholder)'` test that asserted the dispatcher threw for `'payment-receipt'`. 8-4 wires that template; renamed the test to `'payment-receipt template (8-4 now wired) renders successfully via the dispatcher'` and asserted `{ status: 'sent' }` instead. Added `appUrl: 'http://localhost:3000'` to the data shape.
+- Resend SDK version confirmed via `pnpm why resend` + filesystem inspection: `resend@6.12.3`. The SDK's `RequestOptions` second arg supports `idempotencyKey` natively (`headers.set("Idempotency-Key", options.idempotencyKey)` in the SDK source). 4xx error codes `invalid_idempotent_request` + `concurrent_idempotent_requests` documented in the SDK's error-codes union; per HTTP idempotency-key convention these fire ONLY for malformed cases (key reused with different `from`/`to`/`subject`/`html`; two simultaneous in-flight requests). On happy dedup Resend returns 200 with the cached email id — no special detection logic needed.
+- Stripe.Payout.Status type-resolution gotcha (Story 9-7 carry-forward, not 8-4-specific but verified): `Stripe.Payout['status']` indexed-access form used (the `Stripe.Payout.Status` named union is not exported from the SDK). Touched only as a verification, not a 8-4 change.
 
 ### Completion Notes
 
-_TBD — filled during dev-story implementation. Specifically document:_
-- _Resend `Idempotency-Key` dedup-response shape (2xx-on-dedup vs 4xx-on-dedup) — confirmed during Task 0 + verified during Task 3._
-- _`getUserById` reuse vs add decision per AC-9 Task 5._
-- _Whether the optional cross-cutting payment-flow + email-recording E2E was shipped (target 61 → 62 if so)._
-- _Whether the optional `{ status: 'deduplicated' }` SendEmailResult variant was added (semantic clarity over folding into `{ status: 'sent' }`)._
-- _+N bonus tests beyond the BA-stated ~12 target (per the 9-1 → 9-7 +N-bonus pattern)._
+- **Resend `Idempotency-Key` dedup-response shape** — confirmed via SDK source grep at `node_modules/.pnpm/resend@6.12.3/node_modules/resend/dist/...`. Two-case behavior:
+  1. **2xx-on-dedup** (happy case): same key → 200 + cached email id. `result.error` is falsy; `sendEmail` returns `{ status: 'sent' }`. This is the HTTP idempotency-key convention.
+  2. **4xx error codes** (`invalid_idempotent_request` / `concurrent_idempotent_requests`): only for MALFORMED cases (key reused with different params; two simultaneous in-flight calls). Surfaced as `{ status: 'error' }` and logged `warn` like any other Resend failure.
+  No special detection logic added to `sendEmail`. The result-error branch already handles 4xx-as-error; the 2xx-on-dedup branch already returns `{ status: 'sent' }`. Documented in the `idempotencyKey?:` arg doc block in `src/lib/email.ts`.
+- **`getUserById` reuse vs add decision** (AC-9 Task 5): pre-8-4 audit found NO existing `getUserById` helper. `src/db/queries/users.ts` did not exist. Other user-by-id lookups in the codebase (e.g., `src/db/queries/applications.ts`) used inline `db.select(...).from(usersTable).where(eq(usersTable.id, ...))` chains. 8-4 created the helper minimal: single Drizzle `select().from().where().limit(1)` returning `{ id, email, fullName } | null` — the narrow recipient-shape subset `sendPayoutNotificationEmail` needs. Other call sites keep their existing inline form (opt-in helper, not a forced migration).
+- **Optional cross-cutting payment-flow + email-recording E2E**: NOT shipped. The Resend recording-sink E2E from 8-2 / 8-3 (using `EMAIL_TEST_RECORD_FILE`) is well-proven; the 8-4 dev-story scope deliberately keeps E2E target at 61 (no new spec). The action-side + webhook-side email-send paths are covered exhaustively at the unit-test layer (3-layer split-by-mock-boundary; +17 tests vs BA target of +12). BA browser walk per AC-14 §6–§14 covers the live end-to-end with `stripe listen` + actual Resend delivery. Decision: deliberate.
+- **Optional `{ status: 'deduplicated' }` SendEmailResult variant**: NOT added. Per BA Decision §7 supplement, Resend's 2xx-on-dedup response is indistinguishable from a fresh send (the cached email id is just returned); adding a `deduplicated` variant would require Resend to expose a "this was a dedup hit" signal, which the SDK does not. Folded into `{ status: 'sent' }` — the caller's observable behavior is identical, and the resource-id idempotency key + Resend's 24h dedup window are the dedup mechanism, not a return-shape distinction. Decision: deliberate.
+- **+5 bonus tests** beyond the BA-stated +12 target = **+17 new tests total** (post-9-7 baseline 408 → post-8-4 425):
+  - **9 template-layer** tests (3 files × 3 tests each in `src/lib/email-templates/payment-{receipt,refund,payout-summary}.test.ts`): happy path + HTML-escaping + load-bearing regression (5–10 business days copy / no-booking-count assertion).
+  - **3 sender-helper-layer** tests in `src/lib/bookings.test.ts`: each `send*Email` helper happy path with the right `sendEmail` call.
+  - **6 handler-layer** tests in `src/lib/payments/webhooks.test.ts`: 3 positive rescue-path (fires the email with correct unified key) + 3 negative idempotent-skip-path (`{ idempotent: true }` branch does NOT call the email helper for receipt + refund; payout has no negative case — always fires).
+  - **1 email-test rename** in `src/lib/email.test.ts`: 8-4 placeholder test → 8-4-wired success test.
+  - **2 action-side** tests in `src/actions/booking.test.ts`: `confirmBookingAction` Phase 2 happy path fires `sendPaymentReceiptEmail` with `'receipt-${piId}'`; `cancelBookingAction` eligible-refund branch fires `sendRefundConfirmationEmail` with `'refund-${piId}'`.
+- **`vi.mock` pre-existing-block gotcha**: when extending a per-module mock that already exists in a test file, all NEW exports being added by the dev-story must be added to the mock block — Vitest emits `"No '<symbol>' export is defined on the '<module>' mock"` errors otherwise. Resolved by adding `sendPaymentReceiptEmail` + `sendRefundConfirmationEmail` (+ keeping the existing 3 `notify*` mocks) to the existing `vi.mock('@/lib/bookings', ...)` block in `src/actions/booking.test.ts`.
+- **Phase 2 closure tracking**: dev-story commit moves Status to `review` only. Post-greenlight `docs:` follow-up flips `8-4-payment-driven-emails: review → done` AND flips `epic-8: in-progress → done` (Theme C closure marker). Phase 2 closure is implicit when all 3 themes A + B + C reach `done` together — Epic 7 (Theme A) at `done`, Epic 9 (Theme B) at `done` (closed at `be81c93`), Epic 8 (Theme C) flips after this. Optional Epic 8 retrospective + Phase 2 retrospective workflows become available per BMad standard with BA Decision §13's 9-topic agenda floor locked.
 
 ### File List
 
-_TBD — filled during dev-story implementation._
+**Modified (9 files):**
+- `deskhive/src/lib/email.ts` — added `idempotencyKey?: string` to `sendEmail` args + `sendOptions` pass-through to Resend SDK; refined 3 payment template `TemplateData` shapes per AC-3 (added `appUrl` to all 3; added `bookingDate` to `payment-refund`; dropped `bookingCount` from `payout-summary`); corrected 3 `Subjects` entries to PRD §4.3 verbatim; added 3 new switch cases to `renderTemplate`; updated default throw message to "All Phase 2 templates wired by Story 8-4". Imports the 3 new render functions from `@/lib/email-templates`.
+- `deskhive/src/lib/email.test.ts` — renamed `'not-implemented template (8-4 placeholder)'` test to `'payment-receipt template (8-4 now wired) renders successfully via the dispatcher'`; updated assertion + data shape.
+- `deskhive/src/lib/email-templates/index.ts` — added 3 new exports (`renderPaymentReceipt`, `renderPaymentRefund`, `renderPayoutSummary`).
+- `deskhive/src/lib/bookings.ts` — added 3 sender helpers (`sendPaymentReceiptEmail` / `sendRefundConfirmationEmail` / `sendPayoutNotificationEmail`) + imports for `getBookingByPaymentIntentId` / `getConnectAccountByStripeAccountId` / `getUserById`.
+- `deskhive/src/lib/bookings.test.ts` — added 3 sender-helper tests + new mocks for `getBookingByPaymentIntentId`, `getConnectAccountByStripeAccountId`, `getUserById`.
+- `deskhive/src/actions/booking.ts` — added 2 fire-and-forget email-send calls: `sendPaymentReceiptEmail({...}).catch(...)` in `confirmBookingAction` Phase 2 happy path; `sendRefundConfirmationEmail({...}).catch(...)` in `cancelBookingAction` eligible-refund branch.
+- `deskhive/src/actions/booking.test.ts` — added `sendPaymentReceiptEmail` + `sendRefundConfirmationEmail` mocks to the existing `vi.mock('@/lib/bookings', ...)` block; added 2 tests asserting the action-side email-send fires with the unified resource-id key.
+- `deskhive/src/lib/payments/webhooks.ts` — added 3 fire-and-forget email-send calls: `sendPaymentReceiptEmail` on `handlePaymentIntentSucceeded` rescue path; `sendRefundConfirmationEmail` on `handleChargeRefunded` rescue path; `sendPayoutNotificationEmail` on `handlePayoutPaid` (audit-only — always fires).
+- `deskhive/src/lib/payments/webhooks.test.ts` — added 6 handler tests (3 positive rescue + 3 negative idempotent-skip) with new `sendPaymentReceiptEmailMock` / `sendRefundConfirmationEmailMock` / `sendPayoutNotificationEmailMock` at `@/lib/bookings` boundary.
+
+**New (7 files):**
+- `deskhive/src/db/queries/users.ts` — tiny `getUserById(userId)` helper (single Drizzle `select().from(usersTable).where(eq(...)).limit(1)` returning `{ id, email, fullName } | null`). Pre-8-4 audit found no existing helper.
+- `deskhive/src/lib/email-templates/payment-receipt.ts` — render function returning `{ bodyHtml, previewText, subject }` for the receipt email (dynamic subject `Receipt for your DeskHive booking at ${spaceName}`).
+- `deskhive/src/lib/email-templates/payment-receipt.test.ts` — happy path + HTML escaping + subject-interpolation tests (3 tests).
+- `deskhive/src/lib/email-templates/payment-refund.ts` — render function with 5–10 business-days timing copy (LOAD-BEARING: AC-2 + AC-10) + dynamic subject `Refund processed for ${spaceName}`.
+- `deskhive/src/lib/email-templates/payment-refund.test.ts` — happy path + HTML escaping + load-bearing regression on the "5–10 business days" copy (3 tests).
+- `deskhive/src/lib/email-templates/payout-summary.ts` — render function with "A payout of $X.XX has been sent to your bank account on Stripe's schedule." body; deliberately omits `subject` field (dispatcher falls back to static `Subjects['payout-summary']` = 'Payout sent').
+- `deskhive/src/lib/email-templates/payout-summary.test.ts` — happy path + HTML escaping + load-bearing regression that the body MUST NOT mention a booking count (Phase 3 drill-down forward-flag) (3 tests).
+
+**Memory + sprint-status + story-file (out-of-deskhive-tree):**
+- `~/.claude/.../memory/reference_email_service_pattern.md` — extended with "Story 8-4 additions" section (~14 sub-sections covering dual-path with unified resource-id keys, Resend dedup-response shape, additive API extension, 3 templates + `TemplateData` refinements + PRD §4.3 verbatim subjects, sender helpers, `getUserById`, action-side + webhook-side wiring patterns, audit-only handler email-send pattern, `{ idempotent: true }` skip-email rule, no-schema-column-for-dedup anti-pattern, test-layer split-by-mock-boundary + 17 new tests, Phase 2 closure markers, Phase 3 forward-flags).
+- `~/.claude/.../memory/MEMORY.md` — extended one-liner for `reference_email_service_pattern.md` to reflect Theme C completion + Phase 2 closure markers.
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — flipped `8-4-payment-emails: backlog` → `8-4-payment-driven-emails: review` (renamed to match the artifact filename); refreshed `last_updated` parenthetical with Story 8-4 closeout notes + Phase 2 closure tracking.
+- `_bmad-output/implementation-artifacts/8-4-payment-driven-emails.md` (this file) — Status `ready-for-dev → review`; Tasks 0–10 marked `[x]`; DAR + File List + Change Log filled.
+
+**Zero changes (carved-out per AC-14):**
+- `deskhive/src/lib/stripe.ts` / `stripe-service.ts` (Story 9-1's singleton untouched).
+- `deskhive/src/lib/payments/{connect,checkout,payment-intents,refunds,payouts}.ts` (5 of the 6 Theme B sub-modules untouched; only `webhooks.ts` extended with email-send lines).
+- `deskhive/src/app/api/stripe/webhook/route.ts` (9-5 thin shell unchanged).
+- `deskhive/src/db/schema.ts` (NO schema changes per AC-6).
+- `deskhive/drizzle/migrations/*` (no migrations).
+- `deskhive/src/app/(owner)/owner/*` / `/admin/*` / UI files (no UI changes).
+- `deskhive/src/lib/toast.ts` (no new toasts).
+- `deskhive/scripts/seed.ts`.
+- `deskhive/.env.example` (no new env vars; Resend env already documented since 8-1).
 
 ### Change Log
 
 | Date | Change | Commit |
 |---|---|---|
-| 2026-05-19 | Story drafted by `bmad-create-story` from locked BA decisions document (commit `79f3e30`). LAST Phase 2 story; Epic 8 + Phase 2 close after 8-4 ships at greenlight. | _TBD (filled by dispatch commit)_ |
+| 2026-05-19 | Story drafted by `bmad-create-story` from locked BA decisions document (commit `79f3e30`). LAST Phase 2 story; Epic 8 + Phase 2 close after 8-4 ships at greenlight. | `cc95c58` (dispatch — story file only, per Option A precedent) |
+| 2026-05-19 | Dev-story implementation completed across Tasks 0–10. Status flipped `ready-for-dev → review`. +17 unit tests (BA target +12; +5 bonus). E2E unchanged at 61. Build unchanged at 42 routes. Resend `Idempotency-Key` dedup-response shape verified via SDK source + HTTP convention (2xx-on-dedup; no special handling). `getUserById` helper newly added (pre-8-4 audit found none). Optional cross-cutting E2E + optional `{ status: 'deduplicated' }` variant DEFERRED per DAR. Awaiting BA browser walk per AC-14 §6–§14 before push. | _TBD (filled by dev-story commit)_ |
 | 2026-05-19 | _TBD (filled by `docs:` follow-up after BA greenlight + push — same pattern as Stories 9-1 + 9-2 + 9-2b + 9-3 + 9-4 + 9-5 + 9-6 + 9-7; the post-greenlight follow-up ALSO flips `epic-8: in-progress` → `done` as Theme C closure marker; Phase 2 closure is implicit when all 3 themes A + B + C reach `done` together)_ | _TBD_ |

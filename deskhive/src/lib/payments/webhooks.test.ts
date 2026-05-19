@@ -41,6 +41,12 @@ const {
   deleteAbandonedBookingByCheckoutSessionMock,
   // Story 9-6: webhook backstop for charge.refunded.
   markBookingCancelledAndRefundedByPaymentIntentMock,
+  // Story 8-4: payment-driven email senders. Mocked at the @/lib/bookings
+  // boundary so the handlers' fire-and-forget calls can be asserted on
+  // (positive paths) AND NOT-asserted on (negative skip paths).
+  sendPaymentReceiptEmailMock,
+  sendRefundConfirmationEmailMock,
+  sendPayoutNotificationEmailMock,
 } = vi.hoisted(() => ({
   getConnectAccountByStripeAccountIdMock: vi.fn(),
   upsertConnectAccountMock: vi.fn(),
@@ -51,6 +57,9 @@ const {
   markBookingRejectedAndVoidedByPaymentIntentMock: vi.fn(),
   deleteAbandonedBookingByCheckoutSessionMock: vi.fn(),
   markBookingCancelledAndRefundedByPaymentIntentMock: vi.fn(),
+  sendPaymentReceiptEmailMock: vi.fn().mockResolvedValue(undefined),
+  sendRefundConfirmationEmailMock: vi.fn().mockResolvedValue(undefined),
+  sendPayoutNotificationEmailMock: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/db/queries/stripe-connect', () => ({
@@ -71,6 +80,16 @@ vi.mock('@/db/queries/bookings', () => ({
   // Story 9-6
   markBookingCancelledAndRefundedByPaymentIntent:
     markBookingCancelledAndRefundedByPaymentIntentMock,
+}));
+
+// Story 8-4: mock the 3 sender helpers at the @/lib/bookings boundary.
+// The handlers call sendPaymentReceiptEmail / sendRefundConfirmationEmail
+// / sendPayoutNotificationEmail with .catch(...) fire-and-forget; tests
+// assert called / not-called per Decision §7 (skip on idempotent path).
+vi.mock('@/lib/bookings', () => ({
+  sendPaymentReceiptEmail: sendPaymentReceiptEmailMock,
+  sendRefundConfirmationEmail: sendRefundConfirmationEmailMock,
+  sendPayoutNotificationEmail: sendPayoutNotificationEmailMock,
 }));
 
 import {
@@ -97,6 +116,14 @@ beforeEach(() => {
   markBookingRejectedAndVoidedByPaymentIntentMock.mockReset();
   deleteAbandonedBookingByCheckoutSessionMock.mockReset();
   markBookingCancelledAndRefundedByPaymentIntentMock.mockReset();
+  // Story 8-4: reset + re-prime to a resolved promise so the handler's
+  // .catch(...) chain doesn't accidentally see undefined.
+  sendPaymentReceiptEmailMock.mockReset();
+  sendPaymentReceiptEmailMock.mockResolvedValue(undefined);
+  sendRefundConfirmationEmailMock.mockReset();
+  sendRefundConfirmationEmailMock.mockResolvedValue(undefined);
+  sendPayoutNotificationEmailMock.mockReset();
+  sendPayoutNotificationEmailMock.mockResolvedValue(undefined);
 });
 
 // Minimal Stripe.Event factory — handlers only read .id, .type, and
@@ -569,5 +596,172 @@ describe('dispatchWebhookEvent (Story 9-5 dispatcher)', () => {
       // Restore so subsequent tests in this file aren't affected.
       mutableMap['payment_intent.succeeded'] = original!;
     }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Story 8-4 — webhook handler email-send extension tests.
+//
+// 3 positive (handler rescue path / audit-only path calls the right
+// sender with the unified resource-id idempotency key) + 3 negative
+// (the `{ idempotent: true }` / `{ deferred: true }` skip paths from
+// BA Decision §7 — load-bearing safety net against duplicate emails
+// when the action-side caller already won the race).
+//
+// The handler calls are fire-and-forget (`.catch(...)`); the sender
+// mocks resolve immediately so the .catch never fires. Test assertion
+// is "called with the right args" (positive) OR "NOT called" (negative).
+// ─────────────────────────────────────────────────────────────────────
+
+describe('handlePaymentIntentSucceeded + 8-4 email send', () => {
+  it('rescue path (handled:true) — fires sendPaymentReceiptEmail with receipt-${piId} key', async () => {
+    getBookingByPaymentIntentIdMock.mockResolvedValueOnce({
+      id: 'booking-uuid-1',
+      status: 'PENDING',
+      paymentStatus: 'AUTHORIZED',
+      paymentIntentId: 'pi_rescue_succeeded',
+    });
+    markBookingConfirmedAndCapturedByPaymentIntentMock.mockResolvedValueOnce({
+      id: 'booking-uuid-1',
+      status: 'CONFIRMED',
+      paymentStatus: 'CAPTURED',
+    });
+
+    const result = await handlePaymentIntentSucceeded(
+      makeEvent('payment_intent.succeeded', 'evt_84_receipt_1', {
+        id: 'pi_rescue_succeeded',
+        amount: 2500,
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, handled: true });
+    expect(sendPaymentReceiptEmailMock).toHaveBeenCalledTimes(1);
+    expect(sendPaymentReceiptEmailMock).toHaveBeenCalledWith({
+      paymentIntentId: 'pi_rescue_succeeded',
+      amountCents: 2500,
+      idempotencyKey: 'receipt-pi_rescue_succeeded',
+    });
+  });
+
+  it('idempotent path (action won race) — DOES NOT fire sendPaymentReceiptEmail (action already did)', async () => {
+    getBookingByPaymentIntentIdMock.mockResolvedValueOnce({
+      id: 'booking-uuid-2',
+      status: 'CONFIRMED',
+      paymentStatus: 'CAPTURED',
+      paymentIntentId: 'pi_action_won',
+    });
+    markBookingConfirmedAndCapturedByPaymentIntentMock.mockResolvedValueOnce(
+      undefined,
+    );
+
+    const result = await handlePaymentIntentSucceeded(
+      makeEvent('payment_intent.succeeded', 'evt_84_receipt_2', {
+        id: 'pi_action_won',
+        amount: 2500,
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, idempotent: true });
+    // LOAD-BEARING: skip the email on idempotent path. The action-side
+    // caller already wrote AND fired its own receipt with the same
+    // idempotency key.
+    expect(sendPaymentReceiptEmailMock).not.toHaveBeenCalled();
+  });
+
+  it('deferred path (booking-not-found) — DOES NOT fire sendPaymentReceiptEmail', async () => {
+    getBookingByPaymentIntentIdMock.mockResolvedValueOnce(undefined);
+
+    const result = await handlePaymentIntentSucceeded(
+      makeEvent('payment_intent.succeeded', 'evt_84_receipt_3', {
+        id: 'pi_no_booking',
+        amount: 2500,
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, deferred: true });
+    expect(sendPaymentReceiptEmailMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('handleChargeRefunded + 8-4 email send', () => {
+  it('rescue path (handled:true) — fires sendRefundConfirmationEmail with refund-${piId} key', async () => {
+    getBookingByPaymentIntentIdMock.mockResolvedValueOnce({
+      id: 'booking-uuid-3',
+      status: 'CONFIRMED',
+      paymentStatus: 'CAPTURED',
+      paymentIntentId: 'pi_rescue_refunded',
+    });
+    markBookingCancelledAndRefundedByPaymentIntentMock.mockResolvedValueOnce({
+      id: 'booking-uuid-3',
+      status: 'CANCELLED',
+      paymentStatus: 'REFUNDED',
+    });
+
+    const result = await handleChargeRefunded(
+      makeEvent('charge.refunded', 'evt_84_refund_1', {
+        id: 'ch_rescue_refunded',
+        payment_intent: 'pi_rescue_refunded',
+        amount: 2500,
+        amount_refunded: 2500,
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, handled: true });
+    expect(sendRefundConfirmationEmailMock).toHaveBeenCalledTimes(1);
+    expect(sendRefundConfirmationEmailMock).toHaveBeenCalledWith({
+      paymentIntentId: 'pi_rescue_refunded',
+      amountCents: 2500,
+      idempotencyKey: 'refund-pi_rescue_refunded',
+    });
+  });
+
+  it('idempotent path (action won race) — DOES NOT fire sendRefundConfirmationEmail', async () => {
+    getBookingByPaymentIntentIdMock.mockResolvedValueOnce({
+      id: 'booking-uuid-4',
+      status: 'CANCELLED',
+      paymentStatus: 'REFUNDED',
+      paymentIntentId: 'pi_refund_action_won',
+    });
+    markBookingCancelledAndRefundedByPaymentIntentMock.mockResolvedValueOnce(
+      undefined,
+    );
+
+    const result = await handleChargeRefunded(
+      makeEvent('charge.refunded', 'evt_84_refund_2', {
+        id: 'ch_idempotent',
+        payment_intent: 'pi_refund_action_won',
+        amount: 2500,
+        amount_refunded: 2500,
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, idempotent: true });
+    expect(sendRefundConfirmationEmailMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('handlePayoutPaid + 8-4 email send', () => {
+  it('always fires sendPayoutNotificationEmail with payout-${id} key (no idempotent-skip discriminator — audit-only handler)', async () => {
+    const event = makeEvent('payout.paid', 'evt_84_payout_1', {
+      id: 'po_test_123',
+      amount: 21250,
+      currency: 'usd',
+      status: 'paid',
+      arrival_date: 1748736000,
+    });
+    // event.account is the connected account id; set it via the
+    // top-level event property (Stripe Connect events carry it
+    // alongside the event payload).
+    (event as unknown as { account: string }).account = 'acct_test_owner';
+
+    const result = await handlePayoutPaid(event);
+
+    expect(result).toEqual({ ok: true, handled: true });
+    expect(sendPayoutNotificationEmailMock).toHaveBeenCalledTimes(1);
+    expect(sendPayoutNotificationEmailMock).toHaveBeenCalledWith({
+      stripeAccountId: 'acct_test_owner',
+      payoutAmountCents: 21250,
+      idempotencyKey: 'payout-po_test_123',
+    });
   });
 });

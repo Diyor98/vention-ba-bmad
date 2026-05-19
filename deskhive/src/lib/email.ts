@@ -68,6 +68,10 @@ import {
   renderBookingRejectedOwner,
   renderBookingCancelledGuest,
   renderBookingCancelledOwner,
+  // Story 8-4 — payment-driven email renders.
+  renderPaymentReceipt,
+  renderPaymentRefund,
+  renderPayoutSummary,
   renderTestTemplate,
 } from '@/lib/email-templates';
 
@@ -174,22 +178,33 @@ export type TemplateData = {
     bookingDate: string;
     appUrl: string;
   };
-  // Story 8-4
+  // Story 8-4 — payment-driven emails (PRD §4.3 rows 12-14). Shapes
+  // FINALIZED from the 8-1 placeholders per BA Decisions §3:
+  //   • `appUrl` added to all 3 for the "View ..." CTA links.
+  //   • `bookingDate` added to `payment-refund` so the body can echo the
+  //     9-6 toast's "5–10 business days" timing copy with context.
+  //   • `bookingCount` REMOVED from `payout-summary` — Phase 2 has no
+  //     source for it (the `payout.paid` webhook payload doesn't include
+  //     it; `stripe.payouts.listLineItems` is out of 9-7's scope per its
+  //     Decision §1). Phase 3 if/when the local payouts cache lands.
   'payment-receipt': {
     guestName: string;
-    amountCents: number;
     spaceName: string;
     bookingDate: string;
+    amountCents: number;
+    appUrl: string;
   };
   'payment-refund': {
     guestName: string;
-    amountCents: number;
     spaceName: string;
+    bookingDate: string;
+    amountCents: number;
+    appUrl: string;
   };
   'payout-summary': {
     ownerName: string;
     payoutAmountCents: number;
-    bookingCount: number;
+    appUrl: string;
   };
   // Story 8-1 verification
   '__test__': { message: string };
@@ -218,9 +233,16 @@ export const Subjects: Record<TemplateName, string> = {
   'booking-rejected-owner': '[DeskHive] Booking on your space',
   'booking-cancelled-guest': '[DeskHive] Your booking',
   'booking-cancelled-owner': '[DeskHive] Booking on your space',
-  'payment-receipt': 'Your DeskHive receipt',
+  // Story 8-4 — PRD §4.3 verbatim subjects (corrected from 8-1
+  // placeholders per BA Decision §4). `payment-receipt` + `payment-refund`
+  // render functions return DYNAMIC subjects interpolating the space name
+  // (8-3 pattern carry-forward) — the entries below are non-authoritative
+  // fallbacks used by any future caller that bypasses the render
+  // function. `payout-summary` renders the static subject (no space
+  // context in payout emails per Decision §4).
+  'payment-receipt': 'Receipt for your DeskHive booking',
   'payment-refund': 'Refund processed',
-  'payout-summary': 'Your DeskHive payout',
+  'payout-summary': 'Payout sent',
   '__test__': '[DeskHive] Test email from Story 8-1',
 };
 
@@ -399,9 +421,20 @@ function renderTemplate<T extends TemplateName>(
         data as TemplateData['booking-cancelled-owner'],
       );
       break;
+    // Story 8-4 — payment-driven emails. The "not implemented" default
+    // throw below is now unreachable for these 3 names (Phase 2 complete).
+    case 'payment-receipt':
+      rendered = renderPaymentReceipt(data as TemplateData['payment-receipt']);
+      break;
+    case 'payment-refund':
+      rendered = renderPaymentRefund(data as TemplateData['payment-refund']);
+      break;
+    case 'payout-summary':
+      rendered = renderPayoutSummary(data as TemplateData['payout-summary']);
+      break;
     default:
       throw new Error(
-        `Template not implemented: '${String(name)}'. Implemented in Story 8-4 (payment-*).`,
+        `Template not implemented: '${String(name)}'. All Phase 2 templates wired by Story 8-4.`,
       );
   }
   return {
@@ -438,8 +471,23 @@ export async function sendEmail<T extends TemplateName>(args: {
   to: string;
   template: T;
   data: TemplateData[T];
+  // Story 8-4: optional idempotency key passed to Resend as the
+  // `Idempotency-Key` header. Resend dedups server-side for 24h; same key
+  // → returns the cached email id (HTTP 200). The 4xx error codes
+  // `invalid_idempotent_request` / `concurrent_idempotent_requests` from
+  // Resend are NOT dedup-success signals — they fire for malformed cases
+  // (key reused with different params; two simultaneous requests). On
+  // happy dedup Resend returns 200 with the cached email id; no special
+  // handling needed in sendEmail per BA Decision §7 supplement.
+  //
+  // 8-2 / 8-3 callers (Server Actions) omit this arg — each invocation IS
+  // a fresh send-intent; Story 8-4 callers (webhook handlers + action-side
+  // payment paths) pass the unified resource-id key
+  // (`receipt-${paymentIntentId}` / `refund-${paymentIntentId}` /
+  // `payout-${payoutId}`) per BA Decision §7.
+  idempotencyKey?: string;
 }): Promise<SendEmailResult> {
-  const { to, template, data } = args;
+  const { to, template, data, idempotencyKey } = args;
 
   // Kill-switch first — never call Resend if disabled.
   if (getDisabledTemplates().has(template)) {
@@ -490,12 +538,21 @@ export async function sendEmail<T extends TemplateName>(args: {
 
   try {
     const resend = new Resend(apiKey);
-    const result = await resend.emails.send({
-      from,
-      to,
-      subject: rendered.subject,
-      html: rendered.html,
-    });
+    // Story 8-4: pass idempotencyKey through to Resend's second
+    // `RequestOptions` arg when present (omit cleanly when undefined so
+    // 8-2 / 8-3 callers behave identically to pre-8-4).
+    const sendOptions = idempotencyKey
+      ? { idempotencyKey }
+      : undefined;
+    const result = await resend.emails.send(
+      {
+        from,
+        to,
+        subject: rendered.subject,
+        html: rendered.html,
+      },
+      sendOptions,
+    );
     // Resend's SDK returns { data, error } — surface the error if present.
     if (result.error) {
       const errMsg =

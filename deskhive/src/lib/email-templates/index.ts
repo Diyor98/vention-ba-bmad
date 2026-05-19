@@ -20,4 +20,8 @@ export { renderBookingRejectedGuest } from './booking-rejected-guest';
 export { renderBookingRejectedOwner } from './booking-rejected-owner';
 export { renderBookingCancelledGuest } from './booking-cancelled-guest';
 export { renderBookingCancelledOwner } from './booking-cancelled-owner';
+// Story 8-4 — payment-driven emails (PRD §4.3 rows 12-14).
+export { renderPaymentReceipt } from './payment-receipt';
+export { renderPaymentRefund } from './payment-refund';
+export { renderPayoutSummary } from './payout-summary';
 export { renderTestTemplate } from './test';
