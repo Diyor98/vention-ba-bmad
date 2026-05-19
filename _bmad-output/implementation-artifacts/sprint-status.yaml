@@ -156,12 +156,12 @@ development_status:
   # webhook emails). Stories 8-1/8-2/8-3 can ship while Theme B is
   # still in progress.
   # ─────────────────────────────────────────────────────────────────
-  epic-8: in-progress
+  epic-8: done
   8-1-email-wrapper-resend-integration: done
   8-2-application-emails: done
   8-3-booking-emails: done
-  8-4-payment-driven-emails: review
-  # PAUSED 2026-05-19 mid-BA-walk — implementation commit 61dbc37 on origin/main pending receipt/refund/payout email walks. Sprint-status stays at 'review' until BA walk completes. Resume after design rework.
+  8-4-payment-driven-emails: done
+  # BA walk completed 2026-05-19 via per-recipient routing swaps to satisfy Resend sandbox gating. 3 of 3 email paths verified end-to-end. See docs/design/8-4-walk-verification-log.md for evidence trail. Theme C (Email) CLOSED.
   8-polish-1-email-design-polish: done
   epic-8-retrospective: optional
 
