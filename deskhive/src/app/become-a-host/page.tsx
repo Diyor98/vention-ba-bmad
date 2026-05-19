@@ -90,40 +90,43 @@ export default async function BecomeAHostPage() {
   }
 
   return (
-    <main className="container-content" style={{ paddingTop: '3rem', paddingBottom: '4rem' }}>
-      <header className="mb-8">
-        <h1 className="page-h1">Become a Space Owner</h1>
-        <p className="mt-2 muted-strong" style={{ fontSize: '14px' }}>
-          Earn from unused desks in your coworking space.
+    <main className="container-content" style={{ paddingBottom: '4rem' }}>
+      {/* DESIGN-INT-12 — eyebrow + display H1 + sub via .host-hero */}
+      <section className="host-hero mb-8">
+        <span className="eyebrow">
+          <span className="dot" aria-hidden="true" /> DeskHive · host
+        </span>
+        <h1>Earn from unused desks in your coworking space.</h1>
+        <p className="sub">
+          List a space, accept bookings, get paid via Stripe. No
+          subscription, no minimum commitment — leave whenever.
         </p>
-      </header>
+      </section>
 
       <section aria-labelledby="sec-value-props" className="mb-10">
         <h2 id="sec-value-props" className="h2 mb-4">
           Why host on DeskHive
         </h2>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '1rem',
-          }}
-        >
-          <ValueProp
+        <div className="value-grid">
+          <ValueTile
+            n="01"
             title="No long-term contracts"
-            body="List a space, accept bookings, leave whenever. No subscription, no minimum commitment."
+            body="List a space, accept bookings, leave whenever."
           />
-          <ValueProp
+          <ValueTile
+            n="02"
             title="15% platform fee"
-            body="You keep 85% of every booking. Transparent pricing, no hidden charges."
+            body="You keep 85% of every booking. Transparent pricing."
           />
-          <ValueProp
+          <ValueTile
+            n="03"
             title="Get paid via Stripe"
-            body="Direct deposit to your bank account. Payouts processed automatically after each completed booking."
+            body="Direct deposit. Payouts processed automatically after each completed booking."
           />
-          <ValueProp
+          <ValueTile
+            n="04"
             title="You control bookings"
-            body="Review every request before it&apos;s confirmed. Reject what doesn&apos;t fit your space."
+            body="Review every request before it’s confirmed. Reject what doesn’t fit."
           />
         </div>
       </section>
@@ -132,11 +135,26 @@ export default async function BecomeAHostPage() {
         <h2 id="sec-whats-next" className="h2 mb-4">
           What&apos;s next
         </h2>
-        <ol style={{ paddingLeft: '1.25rem', display: 'grid', gap: '0.5rem' }}>
-          <li>Submit your application below.</li>
-          <li>We review (1–2 business days).</li>
-          <li>We email you the decision.</li>
-        </ol>
+        <div className="process">
+          <ProcessStep
+            n={1}
+            title="Submit your application"
+            body="Tell us about your space, location, and how many desks you can host."
+            when="~5 minutes"
+          />
+          <ProcessStep
+            n={2}
+            title="We review"
+            body="Our team verifies your details and checks the space against our standards."
+            when="1–2 business days"
+          />
+          <ProcessStep
+            n={3}
+            title="We email you the decision"
+            body="If approved, you’ll be onboarded onto Stripe Connect to start receiving payouts."
+            when="Same day as review"
+          />
+        </div>
       </section>
 
       <section aria-labelledby="sec-form" className="mb-10">
@@ -149,21 +167,43 @@ export default async function BecomeAHostPage() {
   );
 }
 
-function ValueProp({ title, body }: { title: string; body: string }) {
+function ValueTile({
+  n,
+  title,
+  body,
+}: {
+  n: string;
+  title: string;
+  body: string;
+}) {
   return (
-    <div className="card" style={{ padding: '1rem' }}>
-      <h3
-        style={{
-          fontSize: '14px',
-          fontWeight: 600,
-          marginBottom: '0.375rem',
-        }}
-      >
-        {title}
-      </h3>
-      <p className="muted" style={{ fontSize: '13px', lineHeight: 1.45 }}>
-        {body}
-      </p>
+    <article className="value-tile">
+      <div className="num">{n}</div>
+      <h3>{title}</h3>
+      <p>{body}</p>
+    </article>
+  );
+}
+
+function ProcessStep({
+  n,
+  title,
+  body,
+  when,
+}: {
+  n: number;
+  title: string;
+  body: string;
+  when: string;
+}) {
+  return (
+    <div className="process-step">
+      <span className="step-no" aria-hidden="true">
+        {n}
+      </span>
+      <h4>{title}</h4>
+      <p>{body}</p>
+      <div className="when">{when}</div>
     </div>
   );
 }
