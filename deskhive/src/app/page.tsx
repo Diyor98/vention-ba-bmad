@@ -1,4 +1,5 @@
 ﻿import Link from 'next/link';
+import { Calendar, Check, Search } from 'lucide-react';
 import { listPublishedSpaces } from '@/db/queries/spaces';
 import { getMinActiveDailyPriceCentsBySpaceIds } from '@/db/queries/desks';
 import { DataView, type DataViewStatus } from '@/components/data-view';
@@ -57,6 +58,65 @@ export default async function HomePage({
           across cities — pick a date, pick a desk, you&apos;re set.
         </p>
       </header>
+
+      {/* DESIGN-INT-1 — "How it works" 3-tile row mirroring the prototype's
+          landing-hero supporting copy. Lucide icons; reuses .card styling. */}
+      <section
+        className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10"
+        data-testid="how-it-works"
+      >
+        {[
+          {
+            Icon: Search,
+            title: 'Search a city',
+            body: 'Find spaces near where you’ll be — by city, neighborhood, or vibe.',
+          },
+          {
+            Icon: Calendar,
+            title: 'Pick a day',
+            body: 'See real-time availability for the desk you want.',
+          },
+          {
+            Icon: Check,
+            title: 'Pay & show up',
+            body: 'Card on file. We’ll email the details once your host confirms.',
+          },
+        ].map((step) => (
+          <article
+            key={step.title}
+            className="card"
+            style={{ padding: '1.25rem' }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: '2.5rem',
+                height: '2.5rem',
+                borderRadius: 'var(--radius-lg)',
+                background: 'var(--color-brand-50)',
+                color: 'var(--color-brand-700)',
+                display: 'grid',
+                placeItems: 'center',
+                marginBottom: '0.75rem',
+              }}
+            >
+              <step.Icon size={18} />
+            </span>
+            <div
+              className="font-semibold"
+              style={{ color: 'var(--color-neutral-900)' }}
+            >
+              {step.title}
+            </div>
+            <div
+              className="mt-1.5 muted-strong"
+              style={{ fontSize: '13px', lineHeight: 1.55 }}
+            >
+              {step.body}
+            </div>
+          </article>
+        ))}
+      </section>
 
       <form
         action="/"
