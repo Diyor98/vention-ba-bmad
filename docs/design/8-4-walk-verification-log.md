@@ -2,6 +2,18 @@
 
 Generated 2026-05-19. Captures end-to-end evidence for closing Story 8-4 (payment-driven emails) and Epic 8 (Email infrastructure / Theme C).
 
+## Verification status (final)
+
+**3 of 3 email paths verified end-to-end with inbox-arrival screenshot evidence.** No remaining code-only verifications.
+
+| Email path | Phase | Helper return | Inbox arrival at `marketadteam@gmail.com` |
+|---|---|---|---|
+| `payment-receipt` | B | `{ status: 'sent' }` | ✅ 9:22 PM local — "Receipt for your DeskHive booking at Space Austin" |
+| `payment-refund` | C | `{ status: 'sent' }` | ✅ 9:23 PM local — "Refund processed for Space Austin" |
+| `payout-summary` | E | `{ status: 'sent' }` | ✅ 9:24 PM local — "Payout sent" ($85.00 to "Owner Without Connect") |
+
+Screenshots retained by the BA. Subject lines + timestamps captured here so the evidence trail is self-contained without requiring access to the original images.
+
 ## Context
 
 Story 8-4 was paused mid-walk in commit `8359970` on 2026-05-19 morning because no payout emails arrived after the synthetic `payout.paid` webhook fired. Root cause was diagnosed in `7cc4ebc` and remediated through a two-direction Resend-recipient swap so each email-recipient role (GUEST for receipt + refund; OWNER for payout) could inbox-verify against the single Resend-verified address (`marketadteam@gmail.com`).
@@ -37,7 +49,7 @@ Earlier Resend rejection responses did NOT create dedup records (Resend stores d
 
 **Result:** helper returned without throwing. **No `logger.warn('payment_receipt_email_send_failed', …)` line and no `console.error('[email] send failed', …)` line.** Compare to the diagnostic at `7cc4ebc` where the same code path against the same booking emitted both — those did not surface this time, so `sendEmail` took the `{ status: 'sent' }` branch.
 
-Inbox delivery: pending BA confirmation at `marketadteam@gmail.com`. Resend's earlier sandbox-gating message (`"You can only send testing emails to your own email address (marketadteam@gmail.com)…"`) names exactly this address as the verified recipient — so the call shape that produced gating rejection earlier today now produces inbox delivery.
+**Inbox delivery: ✅ confirmed.** Screenshot captured at 9:22 PM local — subject `"Receipt for your DeskHive booking at Space Austin"`. End-to-end verified.
 
 Driver script: `scripts/demo-replay-receipt.ts`.
 
@@ -55,7 +67,7 @@ Driver script: `scripts/demo-replay-receipt.ts`.
 
 **Result:** helper returned without throwing. No `logger.warn('refund_email_send_failed', …)` and no `console.error('[email] send failed', …)`. Same `{ status: 'sent' }` signal as Phase B.
 
-Inbox delivery: pending BA confirmation at `marketadteam@gmail.com`.
+**Inbox delivery: ✅ confirmed.** Screenshot captured at 9:23 PM local — subject `"Refund processed for Space Austin"`. End-to-end verified.
 
 Driver script: `scripts/demo-replay-refund.ts`.
 
@@ -89,7 +101,9 @@ Post-swap row state (verified by the script's STEP 5):
 
 This is the SAME helper invocation the `handlePayoutPaid` webhook handler made today at 15:37:16 UTC. What changed: the recipient resolved by `getConnectAccountByStripeAccountId(event.account) → getUserById(userId) → user.email` is now `marketadteam@gmail.com` instead of `marketadteam+owner@gmail.com`. The Resend recipient gate accepts the former and rejected the latter.
 
-Inbox delivery: pending BA confirmation at `marketadteam@gmail.com`. **Note on the underlying payout artifact:** `po_1TYphkRuteminPIyQvXmHzWU` itself transitioned to "Failed" status in Stripe because instant-rails routing requires a debit card the test-mode Express account doesn't have. That doesn't affect the `payout.paid` event's earlier emission or the email send — `payout.paid` fired optimistically at payout creation; `payout.failed` is a Phase 3 event (unhandled in `WEBHOOK_HANDLERS`). The audit row + the email are correct for the captured-then-failed flow.
+**Inbox delivery: ✅ confirmed.** Screenshot captured at 9:24 PM local — subject `"Payout sent"`, body shows `$85.00` payout to `"Owner Without Connect"`. **End-to-end verified (inbox arrival confirmed).** This upgrades the original "code-verified, delivery pending" framing — Phase E now stands at the same evidence tier as B + C.
+
+**Note on the underlying payout artifact:** `po_1TYphkRuteminPIyQvXmHzWU` itself transitioned to "Failed" status in Stripe because instant-rails routing requires a debit card the test-mode Express account doesn't have. That doesn't affect the `payout.paid` event's earlier emission or the email send — `payout.paid` fired optimistically at payout creation; `payout.failed` is a Phase 3 event (unhandled in `WEBHOOK_HANDLERS`). The audit row + the email are correct for the captured-then-failed flow.
 
 Driver script: `scripts/demo-replay-payout.ts`.
 
