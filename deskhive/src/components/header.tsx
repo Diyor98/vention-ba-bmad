@@ -75,6 +75,17 @@ export async function Header() {
           ) : role === 'SPACE_OWNER' && mode === 'host' ? (
             // Variant 4 — SPACE_OWNER in Host mode
             <>
+              {/* DESIGN-INT-17 — visual mode-pill makes the active mode
+                  unmistakable on the host-nav surface. Uses .mode-pill +
+                  .mode-pill.mode-host indigo treatment from DESIGN-1. */}
+              <span
+                className="mode-pill mode-host"
+                aria-hidden="true"
+                style={{ marginRight: '0.5rem' }}
+              >
+                <span className="dot" />
+                Hosting
+              </span>
               <Link href="/owner" className="nav-link">
                 Dashboard
               </Link>
@@ -102,6 +113,16 @@ export async function Header() {
           ) : role === 'SUPER_ADMIN' ? (
             // Variant 5 — SUPER_ADMIN
             <>
+              {/* DESIGN-INT-17 — black mode-pill marks admin role on every
+                  page (.mode-pill default treatment from Story 5-2). */}
+              <span
+                className="mode-pill"
+                aria-hidden="true"
+                style={{ marginRight: '0.5rem' }}
+              >
+                <span className="dot" />
+                Admin
+              </span>
               <Link href="/" className="nav-link">
                 Browse spaces
               </Link>
