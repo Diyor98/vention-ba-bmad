@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getPublishedSpaceById } from '@/db/queries/spaces';
 import { listActiveDesksForSpace } from '@/db/queries/desks';
 import { listActiveBookingsForSpaceOnDate } from '@/db/queries/bookings';
+import { getUserById } from '@/db/queries/users';
 import { computeDeskAvailability } from '@/lib/availability';
 import { parseDateParam, formatCents } from '@/lib/format';
 import { AmenitiesDisplay } from '@/components/amenities';
@@ -31,12 +32,19 @@ export default async function SpaceDetailPage({
   let desks: Desk[] = [];
   let bookings: Booking[] = [];
   let dataStatus: DataViewStatus = 'loaded';
+  // DESIGN-INT-2 — resolve the host (space.ownerId) so the page can render
+  // the "Hosted by …" affordance. Falls back to null for Phase 1 admin-
+  // owned spaces (ownerId IS NULL) — the host card simply doesn't render.
+  let host: { id: string; email: string; fullName: string } | null = null;
   try {
     desks = await listActiveDesksForSpace(id);
     if (dateResult.valid) {
       bookings = await listActiveBookingsForSpaceOnDate(id, dateResult.iso);
     }
     if (desks.length === 0) dataStatus = 'empty';
+    if (space.ownerId) {
+      host = await getUserById(space.ownerId);
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error('space_detail_page_failed', { error: msg });
@@ -111,6 +119,70 @@ export default async function SpaceDetailPage({
             Amenities
           </h2>
           <AmenitiesDisplay slugs={space.amenities} />
+
+          {host && (
+            /* DESIGN-INT-2 — host info card. Avatar uses brand-50 + brand-700
+               initials chip from the design system (.av-sm / Brief PDF). */
+            <section
+              aria-labelledby="host-h"
+              className="form-card"
+              style={{ marginTop: '2rem', padding: '1.25rem' }}
+              data-testid="space-detail-host-card"
+            >
+              <h2
+                id="host-h"
+                className="h2 mb-3"
+                style={{ fontSize: 14 }}
+              >
+                Hosted by
+              </h2>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 9999,
+                    background: 'var(--color-brand-100)',
+                    color: 'var(--color-brand-700)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 14,
+                    fontWeight: 600,
+                  }}
+                >
+                  {host.fullName.trim().charAt(0).toUpperCase() ||
+                    host.email.charAt(0).toUpperCase()}
+                </span>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: 'var(--color-neutral-900)',
+                    }}
+                  >
+                    {host.fullName}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: 'var(--color-neutral-500)',
+                    }}
+                  >
+                    Space owner on DeskHive
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
         </section>
 
         <aside

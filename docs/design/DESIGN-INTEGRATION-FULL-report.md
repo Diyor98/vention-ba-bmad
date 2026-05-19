@@ -19,7 +19,7 @@ Resume from this section. Each row is one commit + push.
 
 | ID | Screen | Status carry-over | Effort | Notes for the next session |
 |---|---|---|---|---|
-| DESIGN-INT-2 | Space detail enrichment | partial | medium | Add gallery thumb strip below hero image + host info card (avatar + name + spaces hosted). Skip ratings/reviews per audit OUT-OF-SCOPE list. `src/app/spaces/[id]/page.tsx`. |
+| ~~DESIGN-INT-2~~ | ~~Space detail enrichment~~ | **done** session 2 | medium | Shipped: "Hosted by" info card below Amenities — avatar circle + host's full name + "Space owner on DeskHive" subtitle. Pulls via `getUserById(space.ownerId)`; Phase 1 ownerless spaces simply omit the card. Gallery thumb strip skipped — schema has single `primary_image_url`; multi-photo is Phase 3. |
 | ~~DESIGN-INT-4~~ | ~~Host dashboard~~ | **done** session 2 | medium | Shipped: Connect banner (2 states — amber not-started / indigo partial), shared `<StatCard>` row (Active spaces / Pending bookings / Bookings this month), 2-col body (Recent activity left + Quick actions right with 4 Lucide-iconed rows). Lucide: AlertTriangle, Banknote, Building2, Calendar, Activity, Plus, Settings. |
 | ~~DESIGN-INT-5~~ | ~~Host payouts~~ | **done** session 2 | small | Shipped: stat-card row (Lifetime / Pending / Next date) above the table, derived from the existing Stripe `payouts.list` response. Amber banner on State #2 (charges/payouts disabled). Lucide icons: Banknote, Clock, Calendar, AlertTriangle. |
 | ~~DESIGN-INT-6~~ | ~~Host bookings tabs~~ | **done** session 2 | small | Shipped: swapped chip-style filter row for shared `<Tabs>` component (5 tabs: All / Pending / Confirmed / Rejected / Cancelled) with live counts. |
