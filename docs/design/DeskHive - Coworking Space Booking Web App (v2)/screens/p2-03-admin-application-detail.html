@@ -1,0 +1,212 @@
+<!doctype html>
+<!--
+  Phase 2 · Theme A · Story 5.3
+  /admin/applications/[id] — Application detail + Approve/Reject
+
+  Read-only view of all application fields. Reject opens a modal with an
+  optional reason textarea. Breadcrumbs: Admin / Applications / [name].
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jordan Reyes · Applications · Admin · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="phase2.css">
+</head>
+<body data-screen-label="P2·03 Admin · Application detail">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+        <span class="mode-pill"><span class="dot"></span>Admin</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="01-landing.html" class="nav-link">View as guest</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <span class="user-pill">
+          <span class="user-avatar" aria-hidden="true">IK</span>
+          <span class="username text-[13px] font-medium">Ikhtiyor</span>
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm">Log out</button>
+      </nav>
+    </div>
+  </header>
+
+  <div class="admin-subnav">
+    <div class="admin-subnav-inner">
+      <nav class="admin-tabs" aria-label="Admin sections">
+        <a href="06-admin-spaces.html" class="admin-tab">Spaces <span class="count">14</span></a>
+        <a href="08-admin-bookings.html" class="admin-tab">Bookings <span class="count">142</span></a>
+        <a href="p2-02-admin-applications.html" class="admin-tab" aria-current="page">Applications <span class="count alert">5</span></a>
+        <a href="#" class="admin-tab">Guests <span class="count">328</span></a>
+      </nav>
+      <div class="admin-subnav-meta">
+        <span>App #A-238 · submitted May 11</span>
+      </div>
+    </div>
+  </div>
+
+  <main class="container-content admin-page">
+
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="#">Admin</a>
+      <span class="sep">/</span>
+      <a href="p2-02-admin-applications.html">Applications</a>
+      <span class="sep">/</span>
+      <span class="text-neutral-900" style="color: var(--color-neutral-900);">Jordan Reyes</span>
+    </nav>
+
+    <div class="admin-page-head">
+      <div>
+        <h1 style="display: flex; align-items: center; gap: 0.875rem;">
+          Jordan Reyes
+          <span class="badge badge-pending"><span class="dot"></span>Pending</span>
+        </h1>
+        <p class="sub">Application to host as <strong>Cedar &amp; Co. Coworking LLC</strong> · submitted May 11, 10:42</p>
+      </div>
+      <div class="admin-actions">
+        <button type="button" class="btn btn-secondary" id="reject-btn">Reject</button>
+        <button type="button" class="btn btn-primary">Approve application</button>
+      </div>
+    </div>
+
+    <!-- ─────────── Application body ─────────── -->
+    <section class="form-card">
+      <div class="form-card-head">
+        <div>
+          <h2>Applicant</h2>
+          <p class="sub">From the DeskHive Guest account.</p>
+        </div>
+        <span class="cell-id">A-238</span>
+      </div>
+      <div class="form-card-body">
+        <div class="app-grid">
+          <div class="app-field">
+            <span class="k">Full name</span>
+            <span class="v">Jordan Reyes</span>
+          </div>
+          <div class="app-field">
+            <span class="k">Account email</span>
+            <span class="v mono">jordan.reyes@gmail.com</span>
+          </div>
+          <div class="app-field">
+            <span class="k">Guest since</span>
+            <span class="v tnum">Aug 12, 2025 · 9 months</span>
+          </div>
+          <div class="app-field">
+            <span class="k">Bookings made</span>
+            <span class="v tnum">14 confirmed · 0 cancellations</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="form-card">
+      <div class="form-card-head">
+        <div>
+          <h2>Business details</h2>
+          <p class="sub">Pulled from the application form. Read-only.</p>
+        </div>
+      </div>
+      <div class="form-card-body">
+        <div class="app-grid">
+          <div class="app-field">
+            <span class="k">Business name</span>
+            <span class="v">Cedar &amp; Co. Coworking LLC</span>
+          </div>
+          <div class="app-field">
+            <span class="k">Country of operation</span>
+            <span class="v">United States</span>
+          </div>
+          <div class="app-field" style="grid-column: 1 / -1;">
+            <span class="k">Business address</span>
+            <span class="v long">2412 E 6th Street
+Austin, TX 78702
+United States</span>
+          </div>
+          <div class="app-field">
+            <span class="k">Tax ID</span>
+            <span class="v mono">87-4029315 <span class="muted">· US EIN</span></span>
+          </div>
+          <div class="app-field">
+            <span class="k">Stripe Connect status</span>
+            <span class="v"><span class="badge badge-cancelled" style="text-transform: none;"><span class="dot"></span>Not started</span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="form-card">
+      <div class="form-card-head">
+        <div>
+          <h2>Motivation</h2>
+          <p class="sub">Optional free-form note from the applicant (up to 1,000 characters).</p>
+        </div>
+        <span class="cell-id">312 chars</span>
+      </div>
+      <div class="form-card-body">
+        <p style="font-size: 14px; color: var(--color-neutral-700); line-height: 1.65; white-space: pre-wrap;">Our space has been quiet on Mondays since one of our long-term teams moved out. Two private rooms and four hot desks free between 9 and 6. The team here is happy to take walk-ins, but we'd love a steady trickle from travellers.</p>
+      </div>
+    </section>
+
+    <section class="form-card">
+      <div class="form-card-head">
+        <div>
+          <h2>Decision</h2>
+          <p class="sub">Approving grants Space Owner role &amp; triggers the welcome email. Rejecting closes the application — the user can re-apply in 30 days.</p>
+        </div>
+      </div>
+      <div class="form-card-body" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="banner banner-info">
+          <div class="banner-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
+          </div>
+          <div class="banner-body">
+            <h3>What approval does</h3>
+            <p>Sends "Welcome to DeskHive Hosting" email · adds <code style="font-family: var(--font-mono); font-size: 12px;">SPACE_OWNER</code> role · unlocks /owner dashboard.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2">
+          <button type="button" class="btn btn-secondary" id="reject-btn-2">Reject application</button>
+          <button type="button" class="btn btn-primary"><svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Approve application</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ─────────── Reject modal (visible for illustration) ─────────── -->
+  <div class="modal-scrim" id="reject-modal" role="dialog" aria-labelledby="reject-title" aria-modal="true" style="display: none;">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="reject-title">Reject this application?</h2>
+        <p>The applicant will receive an email letting them know. You can include a short note — it goes into the email body.</p>
+      </div>
+      <div class="modal-body">
+        <label class="field-label" for="reject-reason">Note to applicant <span class="muted" style="font-weight: 400;">· optional</span></label>
+        <textarea id="reject-reason" class="input" style="min-height: 6rem;" placeholder="e.g. We need a verifiable US EIN before we can approve a US business application."></textarea>
+        <p class="field-help">Plain English — this gets quoted verbatim in the email.</p>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('reject-modal').style.display='none'">Cancel</button>
+        <button type="button" class="btn" style="background: #B91C1C; color: #fff; border-color: #B91C1C;">Reject application</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const modal = document.getElementById('reject-modal');
+    document.getElementById('reject-btn').addEventListener('click', () => modal.style.display = 'grid');
+    document.getElementById('reject-btn-2').addEventListener('click', () => modal.style.display = 'grid');
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+  </script>
+</body>
+</html>

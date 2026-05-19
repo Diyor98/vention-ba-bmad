@@ -1,0 +1,255 @@
+<!doctype html>
+<!--
+  Phase 2 · Theme A · Story 5.1
+  /become-a-host — Landing + application form
+  Audience: Guest who is considering hosting. Shown in nav as "Become a Space Owner".
+
+  Anatomy:
+    HERO              eyebrow + headline + sub
+    VALUE TILES       4 reasons it pays to host (numbered, no icons)
+    SPLIT             form (1.7fr) + sticky aside (process timeline)
+    CTA BAR           sticky submit row at the bottom of the form
+
+  Form fields (per PRD 5.1):
+    • Full name (prefilled, read-only)
+    • Business name
+    • Business address (textarea)
+    • Tax ID (mono, addon)
+    • Optional motivation textarea (1000 chars w/ counter)
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Become a Space Owner · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="phase2.css">
+</head>
+<body data-screen-label="P2·01 Become a host">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="01-landing.html" class="nav-link">Browse spaces</a>
+        <a href="05-my-bookings.html" class="nav-link">My bookings</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <details class="menu-pill">
+          <summary>
+            <span class="user-avatar" aria-hidden="true">JR</span>
+            <span class="username text-[13px] font-medium">Jordan</span>
+            <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="menu" role="menu">
+            <div class="menu-header">
+              <div class="av">JR</div>
+              <div class="who">
+                <div class="name">Jordan Reyes</div>
+                <div class="email">jordan.reyes@gmail.com</div>
+              </div>
+            </div>
+            <hr/>
+            <a href="01-landing.html" class="menu-item" role="menuitem">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 3l9 9"/><path d="M5 10v10h14V10"/></svg>
+              Browse spaces
+            </a>
+            <a href="05-my-bookings.html" class="menu-item" role="menuitem">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg>
+              My bookings
+              <span class="meta">2 pending</span>
+            </a>
+            <a href="p2-01-become-a-host.html" class="menu-item is-feature" role="menuitem" aria-current="page">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M10 21v-6h4v6"/></svg>
+              Become a Space Owner
+            </a>
+            <hr/>
+            <a href="#" class="menu-item" role="menuitem">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Account settings
+            </a>
+            <hr/>
+            <button class="menu-item is-danger" role="menuitem" type="button">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Log out
+            </button>
+          </div>
+        </details>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container-content host-hero">
+    <div class="eyebrow"><span class="dot"></span>Hosting on DeskHive</div>
+    <h1>Earn from desks that sit empty.</h1>
+    <p class="sub">Open your coworking space to DeskHive guests by the day. You set the prices, you approve every booking. We handle payments, payouts, and the paperwork.</p>
+  </main>
+
+  <section class="container-content" style="margin-top: 2.5rem;">
+    <div class="value-grid">
+      <div class="value-tile">
+        <div class="num">01</div>
+        <h3>No long-term contracts</h3>
+        <p>Hosts list day passes. Each booking is a one-off — pause or unlist whenever it suits you.</p>
+      </div>
+      <div class="value-tile">
+        <div class="num">02</div>
+        <h3>You set the price</h3>
+        <p>Set a daily rate per desk. We add a flat 15&#8239;% platform fee on top of your price.</p>
+      </div>
+      <div class="value-tile">
+        <div class="num">03</div>
+        <h3>Approve every booking</h3>
+        <p>Pending requests wait for your confirmation before the guest is charged. Decline freely.</p>
+      </div>
+      <div class="value-tile">
+        <div class="num">04</div>
+        <h3>Protected payouts</h3>
+        <p>Guests pay through Stripe at booking. Money lands in your account two business days after the visit.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-content" style="margin-top: 3rem;">
+    <div class="split">
+
+      <!-- ─────────── Form column ─────────── -->
+      <form id="host-form" novalidate>
+        <div class="form-card">
+          <div class="form-card-head">
+            <div>
+              <h2>Tell us about your space</h2>
+              <p class="sub">All fields are required. We'll review your application within two business days.</p>
+            </div>
+            <span class="badge badge-pending"><span class="dot"></span>Draft</span>
+          </div>
+
+          <div class="form-card-body">
+            <div class="form-grid">
+              <div>
+                <label class="field-label" for="f-name">Full name</label>
+                <input id="f-name" class="input" value="Jordan Reyes" readonly aria-readonly="true" />
+                <p class="field-help">Pulled from your DeskHive account. Update it in account settings.</p>
+              </div>
+
+              <div>
+                <label class="field-label" for="f-email">Account email</label>
+                <input id="f-email" class="input" value="jordan.reyes@gmail.com" readonly aria-readonly="true" />
+              </div>
+
+              <div class="span-2">
+                <label class="field-label" for="f-business">Business name</label>
+                <input id="f-business" class="input" placeholder="e.g. Cedar &amp; Co. Coworking LLC" value="Cedar &amp; Co. Coworking LLC" />
+                <p class="field-help">As it appears on your tax filings.</p>
+              </div>
+
+              <div class="span-2">
+                <label class="field-label" for="f-address">Business address</label>
+                <textarea id="f-address" class="input" placeholder="Street, city, postal code, country">2412 E 6th Street&#10;Austin, TX 78702&#10;United States</textarea>
+              </div>
+
+              <div>
+                <label class="field-label" for="f-tax">Tax ID (EIN or VAT)</label>
+                <div class="input-row">
+                  <input id="f-tax" class="input" placeholder="00-0000000" value="87-4029315" style="font-family: var(--font-mono); font-size: 13px;" />
+                  <span class="addon">US · EIN</span>
+                </div>
+                <p class="field-help">We pass this to Stripe for tax reporting. Never shown to guests.</p>
+              </div>
+
+              <div>
+                <label class="field-label" for="f-country">Country of operation</label>
+                <select id="f-country" class="input" style="height: 2.5rem; appearance: auto;">
+                  <option>United States</option>
+                  <option>Canada</option>
+                  <option>United Kingdom</option>
+                  <option>Germany</option>
+                  <option>Portugal</option>
+                </select>
+                <p class="field-help">Determines Stripe Connect onboarding flow.</p>
+              </div>
+
+              <div class="span-2">
+                <label class="field-label" for="f-motivation">Why you want to host <span class="muted" style="font-weight: 400;">· optional</span></label>
+                <textarea id="f-motivation" class="input" style="min-height: 7rem;" placeholder="Tell us a little about the space — what hosts are excited about, who tends to drop in, anything else we should know." maxlength="1000">Our space has been quiet on Mondays since one of our long-term teams moved out. Two private rooms and four hot desks free between 9 and 6. The team here is happy to take walk-ins, but we'd love a steady trickle from travellers.</textarea>
+                <div class="flex items-center justify-between mt-1.5">
+                  <p class="field-help">Helps the DeskHive team understand your space.</p>
+                  <p class="field-help tnum" id="motivation-count">312 / 1000</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cta-bar">
+          <div class="flex items-center gap-3">
+            <span class="badge badge-cancelled"><span class="dot"></span>Saved as draft · auto</span>
+            <span class="muted-strong" style="font-size: 13px;">By submitting, you agree to the DeskHive Hosting terms.</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" class="btn btn-secondary">Save and exit</button>
+            <button type="submit" class="btn btn-primary">Submit application</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- ─────────── Aside: process ─────────── -->
+      <aside class="split-aside">
+        <div class="section-h"><h2>What happens next</h2><span class="meta">3 steps</span></div>
+        <ol class="list-none p-0 m-0" style="display: grid; gap: 0.5rem;">
+          <li class="process-step" style="border: 1px solid var(--color-border); border-radius: var(--radius-xl);">
+            <span class="step-no">1</span>
+            <h4>You submit</h4>
+            <p>We send a confirmation to your inbox right away.</p>
+            <div class="when">Today</div>
+          </li>
+          <li class="process-step" style="border: 1px solid var(--color-border); border-radius: var(--radius-xl);">
+            <span class="step-no">2</span>
+            <h4>We review</h4>
+            <p>A DeskHive teammate checks your business details. We may reach out with questions.</p>
+            <div class="when">Within 48 hours</div>
+          </li>
+          <li class="process-step" style="border: 1px solid var(--color-border); border-radius: var(--radius-xl);">
+            <span class="step-no">3</span>
+            <h4>Approval &amp; payout setup</h4>
+            <p>Once approved, you'll get an email and access to the host dashboard to finish Stripe onboarding.</p>
+            <div class="when">Email + dashboard</div>
+          </li>
+        </ol>
+
+        <div class="banner banner-info" style="margin-top: 1rem;">
+          <div class="banner-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
+          </div>
+          <div class="banner-body">
+            <h3>One login, two modes</h3>
+            <p>You can keep booking as a guest. Once approved, switch to hosting from your account menu.</p>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>© 2026 DeskHive · Phase 2 · Multi-tenant</span>
+      <span style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-neutral-400);">/become-a-host</span>
+    </div>
+  </footer>
+
+  <script>
+    // Live char counter for motivation field
+    const motivation = document.getElementById('f-motivation');
+    const counter = document.getElementById('motivation-count');
+    motivation.addEventListener('input', () => {
+      counter.textContent = motivation.value.length + ' / 1000';
+    });
+  </script>
+</body>
+</html>

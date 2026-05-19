@@ -7,13 +7,15 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
   <style>
     html, body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#FAFAFA; }
-    .mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; }
+    /* Was JetBrains Mono — kept as a marker class for numeric/code-y bits,
+       now rendered in Inter with tabular numerals so it still aligns in tables. */
+    .mono { font-family: inherit; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
     [data-iframe-thumb] { pointer-events: none; }
   </style>
 </head>
@@ -82,22 +84,22 @@
   const UNS = (id, w = 900) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=70`;
 
   const SPACES = [
-    { id: "cedar-and-co",     name: "Cedar & Co",          city: "Portland, OR",  price: 32, desks: 18, amenities: ["wifi","coffee","quiet"], host: "Jordan Reyes",  rating: 4.9, reviews: 142, status: "Active",
+    { id: "cedar-and-co",     name: "Cedar & Co",          city: "Portland, OR",     neighborhood: "East Burnside",   blurb: "Warm wood-toned studio",     price: 32, currency: "$", desks: 18, spotsLeft: 4, amenities: ["wifi","coffee","quiet"], host: "Jordan Reyes",  rating: 4.9, reviews: 142, status: "Active",
       photo:  UNS("1497366216548-37526070297c"),
       photos: [UNS("1497366811353-6870744d04b2",600), UNS("1542744173-8e7e53415bb0",600), UNS("1524758631624-e2822e304c36",600)] },
-    { id: "the-glasshouse",   name: "The Glasshouse",      city: "Brooklyn, NY",  price: 45, desks: 24, amenities: ["wifi","coffee","calls"], host: "Marisol Vega", rating: 4.8, reviews: 96,  status: "Active",
+    { id: "the-glasshouse",   name: "The Glasshouse",      city: "Brooklyn, NY",     neighborhood: "Williamsburg",    blurb: "Riverside coworking floor",  price: 45, currency: "$", desks: 24, spotsLeft: 6, amenities: ["wifi","coffee","calls"], host: "Marisol Vega", rating: 4.8, reviews: 96,  status: "Active",
       photo:  UNS("1497366754035-f200968a6e72"),
       photos: [UNS("1604328698692-f76ea9498e76",600), UNS("1606857521015-7f9fcf423740",600), UNS("1556761175-5973dc0f32e7",600)] },
-    { id: "foundry-north",    name: "Foundry North",       city: "Detroit, MI",   price: 22, desks: 30, amenities: ["wifi","coffee"],         host: "Theo Park",    rating: 4.7, reviews: 58,  status: "Active",
+    { id: "foundry-north",    name: "Foundry North",       city: "Detroit, MI",      neighborhood: "Corktown",        blurb: "Converted machine shop",     price: 22, currency: "$", desks: 30, spotsLeft: 8, amenities: ["wifi","coffee"],         host: "Theo Park",    rating: 4.7, reviews: 58,  status: "Active",
       photo:  UNS("1604328471151-b52226907017"),
       photos: [UNS("1582653291997-079a1c04e7e0",600), UNS("1568992687947-868a62a9f521",600), UNS("1517502884422-41eaead166d4",600)] },
-    { id: "brick-lane",       name: "Brick Lane Studios",  city: "Austin, TX",    price: 28, desks: 12, amenities: ["wifi","calls"],          host: "Jordan Reyes", rating: 4.9, reviews: 211, status: "Active",
+    { id: "brick-lane",       name: "Brick Lane Studios",  city: "Austin, TX",       neighborhood: "East Austin",     blurb: "Quiet booth-heavy studio",   price: 28, currency: "$", desks: 12, spotsLeft: 2, amenities: ["wifi","calls"],          host: "Jordan Reyes", rating: 4.9, reviews: 211, status: "Active",
       photo:  UNS("1556761175-5973dc0f32e7"),
       photos: [UNS("1517502884422-41eaead166d4",600), UNS("1505409859467-3a796fd5798e",600), UNS("1521737711867-e3b97375f902",600)] },
-    { id: "harbor-works",     name: "Harbor Works",        city: "Seattle, WA",   price: 38, desks: 20, amenities: ["wifi","coffee","quiet"], host: "Lena Okafor",  rating: 4.6, reviews: 73,  status: "Active",
+    { id: "harbor-works",     name: "Harbor Works",        city: "Seattle, WA",      neighborhood: "Pioneer Square",  blurb: "Light-filled loft",          price: 38, currency: "$", desks: 20, spotsLeft: 3, amenities: ["wifi","coffee","quiet"], host: "Lena Okafor",  rating: 4.6, reviews: 73,  status: "Active",
       photo:  UNS("1521737711867-e3b97375f902"),
       photos: [UNS("1524758631624-e2822e304c36",600), UNS("1497366754035-f200968a6e72",600), UNS("1606857521015-7f9fcf423740",600)] },
-    { id: "north-loop-lab",   name: "North Loop Lab",      city: "Minneapolis, MN", price: 26, desks: 16, amenities: ["wifi","coffee"],       host: "Marisol Vega", rating: 4.7, reviews: 41,  status: "Draft",
+    { id: "north-loop-lab",   name: "North Loop Lab",      city: "Minneapolis, MN",  neighborhood: "North Loop",      blurb: "Industrial open plan",       price: 26, currency: "$", desks: 16, spotsLeft: 0, amenities: ["wifi","coffee"],       host: "Marisol Vega", rating: 4.7, reviews: 41,  status: "Draft",
       photo:  UNS("1554118811-1e0d58224f24"),
       photos: [UNS("1568992687947-868a62a9f521",600), UNS("1568992687947-868a62a9f521",600), UNS("1604328698692-f76ea9498e76",600)] },
   ];
@@ -159,6 +161,220 @@
     { id: "PO-2174", date: "May 14, 2026", amount: 268.50, status: "Pending", ref: "—" },
   ];
 
+  // Host's Stripe Connect Express state — read by /host/onboarding,
+  // /host/payouts, and the Host Dashboard banner. Status flow:
+  //   not_started → in_progress → complete
+  // Each step in the onboarding wizard updates HOST_PROFILE.stripeStep and,
+  // on success, flips status to "complete" and stamps the bank reference.
+  const HOST_PROFILE = {
+    stripeStatus: "not_started",
+    stripeStep:   1,
+    bankName:     "",
+    bankLast4:    "",
+    legalName:    "",
+    statementDescriptor: "DESKHIVE * CEDAR",
+    payoutSchedule: "weekly",
+  };
+
+  // ════════════════════════════════════════════════════════════
+  // MUTABLE STORE — replaces alert() calls with real state changes.
+  // Approve/reject/cancel mutate the same APPLICATIONS / BOOKINGS /
+  // HOST_BOOKINGS arrays, then notify subscribers so tables re-render.
+  // Add/edit operations flow through here so a newly listed space shows
+  // up on Browse, in Host spaces, and so on.
+  // ════════════════════════════════════════════════════════════
+  const store = {
+    listeners: new Set(),
+    emit() { this.listeners.forEach(l => l()); },
+    _patch(arr, id, patch) {
+      const i = arr.findIndex(x => x.id === id);
+      if (i >= 0) arr[i] = { ...arr[i], ...patch };
+    },
+    setAppStatus(id, status)         { this._patch(APPLICATIONS,   id, { status }); this.emit(); },
+    approveApplication(id) {
+      const a = APPLICATIONS.find(x => x.id === id);
+      this._patch(APPLICATIONS, id, { status: "Approved" });
+      // Promote the user to Host. Match by email; insert if not yet on the platform.
+      if (a) {
+        const u = USERS.find(x => x.email === a.email);
+        if (u) { u.role = "Host"; }
+        else {
+          USERS.push({
+            id: `u-app-${id}`, name: a.applicant, email: a.email, role: "Host",
+            joined: a.submitted, spaces: 0, avatar: AV(20 + (USERS.length % 40)),
+          });
+        }
+      }
+      this.emit();
+    },
+    setBookingStatus(id, status)     {
+      // Cancelling or being rejected pushes the booking into "past" so it
+      // leaves the upcoming sections of My bookings.
+      const phase = (status === "Cancelled" || status === "Rejected") ? "past" : undefined;
+      this._patch(BOOKINGS, id, phase ? { status, phase } : { status });
+      this.emit();
+    },
+    setHostBookingStatus(id, status) { this._patch(HOST_BOOKINGS, id, { status }); this.emit(); },
+    addSpace(space) {
+      SPACES.unshift(space);          // newest first on Browse
+      this.emit();
+    },
+    updateSpace(id, patch)           { this._patch(SPACES, id, patch); this.emit(); },
+    setUserRole(id, role)            { this._patch(USERS, id, { role }); this.emit(); },
+    removeUser(id) {
+      const i = USERS.findIndex(u => u.id === id);
+      if (i >= 0) USERS.splice(i, 1);
+      this.emit();
+    },
+    setStripe(patch) {
+      Object.assign(HOST_PROFILE, patch);
+      this.emit();
+    },
+  };
+  function useStore() {
+    const [, force] = useState(0);
+    useEffect(() => {
+      const l = () => force(v => v + 1);
+      store.listeners.add(l);
+      return () => store.listeners.delete(l);
+    }, []);
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // TOAST / NOTIFICATION CARDS
+  // Used for every approve / save / book outcome. Stacked top-right,
+  // auto-dismiss after ~4.5s, dismissable with the × button.
+  // ════════════════════════════════════════════════════════════
+  const toastBus = {
+    listeners: new Set(),
+    items: [],
+    show(t) {
+      const id = ++toastBus._id;
+      const item = { id, kind: "info", duration: 4500, ...t };
+      this.items = [...this.items, item];
+      this.listeners.forEach(l => l());
+      if (item.duration) setTimeout(() => this.dismiss(id), item.duration);
+      return id;
+    },
+    dismiss(id) {
+      this.items = this.items.filter(t => t.id !== id);
+      this.listeners.forEach(l => l());
+    },
+    _id: 0,
+  };
+  const notify = {
+    success: (title, message, opts={}) => toastBus.show({ kind: "success", title, message, ...opts }),
+    info:    (title, message, opts={}) => toastBus.show({ kind: "info",    title, message, ...opts }),
+    warn:    (title, message, opts={}) => toastBus.show({ kind: "warn",    title, message, ...opts }),
+    error:   (title, message, opts={}) => toastBus.show({ kind: "error",   title, message, ...opts }),
+  };
+
+  function ToastViewport() {
+    const [, force] = useState(0);
+    useEffect(() => {
+      const l = () => force(v => v + 1);
+      toastBus.listeners.add(l);
+      return () => toastBus.listeners.delete(l);
+    }, []);
+    const TONE = {
+      success: { ring: "border-emerald-200", icon: "bg-emerald-100 text-emerald-700", Icon: Icon.Check, label: "Done" },
+      info:    { ring: "border-indigo-200",  icon: "bg-indigo-100 text-indigo-700",   Icon: Icon.Info,  label: "Heads up" },
+      warn:    { ring: "border-amber-200",   icon: "bg-amber-100 text-amber-700",     Icon: Icon.AlertTriangle, label: "Heads up" },
+      error:   { ring: "border-red-200",     icon: "bg-red-100 text-red-700",         Icon: Icon.X,     label: "Failed" },
+    };
+    return (
+      <div className="fixed top-4 right-4 z-[60] flex flex-col gap-2.5 w-[min(380px,calc(100vw-2rem))] pointer-events-none" aria-live="polite">
+        {toastBus.items.map(t => {
+          const tone = TONE[t.kind] || TONE.info;
+          const Ic = tone.Icon;
+          return (
+            <div key={t.id}
+                 role="status"
+                 className={`pointer-events-auto bg-white border ${tone.ring} rounded-xl shadow-lg shadow-gray-900/5 overflow-hidden`}
+                 style={{ animation: "tIn .22s ease-out" }}>
+              <div className="p-3.5 flex items-start gap-3">
+                <span className={`w-8 h-8 rounded-lg grid place-items-center flex-none ${tone.icon}`}><Ic size={16}/></span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13.5px] font-semibold text-gray-900 tracking-tight">{t.title}</div>
+                  {t.message && <div className="text-[12.5px] text-gray-600 mt-0.5 leading-snug">{t.message}</div>}
+                  {t.action && (
+                    <button onClick={()=>{ t.action.onClick?.(); toastBus.dismiss(t.id); }}
+                            className="mt-2 text-[12px] font-semibold text-indigo-700 hover:underline">
+                      {t.action.label} →
+                    </button>
+                  )}
+                </div>
+                <button onClick={()=>toastBus.dismiss(t.id)} className="p-1 text-gray-400 hover:text-gray-700 -m-1" aria-label="Dismiss"><Icon.X size={14}/></button>
+              </div>
+            </div>
+          );
+        })}
+        <style>{`@keyframes tIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }`}</style>
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // CONFIRM DIALOG — double-confirmation for destructive actions
+  // (reject application, reject booking, cancel booking, etc).
+  // Open with `confirmBus.ask({ title, message, ..., onConfirm })`.
+  // ════════════════════════════════════════════════════════════
+  const confirmBus = {
+    listeners: new Set(),
+    current: null,
+    ask(opts) { this.current = { ...opts, id: ++this._id }; this.listeners.forEach(l => l()); },
+    close()   { this.current = null; this.listeners.forEach(l => l()); },
+    _id: 0,
+  };
+
+  function ConfirmHost() {
+    const [, force] = useState(0);
+    const noteRef = useRef(null);
+    useEffect(() => {
+      const l = () => force(v => v + 1);
+      confirmBus.listeners.add(l);
+      return () => confirmBus.listeners.delete(l);
+    }, []);
+    const c = confirmBus.current;
+    if (!c) return null;
+    const tone = c.tone || "danger";
+    const Tone = {
+      danger: { ring:"bg-red-100 text-red-700",     btn:"danger",  Icon: Icon.AlertTriangle },
+      warn:   { ring:"bg-amber-100 text-amber-700", btn:"primary", Icon: Icon.AlertTriangle },
+      info:   { ring:"bg-indigo-100 text-indigo-700", btn:"primary", Icon: Icon.Info },
+    }[tone];
+    const Ic = Tone.Icon;
+    return (
+      <div className="fixed inset-0 bg-gray-900/45 backdrop-blur-sm grid place-items-center z-[55] p-4"
+           onClick={()=>confirmBus.close()}>
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e=>e.stopPropagation()}>
+          <div className="p-5 flex items-start gap-3.5">
+            <span className={`w-10 h-10 rounded-xl grid place-items-center flex-none ${Tone.ring}`}><Ic size={18}/></span>
+            <div className="flex-1 min-w-0">
+              <div className="text-base font-semibold text-gray-900 tracking-tight">{c.title}</div>
+              {c.message && <div className="text-[13px] text-gray-600 mt-1 leading-relaxed">{c.message}</div>}
+              {c.askNote && (
+                <div className="mt-3">
+                  <label className="block text-[12px] font-medium text-gray-700 mb-1">{c.noteLabel || "Note (optional)"}</label>
+                  <textarea ref={noteRef} rows="3" placeholder={c.notePlaceholder || "Share a reason — they'll see this in the email."}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm placeholder:text-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"/>
+                </div>
+              )}
+              {c.detail && <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-[12.5px] text-gray-700 leading-relaxed">{c.detail}</div>}
+            </div>
+          </div>
+          <div className="px-5 py-3.5 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+            <button onClick={()=>{ c.onCancel?.(); confirmBus.close(); }}
+                    className="px-3.5 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100">{c.cancelLabel || "Cancel"}</button>
+            <Btn kind={Tone.btn} onClick={()=>{ const note = noteRef.current?.value || ""; c.onConfirm?.(note); confirmBus.close(); }}>
+              {c.confirmLabel || "Confirm"}
+            </Btn>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ════════════════════════════════════════════════════════════
   // STYLE PRIMITIVES
   // ════════════════════════════════════════════════════════════
@@ -180,8 +396,8 @@
     System: "bg-amber-100 text-amber-800",
   };
 
-  const Pill = ({ children, kind = "Pending" }) =>
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-medium rounded-full ${STATUS_PILL[kind] || STATUS_PILL.Pending}`}>
+  const Pill = ({ children, kind = "Pending", className = "" }) =>
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-medium rounded-full ${STATUS_PILL[kind] || STATUS_PILL.Pending} ${className}`}>
       <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80"></span>{children}
     </span>;
 
@@ -248,7 +464,9 @@
       window.addEventListener("hashchange", onChange);
       return () => window.removeEventListener("hashchange", onChange);
     }, []);
-    return hash.replace(/^#/, "") || "/";
+    // Strip any query string ("?…") off the path before route matching — the
+    // booking flow uses ?space=…&desk=… so screens can deep-link with context.
+    return (hash.replace(/^#/, "").split("?")[0]) || "/";
   }
   const go = (path) => { window.location.hash = path; };
 
@@ -258,6 +476,12 @@
   function Shell({ role, setRole, route, children, audience }) {
     const [indexOpen, setIndexOpen] = useState(false);
     const links = ROUTES[role].links;
+    // Compute the single most-specific active link so two nav items can't
+    // light up at once (e.g. /host and /host/spaces both used to match).
+    const activeHref = links.reduce((best, l) => {
+      const matches = route === l.href || (l.href !== "/" && route.startsWith(l.href + "/"));
+      return matches && l.href.length > (best?.length ?? -1) ? l.href : best;
+    }, null);
     return (
       <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
         {/* Top bar */}
@@ -271,7 +495,7 @@
             </a>
             <nav className="hidden md:flex items-center gap-1">
               {links.map(l => {
-                const active = route === l.href || (l.href !== "/" && route.startsWith(l.href));
+                const active = l.href === activeHref;
                 return (
                   <a key={l.href} href={`#${l.href}`} onClick={(e)=>{e.preventDefault();go(l.href);}}
                      className={`px-3 py-1.5 rounded-md text-sm font-medium ${active ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"}`}>
@@ -303,6 +527,10 @@
         </button>
 
         {indexOpen && <PrototypeIndex onClose={()=>setIndexOpen(false)} setRole={setRole} />}
+
+        {/* Global notification + confirm-dialog hosts */}
+        <ToastViewport/>
+        <ConfirmHost/>
 
         {/* Footer */}
         <footer className="border-t border-gray-200 mt-16 py-6">
@@ -474,307 +702,689 @@
   // SCREENS — MVP (8)
   // ════════════════════════════════════════════════════════════
 
-  // 1 · / Landing
-  function Landing() {
+  // 1 · / Landing + 2 · /browse — UNIFIED COMPONENT, TWO MODES
+  // Public landing ("/") shows the hero plus a short "featured" rail of 3
+  // spaces and a "Browse all" CTA that jumps to /browse.
+  // /browse skips the hero and renders the full searchable grid — shared by
+  // public visitors and signed-in guests.
+  function Landing({ showHero = true, featuredOnly = false }) {
+    useStore();
+    const [query, setQuery] = useState("");
+    const allActive = SPACES.filter(s => s.status === "Active");
+    const filtered = allActive.filter(s => !query || (s.name + " " + s.city + " " + s.neighborhood).toLowerCase().includes(query.toLowerCase()));
+    const featured = allActive.slice(0, 3);
+
     return (
       <Page>
-        <section className="grid md:grid-cols-2 gap-10 items-center pt-6 pb-12">
-          <div>
-            <div className="mono text-[11px] tracking-widest uppercase text-indigo-600 mb-3">DeskHive · book the day</div>
-            <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 tracking-tight leading-[1.05]">A desk for the day. <span className="text-indigo-600">Anywhere you work.</span></h1>
-            <p className="mt-4 text-gray-600 text-lg max-w-md">Hundreds of independent coworking spaces, one booking. No memberships, no contracts — pay as you go.</p>
-            <div className="mt-6 flex gap-3">
-              <Btn icon={Icon.Search} onClick={()=>go("/browse")}>Browse spaces</Btn>
-              <Btn kind="secondary" onClick={()=>go("/become-a-host")}>Host your space</Btn>
-            </div>
-          </div>
-          <Card className="overflow-hidden">
-            <div className="aspect-[4/3] relative overflow-hidden bg-gray-100">
-              <img src={SPACES[0].photo} alt={`${SPACES[0].name} · ${SPACES[0].city}`} loading="lazy"
-                   className="absolute inset-0 w-full h-full object-cover"/>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-black/0"></div>
-              <div className="absolute left-4 bottom-3 text-white font-semibold tracking-tight text-lg drop-shadow-sm">Cedar &amp; Co · Portland</div>
-            </div>
-            <div className="p-4 flex items-center justify-between text-sm">
+        {showHero && (
+          <>
+            <section className="grid md:grid-cols-2 gap-10 items-center pt-6 pb-12">
               <div>
-                <div className="font-medium text-gray-900">From $32 / day</div>
-                <div className="text-gray-500">18 desks · 4.9 ★ · 142 reviews</div>
+                <div className="text-[11px] tracking-widest uppercase text-indigo-600 mb-3 font-semibold">DeskHive · book the day</div>
+                <h1 className="text-4xl md:text-5xl font-semibold text-gray-900 tracking-tight leading-[1.05]">A desk for the day. <span className="text-indigo-600">Anywhere you work.</span></h1>
+                <p className="mt-4 text-gray-600 text-lg max-w-md">Hundreds of independent coworking spaces, one booking. No memberships, no contracts — pay as you go.</p>
+                <div className="mt-6 flex gap-3">
+                  <Btn icon={Icon.Search} onClick={()=>go("/browse")}>Browse spaces</Btn>
+                  <Btn kind="secondary" onClick={()=>go("/become-a-host")}>Host your space</Btn>
+                </div>
               </div>
-              <Btn kind="secondary" onClick={()=>go("/space/cedar-and-co")} icon={Icon.ArrowRight}>View</Btn>
+              <Card className="overflow-hidden">
+                <div className="aspect-[4/3] relative overflow-hidden bg-gray-100">
+                  <img src={SPACES[0].photo} alt={`${SPACES[0].name} · ${SPACES[0].city}`} loading="lazy"
+                       className="absolute inset-0 w-full h-full object-cover"/>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-black/0"></div>
+                  <div className="absolute left-4 bottom-3 text-white font-semibold tracking-tight text-lg drop-shadow-sm">{SPACES[0].name} · {SPACES[0].city.split(",")[0]}</div>
+                </div>
+                <div className="p-4 flex items-center justify-between text-sm">
+                  <div>
+                    <div className="font-medium text-gray-900">From ${SPACES[0].price} / day</div>
+                    <div className="text-gray-500">{SPACES[0].desks} desks · {SPACES[0].rating} ★ · {SPACES[0].reviews} reviews</div>
+                  </div>
+                  <Btn kind="secondary" onClick={()=>go(`/space/${SPACES[0].id}`)} icon={Icon.ArrowRight}>View</Btn>
+                </div>
+              </Card>
+            </section>
+
+            <section className="grid md:grid-cols-3 gap-4 my-12">
+              {[
+                { i: Icon.Search,   t: "Search a city",       d: "Find spaces near where you'll be — by city, neighborhood, or vibe." },
+                { i: Icon.Calendar, t: "Pick a day",          d: "See real-time availability, hold the desk you want for 5 minutes." },
+                { i: Icon.Check,    t: "Pay & show up",       d: "Card on file. Doors unlock, coffee is on. We'll email the details." },
+              ].map(s => (
+                <Card key={s.t} className="p-5">
+                  <span className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 grid place-items-center mb-3"><s.i size={18}/></span>
+                  <div className="font-semibold text-gray-900">{s.t}</div>
+                  <div className="text-sm text-gray-600 mt-1.5">{s.d}</div>
+                </Card>
+              ))}
+            </section>
+          </>
+        )}
+
+        {/* Featured rail (public) — 3 spaces with a Browse-all CTA. */}
+        {featuredOnly ? (
+          <section className="mt-4">
+            <div className="flex items-end justify-between gap-4 mb-4">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 tracking-tight">Featured spaces</h2>
+                <p className="text-sm text-gray-500 mt-1">A taste of what's on DeskHive right now.</p>
+              </div>
+              <Btn kind="secondary" icon={Icon.ArrowRight} onClick={()=>go("/browse")}>Browse all spaces</Btn>
             </div>
-          </Card>
-        </section>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featured.map(s => <SpaceCard key={s.id} s={s}/>)}
+            </div>
+            <div className="mt-8 text-center">
+              <Btn icon={Icon.Search} onClick={()=>go("/browse")}>Browse all {allActive.length} spaces</Btn>
+            </div>
+          </section>
+        ) : (
+          /* Full searchable grid — /browse */
+          <section className={showHero ? "mt-4" : "pt-2"}>
+            <div className="flex items-end justify-between gap-4 mb-4">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 tracking-tight">Browse spaces</h2>
+                <p className="text-sm text-gray-500 mt-1">{`${filtered.length} ${filtered.length === 1 ? "space" : "spaces"} ready to book today.`}</p>
+              </div>
+              <div className="relative w-72 max-w-full">
+                <Icon.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                <Input value={query} onChange={e=>setQuery(e.target.value)} placeholder="City, neighborhood…" className="pl-9"/>
+              </div>
+            </div>
 
-        <section className="grid md:grid-cols-3 gap-4 my-12">
-          {[
-            { i: Icon.Search,   t: "Search a city",       d: "Find spaces near where you'll be — by city, neighborhood, or vibe." },
-            { i: Icon.Calendar, t: "Pick a day",          d: "See real-time availability, hold the desk you want for 5 minutes." },
-            { i: Icon.Check,    t: "Pay & show up",       d: "Card on file. Doors unlock, coffee is on. We'll email the details." },
-          ].map(s => (
-            <Card key={s.t} className="p-5">
-              <span className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 grid place-items-center mb-3"><s.i size={18}/></span>
-              <div className="font-semibold text-gray-900">{s.t}</div>
-              <div className="text-sm text-gray-600 mt-1.5">{s.d}</div>
-            </Card>
-          ))}
-        </section>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map(s => <SpaceCard key={s.id} s={s}/>)}
+            </div>
 
-        <section className="my-12">
-          <div className="flex items-end justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 tracking-tight">Featured spaces</h2>
-            <a href="#/browse" onClick={(e)=>{e.preventDefault();go("/browse");}} className="text-sm font-medium text-indigo-600 hover:text-indigo-700">Browse all →</a>
-          </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            {SPACES.slice(0,3).map(s => <SpaceCard key={s.id} s={s}/>)}
-          </div>
-        </section>
+            {filtered.length === 0 && (
+              <div className="mt-6 text-center py-12 text-sm text-gray-500 border border-dashed border-gray-300 rounded-xl bg-gray-50">
+                No spaces match "{query}". Try a different city or neighborhood.
+              </div>
+            )}
+          </section>
+        )}
       </Page>
     );
   }
 
-  // SpaceCard reused on landing + browse
+  // 2 · /browse — full grid, no hero.
+  const Browse = () => <Landing showHero={false} featuredOnly={false}/>;
+  // 1 · / — hero + featured 3 + browse-all CTA.
+  const Public = () => <Landing showHero={true} featuredOnly={true}/>;
+
+  // Amenity icon map — used by the new SpaceCard.
+  const AMENITY_ICON = {
+    wifi:   { icon: Icon.Wifi,    label: "Wi-Fi" },
+    coffee: { icon: Icon.Coffee,  label: "Coffee" },
+    quiet:  { icon: Icon.Sparkle, label: "Quiet zone" },
+    calls:  { icon: Icon.User,    label: "Phone booths" },
+  };
+
+  // SpaceCard — reused on landing + browse.
+  // Rebuilt to match the 01-landing card spec: inset rounded photo with
+  // decorative pagination dots, title + rating row, neighborhood + blurb,
+  // amenities strip, hairline-divided footer with price + spots-left.
+  // No resting frame; on hover the card lifts on a soft shadow only.
   function SpaceCard({ s }) {
+    const spots = s.spotsLeft ?? 0;
+    const spotsCls = spots === 0 ? "text-gray-500" : (spots <= 2 ? "text-amber-700" : "text-emerald-700");
+    const spotsDot = spots === 0 ? "bg-gray-400" : (spots <= 2 ? "bg-amber-600" : "bg-emerald-500");
+    const spotsLabel = spots === 0
+      ? "Fully booked"
+      : `${spots} ${spots === 1 ? "spot" : "spots"} left`;
+
     return (
       <a href={`#/space/${s.id}`} onClick={(e)=>{e.preventDefault();go(`/space/${s.id}`);}}
-         className="group block bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-        <SpaceCover space={s} className="aspect-[4/3]" />
-        <div className="p-4">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <div className="font-semibold text-gray-900">{s.name}</div>
-              <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-1"><Icon.MapPin size={12}/>{s.city}</div>
-            </div>
-            <div className="text-right">
-              <div className="font-semibold text-gray-900">${s.price}</div>
-              <div className="text-xs text-gray-500">/ day</div>
-            </div>
+         className="group block bg-white rounded-2xl overflow-hidden transition-shadow duration-200 hover:shadow-[0_10px_30px_-12px_rgba(15,23,42,0.18)]">
+        {/* Photo with inset rounded panel + decorative dots overlay */}
+        <div className="relative p-2">
+          <img src={s.photo} alt={`${s.name} — coworking space photo`} loading="lazy"
+               className="block w-full aspect-[4/3] object-cover rounded-xl bg-gray-100"/>
+          <div aria-hidden="true" className="absolute left-1/2 -translate-x-1/2 bottom-3 flex gap-1.5 pointer-events-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.04)]"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-white/55"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-white/55"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-white/55"></span>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-            <span className="flex items-center gap-1"><Icon.Star size={12} className="text-amber-500"/>{s.rating} · {s.reviews}</span>
-            <span>{s.desks} desks</span>
+        </div>
+
+        <div className="px-4 pt-2 pb-4">
+          {/* Title + rating */}
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="font-semibold text-[17px] tracking-tight text-gray-900 leading-snug truncate">{s.name}</h3>
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-gray-900 flex-none mono"
+                  aria-label={`Rating ${s.rating} out of 5`}>
+              <Icon.Star size={13} className="text-amber-500"/>{s.rating.toFixed(1)}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">{s.neighborhood} · {s.blurb}</p>
+
+          {/* Amenities */}
+          <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-2" aria-label="Amenities">
+            {s.amenities.slice(0, 3).map(key => {
+              const a = AMENITY_ICON[key];
+              if (!a) return null;
+              return (
+                <span key={key} className="inline-flex items-center gap-1.5 text-[13px] text-gray-500">
+                  <a.icon size={14}/>{a.label}
+                </span>
+              );
+            })}
+          </div>
+
+          {/* Footer — price + spots */}
+          <div className="mt-4 pt-3.5 border-t border-gray-100 flex items-center justify-between gap-3">
+            <span className="font-semibold text-[17px] tracking-tight text-gray-900 mono">
+              {s.currency || "$"}{s.price}<span className="font-normal text-gray-500 text-[14px]">/day</span>
+            </span>
+            <span className={`inline-flex items-center gap-1.5 text-[13px] font-medium ${spotsCls}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${spotsDot}`}></span>
+              {spotsLabel}
+            </span>
           </div>
         </div>
       </a>
     );
   }
 
-  // 2 · /browse
-  function Browse() {
-    const [query, setQuery] = useState("");
-    const filtered = SPACES.filter(s => s.status === "Active" && (
-      !query || (s.name + " " + s.city).toLowerCase().includes(query.toLowerCase())
-    ));
-    return (
-      <Page>
-        <PageHead title="Browse spaces" sub={`${filtered.length} spaces ready to book today`}
-                  right={
-                    <div className="relative">
-                      <Icon.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                      <Input value={query} onChange={e=>setQuery(e.target.value)} placeholder="City, neighborhood…" className="pl-9 w-72"/>
-                    </div>
-                  }/>
-        <div className="grid grid-cols-12 gap-6">
-          <aside className="col-span-12 md:col-span-3">
-            <Card className="p-4 sticky top-20">
-              <div className="text-sm font-semibold text-gray-900 mb-3">Filters</div>
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Price / day</div>
-              <input type="range" min="10" max="100" defaultValue="50" className="w-full accent-indigo-600"/>
-              <div className="flex justify-between mono text-[11px] text-gray-500"><span>$10</span><span>$100</span></div>
-              <div className="mt-4 text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Amenities</div>
-              {["Wifi","Coffee","Phone booth","Quiet zone","Standing desks"].map(a =>
-                <label key={a} className="flex items-center gap-2 py-1 text-sm text-gray-700"><input type="checkbox" defaultChecked={a==="Wifi"} className="rounded accent-indigo-600"/>{a}</label>
-              )}
-              <Btn className="w-full mt-4" kind="secondary">Apply filters</Btn>
-            </Card>
-          </aside>
-          <div className="col-span-12 md:col-span-9 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(s => <SpaceCard key={s.id} s={s}/>)}
-          </div>
-        </div>
-      </Page>
-    );
-  }
-
   // 3 · /space/[id]
+  // ─── Friendly amenity labels for the codes stored on SPACES ───
+  const AMENITY_LABEL = {
+    wifi:   "Wifi · 1 Gbps",
+    coffee: "Espresso bar",
+    quiet:  "Quiet zone",
+    calls:  "Phone booths",
+  };
+  // Light fallback set so a space with sparse amenities still feels furnished.
+  const AMENITY_EXTRA = ["Meeting rooms", "Bike storage", "Lockers", "Pet-friendly"];
+
+  // Step pill — small numbered marker used to sequence the "Pick a date" → "Desks" flow.
+  const StepPill = ({ n, active = true }) =>
+    <span aria-hidden="true"
+      className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-semibold ${active ? "bg-indigo-600 text-white" : "bg-gray-300 text-white"}`}>
+      {n}
+    </span>;
+
   function SpaceDetail({ id }) {
     const space = SPACES.find(s => s.id === id) || SPACES[0];
-    const desks = DESKS_BY_SPACE[space.id] || DESKS_BY_SPACE["cedar-and-co"];
+    // DESKS_BY_SPACE only has cedar-and-co seeded; relabel desks so they read as
+    // belonging to whatever space the user landed on.
+    const baseDesks = DESKS_BY_SPACE[space.id] || DESKS_BY_SPACE["cedar-and-co"];
+    const desks = baseDesks.map(d => ({ ...d, price: Math.round(d.price * (space.price / 32)) }));
+
+    const [date, setDate] = useState("");
+    const datePicked = Boolean(date);
+
+    const amenities = [
+      ...space.amenities.map(k => AMENITY_LABEL[k] || k),
+      ...AMENITY_EXTRA,
+    ].slice(0, 6);
+
+    const address = `${space.city} · ${space.host} · ${space.rating}★ (${space.reviews} reviews)`;
+
     return (
       <Page>
-        <button onClick={()=>go("/browse")} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4">
-          <Icon.ArrowLeft size={14}/> Back to browse
-        </button>
-        <div className="grid grid-cols-12 gap-8">
-          <div className="col-span-12 lg:col-span-7">
-            <SpaceCover space={space} className="aspect-[4/3] rounded-xl overflow-hidden"/>
-            <div className="grid grid-cols-3 gap-3 mt-3">
-              {(space.photos || [space.photo,space.photo,space.photo]).slice(0,3).map((src,i) =>
-                <div key={i} className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100">
-                  <img src={src} alt={`${space.name} — ${i+1}`} loading="lazy" className="w-full h-full object-cover"/>
-                </div>
-              )}
+        {/* Breadcrumb */}
+        <nav aria-label="Breadcrumb" className="mono text-[12px] mb-5 flex items-center gap-1.5">
+          <button onClick={()=>go("/browse")} className="text-gray-500 hover:text-gray-900">Browse spaces</button>
+          <span className="text-gray-300">/</span>
+          <span className="text-gray-700">{space.name}</span>
+        </nav>
+
+        {/* Header */}
+        <header className="mb-6">
+          <h1 className="text-3xl font-semibold tracking-tight text-gray-900">{space.name}</h1>
+          <p className="mt-1.5 text-sm text-gray-500">{address}</p>
+        </header>
+
+        {/* Hero */}
+        <div className="rounded-2xl overflow-hidden border border-gray-200 bg-gray-100 mb-10" style={{ aspectRatio: "16 / 9" }}>
+          <img src={space.photo} alt={`${space.name} — coworking space photo`} loading="lazy" className="w-full h-full object-cover"/>
+        </div>
+
+        {/* Two-column: About + sticky date callout */}
+        <div className="grid gap-12 items-start lg:[grid-template-columns:minmax(0,1fr)_22rem]">
+          <section>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">About this space</h2>
+            <div className="text-gray-700 leading-relaxed max-w-[60ch] space-y-4">
+              <p>A converted print-house just off Burnside. Big windows, slow coffee, six private phone booths. The team here will leave you alone, but they'll also remember your name by week two.</p>
+              <p>Hours are 8am–9pm weekdays, 10am–6pm weekends. Day passes include access to the shared kitchen and a one-hour booking of any phone booth.</p>
             </div>
-            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight mt-6">{space.name}</h1>
-            <div className="text-sm text-gray-500 flex items-center gap-3 mt-1">
-              <span className="flex items-center gap-1"><Icon.MapPin size={13}/>{space.city}</span>
-              <span className="flex items-center gap-1"><Icon.Star size={13} className="text-amber-500"/>{space.rating} · {space.reviews} reviews</span>
-              <span>Host · {space.host}</span>
+
+            <h3 className="mt-8 mb-3 text-[13px] font-semibold tracking-wide text-gray-600 uppercase">Amenities</h3>
+            <ul className="grid grid-cols-2 gap-y-2 gap-x-6 max-w-md text-sm text-gray-700">
+              {amenities.map(a => <li key={a}>· {a}</li>)}
+            </ul>
+          </section>
+
+          <aside className="lg:sticky lg:top-20">
+            <div className={`rounded-xl p-5 transition-colors ${datePicked
+                ? "bg-white border border-gray-200"
+                : "border border-indigo-200 bg-gradient-to-b from-white to-indigo-50/60"}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <StepPill n="1"/>
+                <span className="mono text-[11px] uppercase tracking-[0.06em] text-gray-600">Pick a date</span>
+              </div>
+              <p className="text-[13px] text-gray-500 mb-3">Availability and prices update for the day you choose.</p>
+              <Input type="date" value={date} min="2026-05-16" onChange={e=>setDate(e.target.value)}
+                className="h-11 text-base tracking-tight"/>
+              <div className="mt-3 flex items-baseline justify-between text-[13px]">
+                <span className="text-gray-600">From</span>
+                <span className="text-gray-900"><span className="font-semibold">${space.price}</span> <span className="text-gray-500">/ day</span></span>
+              </div>
             </div>
-            <p className="mt-4 text-gray-700 leading-relaxed">A converted print-house just off Burnside. Big windows, slow coffee, six private phone booths. The team here will leave you alone, but they'll also remember your name by week two.</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {[["Wifi", Icon.Wifi],["Coffee bar", Icon.Coffee],["Phone booths", Icon.User],["Quiet zone", Icon.Sparkle]].map(([t,Ic]) =>
-                <span key={t} className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-gray-700 bg-gray-100 rounded-full"><Ic size={13}/>{t}</span>
-              )}
-            </div>
-          </div>
-          <aside className="col-span-12 lg:col-span-5">
-            <Card className="p-5 sticky top-20">
-              <div className="flex items-baseline justify-between">
-                <div>
-                  <span className="text-2xl font-semibold text-gray-900">${space.price}</span>
-                  <span className="text-sm text-gray-500"> / day</span>
-                </div>
-                <Pill kind="Active">Available today</Pill>
-              </div>
-              <div className="mt-4">
-                <Field label="Date">
-                  <Input type="date" defaultValue="2026-05-18"/>
-                </Field>
-              </div>
-              <div className="mt-4">
-                <div className="text-[13px] font-medium text-gray-800 mb-1.5">Pick a desk</div>
-                <ul className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden">
-                  {desks.map(d => (
-                    <li key={d.id} className="flex items-center justify-between px-3 py-2.5 text-sm">
-                      <div>
-                        <div className="font-medium text-gray-900">{d.label}</div>
-                        <div className={`text-xs mt-0.5 ${d.status === "available" ? "text-emerald-700" : "text-gray-400"}`}>
-                          {d.status === "available" ? "● Available" : "● Booked"}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-700">${d.price}</span>
-                        <Btn kind={d.status === "available" ? "primary" : "secondary"} disabled={d.status !== "available"} onClick={()=>go("/booking/new")}>Book</Btn>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </Card>
+            <p className="mt-3 text-[12px] leading-relaxed text-gray-500">
+              Bookings are reviewed by the space and confirmed within a few hours.
+              You won't be charged until your booking is confirmed.
+            </p>
           </aside>
         </div>
+
+        {/* Desks */}
+        <section className="mt-12">
+          <div className="flex items-baseline justify-between gap-4 mb-1">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <StepPill n="2" active={datePicked}/>
+              Desks
+            </h2>
+            <span className="mono text-[12px] text-gray-500">{desks.length} desks</span>
+          </div>
+          <p className="text-[13px] text-gray-500 mb-5">
+            {datePicked
+              ? <>Showing availability for <span className="text-gray-800">{date}</span>.</>
+              : "Pick a date above to check availability for that day."}
+          </p>
+
+          <ul className="space-y-3">
+            {desks.map(d => {
+              const avail = d.status === "available";
+              return (
+                <li key={d.id}
+                  className="grid items-center gap-5 px-5 py-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 transition-colors"
+                  style={{ gridTemplateColumns: "minmax(0,1fr) auto auto auto" }}>
+                  <div>
+                    <p className="font-medium text-gray-900">{d.label}</p>
+                    <p className="mt-0.5 text-[13px] text-gray-500">
+                      {avail ? "Standard hot desk" : "Reserved for the day"}
+                    </p>
+                  </div>
+                  <span className={`inline-flex items-center gap-1.5 text-[12px] transition-opacity ${datePicked ? "opacity-100" : "opacity-40"} ${avail ? "text-emerald-700" : "text-gray-500"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${avail ? "bg-emerald-500" : "bg-gray-400"}`}></span>
+                    {datePicked ? (avail ? "Available" : "Unavailable") : "—"}
+                  </span>
+                  <span className="mono text-[13px] text-gray-700">
+                    <strong className="font-sans font-semibold text-gray-900 text-[15px]">${d.price}</strong>&nbsp;/ day
+                  </span>
+                  <Btn
+                    kind={datePicked && avail ? "primary" : "secondary"}
+                    disabled={!datePicked || !avail}
+                    onClick={()=>go(`/booking/new?space=${space.id}&desk=${d.id}&date=${date}`)}>
+                    Book this desk
+                  </Btn>
+                </li>
+              );
+            })}
+          </ul>
+
+          {!datePicked && (
+            <p className="mt-5 px-5 py-4 text-center text-[13px] text-gray-500 border border-dashed border-gray-300 rounded-xl bg-gray-50">
+              Pick a date above to see which desks are available and unlock booking.
+            </p>
+          )}
+        </section>
       </Page>
     );
   }
 
-  // 4 · /booking/new
+  // 4 · /booking/new — Stripe Checkout simulation
+  // Per PRD: clicking "Book this desk" on Space Detail redirects the user
+  // to Stripe Checkout (Stripe-owned page). We simulate that page here —
+  // chrome reads "Stripe", layout matches Checkout — and on submit we
+  // return to /space/[id] with a success toast (PRD §5.9).
   function BookingFlow() {
-    const space = SPACES[0];
-    const subtotal = 32;
+    useStore();
+    // Pull context out of the URL hash so the flow shows the right space/desk.
+    const params = new URLSearchParams(window.location.hash.split("?")[1] || "");
+    const spaceId = params.get("space") || "cedar-and-co";
+    const deskId  = params.get("desk")  || "d1";
+    const date    = params.get("date")  || "2026-05-18";
+    const space   = SPACES.find(s => s.id === spaceId) || SPACES[0];
+    const desk    = (DESKS_BY_SPACE[space.id] || DESKS_BY_SPACE["cedar-and-co"]).find(d => d.id === deskId)
+                 || (DESKS_BY_SPACE[space.id] || DESKS_BY_SPACE["cedar-and-co"])[0];
+
+    const subtotal = desk.price;
     const fee = +(subtotal * 0.15).toFixed(2);
     const total = +(subtotal + fee).toFixed(2);
-    const [paid, setPaid] = useState(false);
+
+    const [redirecting, setRedirecting] = useState(true);
+    const [card, setCard] = useState("4242 4242 4242 4242");
+    const [exp,  setExp]  = useState("12 / 28");
+    const [cvc,  setCvc]  = useState("123");
+    const [email, setEmail] = useState("avery.chen@gmail.com");
+    const [processing, setProcessing] = useState(false);
+
+    useEffect(() => {
+      // Brief "Redirecting to Stripe…" interstitial.
+      const t = setTimeout(() => setRedirecting(false), 900);
+      return () => clearTimeout(t);
+    }, []);
+
+    const pay = () => {
+      setProcessing(true);
+      setTimeout(() => {
+        // Create the booking (Pending until host confirms).
+        const newId = `BK-${3100 + Math.floor(Math.random()*900)}`;
+        BOOKINGS.unshift({
+          id: newId, space: space.name, spaceId: space.id, desk: desk.label,
+          date: formatDateLong(date), price: subtotal, fee, total,
+          status: "Pending", guest: "You", phase: "upcoming",
+        });
+        // Mirror it on the host side so the space owner sees the request.
+        HOST_BOOKINGS.unshift({
+          id: newId, space: space.name, desk: desk.label.split(" · ")[0],
+          date: formatDateLong(date), gross: subtotal, fee, net: +(subtotal-fee).toFixed(2),
+          status: "Pending", guest: "Avery Chen",
+        });
+        store.emit();
+        notify.success("Booking requested",
+          `We'll let you know when ${space.name} confirms. Your card is held — you won't be charged until then.`,
+          { action: { label: "See My bookings", onClick: () => go("/bookings") } });
+        // PRD: return to Space Detail with toast.
+        go(`/space/${space.id}`);
+      }, 900);
+    };
+
+    if (redirecting) {
+      return (
+        <div className="min-h-[60vh] grid place-items-center px-6 py-12">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full border-2 border-indigo-200 border-t-indigo-600 mx-auto animate-spin"></div>
+            <div className="mt-4 text-base font-semibold text-gray-900 tracking-tight">Redirecting to Stripe Checkout…</div>
+            <div className="mt-1 text-sm text-gray-500">DeskHive uses Stripe for secure payments.</div>
+          </div>
+        </div>
+      );
+    }
+
+    // Stripe-Checkout-ish layout: left = pay form, right = summary.
     return (
-      <Page max="max-w-4xl">
-        <PageHead title="Confirm your booking" sub="Review and pay. Your card is held until the host confirms."/>
-        <div className="grid md:grid-cols-3 gap-6">
-          <Card className="md:col-span-2 p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                <img src={space.photo} alt={space.name} className="w-full h-full object-cover"/>
-              </div>
-              <div>
-                <div className="font-semibold text-gray-900">{space.name}</div>
-                <div className="text-sm text-gray-500">{space.city} · Desk 01 · Window</div>
-              </div>
+      <div className="bg-[#F6F9FC] min-h-[80vh]">
+        <Page max="max-w-5xl">
+          {/* Faux Stripe chrome */}
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex items-center gap-2 text-[11px] text-gray-500 mono">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-[#635BFF] text-white text-[10px] font-bold">S</span>
+              <span>checkout.stripe.com</span>
+              <span className="text-gray-300">·</span>
+              <span>Test mode</span>
             </div>
-            <div className="mt-5 grid grid-cols-2 gap-4">
-              <Field label="Date"><Input type="date" defaultValue="2026-05-18"/></Field>
-              <Field label="Arrival"><Input type="time" defaultValue="09:00"/></Field>
-            </div>
-            <div className="mt-5">
-              <div className="text-[13px] font-medium text-gray-800 mb-1.5">Payment</div>
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
-                <div className="flex items-center gap-3">
-                  <Icon.CreditCard size={16} className="text-gray-500"/>
-                  <div className="text-sm text-gray-900 font-medium">Visa ending 4242</div>
-                  <span className="mono text-[11px] text-gray-400 ml-auto">Stripe · test mode</span>
+            <button onClick={()=>go(`/space/${space.id}`)} className="ml-auto inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+              <Icon.ArrowLeft size={14}/> Back to {space.name}
+            </button>
+          </div>
+          <div className="grid md:grid-cols-2 gap-8 items-start">
+            {/* Right (visually) — but in DOM left for stacking on mobile */}
+            <Card className="p-6 order-1 md:order-2 sticky top-20">
+              <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Pay DeskHive</div>
+              <div className="mt-1 text-3xl font-semibold text-gray-900 tracking-tight">${total.toFixed(2)}</div>
+              <div className="mt-1 text-[12px] text-gray-500">Authorisation only. You'll only be charged after the host confirms.</div>
+              <div className="mt-5 flex items-center gap-3">
+                <div className="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                  <img src={space.photo} alt={space.name} className="w-full h-full object-cover"/>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">{space.name}</div>
+                  <div className="text-[12px] text-gray-500 truncate">{desk.label} · {date}</div>
                 </div>
               </div>
-              <div className="mt-3 text-xs text-gray-500 flex items-center gap-1.5"><Icon.Info size={12}/>You'll only be charged after the host confirms within 24 hours.</div>
-            </div>
-          </Card>
-          <Card className="p-6 h-fit">
-            <div className="text-sm font-semibold text-gray-900 mb-3">Summary</div>
-            <Row k="Day rate" v={`$${subtotal}.00`}/>
-            <Row k="Platform fee · 15%" v={`$${fee.toFixed(2)}`}/>
-            <div className="border-t border-gray-100 my-3"></div>
-            <Row k={<span className="text-gray-900 font-semibold">Total</span>} v={<span className="text-gray-900 font-semibold">${total.toFixed(2)}</span>}/>
-            {paid ? (
-              <div className="mt-4 p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-800 text-sm">
-                <div className="font-medium">Payment authorised.</div>
-                <div className="text-xs mt-1">We've emailed the receipt. Booking ID BK-3091.</div>
-                <button onClick={()=>go("/bookings")} className="mt-2 text-xs font-medium text-emerald-800 underline">Go to My bookings →</button>
+              <div className="mt-5 border-t border-gray-100 pt-4 space-y-1.5">
+                <Row k="Day rate"        v={`$${subtotal.toFixed(2)}`}/>
+                <Row k="Platform fee · 15%" v={`$${fee.toFixed(2)}`}/>
+                <div className="border-t border-gray-100 my-2"></div>
+                <Row k={<span className="text-gray-900 font-semibold">Total due today</span>} v={<span className="text-gray-900 font-semibold">${total.toFixed(2)}</span>}/>
               </div>
-            ) : (
-              <Btn className="w-full mt-4" icon={Icon.CreditCard} onClick={()=>setPaid(true)}>Pay &amp; request · ${total.toFixed(2)}</Btn>
-            )}
-            <div className="mt-3 text-[11px] text-gray-400 text-center">Secured by Stripe. Full refund up to 24 h before.</div>
-          </Card>
-        </div>
-      </Page>
+              <div className="mt-4 text-[11px] text-gray-400 leading-relaxed">
+                Funds are held on your card via Stripe. Cancellation more than 24 h before the booking date issues a full refund automatically.
+              </div>
+            </Card>
+
+            {/* Left — payment form */}
+            <Card className="p-6 order-2 md:order-1">
+              <div className="text-sm font-semibold text-gray-900">Pay with card</div>
+              <div className="h-3"></div>
+              <Field label="Email">
+                <Input value={email} onChange={e=>setEmail(e.target.value)} type="email"/>
+              </Field>
+              <div className="h-3"></div>
+              <Field label="Card information">
+                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                  <div className="relative">
+                    <Input value={card} onChange={e=>setCard(e.target.value)} placeholder="1234 1234 1234 1234" className="border-0 rounded-none"/>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center gap-1">
+                      <span className="w-7 h-4 rounded-sm bg-[#1A1F71] grid place-items-center text-white text-[8px] font-bold tracking-wider">VISA</span>
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 border-t border-gray-200">
+                    <Input value={exp} onChange={e=>setExp(e.target.value)} placeholder="MM / YY" className="border-0 rounded-none"/>
+                    <Input value={cvc} onChange={e=>setCvc(e.target.value)} placeholder="CVC"   className="border-0 rounded-none border-l border-gray-200"/>
+                  </div>
+                </div>
+                <div className="mt-1.5 text-[11px] text-gray-500 mono">Test card · 4242 4242 4242 4242 always succeeds.</div>
+              </Field>
+              <div className="h-3"></div>
+              <Field label="Cardholder name"><Input defaultValue="Avery Chen"/></Field>
+              <div className="h-4"></div>
+
+              <button
+                disabled={processing}
+                onClick={pay}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-[15px] font-semibold text-white bg-[#635BFF] hover:bg-[#5851E5] disabled:opacity-60">
+                {processing
+                  ? <><span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"></span> Processing…</>
+                  : <>Pay ${total.toFixed(2)}</>}
+              </button>
+              <div className="mt-3 text-[11px] text-gray-400 text-center">
+                Powered by <span className="font-semibold text-gray-600">stripe</span> · Terms · Privacy
+              </div>
+            </Card>
+          </div>
+        </Page>
+      </div>
     );
+  }
+  // helper — "2026-05-18" → "May 18, 2026"
+  function formatDateLong(iso) {
+    if (!iso) return "—";
+    try {
+      const d = new Date(iso + "T12:00:00");
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    } catch { return iso; }
   }
   const Row = ({ k, v }) =>
     <div className="flex items-center justify-between py-1.5 text-sm">
       <span className="text-gray-600">{k}</span><span className="text-gray-900">{v}</span>
     </div>;
 
-  // 5 · /bookings — My bookings
+  // 5 · /bookings — My bookings (card layout, per 05-my-bookings.html)
+  // Three sections: Awaiting confirmation (Pending), Upcoming (Confirmed +
+  // upcoming phase), Past & archived (everything else). Cancel + Book again
+  // are wired to the mutable store so the UI actually reflects the change.
   function MyBookings() {
-    const [tab, setTab] = useState("upcoming");
-    const rows = BOOKINGS.filter(b => b.phase === tab);
+    useStore();
+    const awaiting = BOOKINGS.filter(b => b.phase === "upcoming" && b.status === "Pending");
+    const upcoming = BOOKINGS.filter(b => b.phase === "upcoming" && b.status === "Confirmed");
+    const archived = BOOKINGS.filter(b => b.phase === "past");
+    const total = awaiting.length + upcoming.length + archived.length;
+
     return (
       <Page>
-        <PageHead title="My bookings" sub="Your upcoming days and past stays."/>
-        <Tabs value={tab} onChange={setTab} tabs={[
-          { key: "upcoming", label: "Upcoming", count: BOOKINGS.filter(b=>b.phase==="upcoming").length },
-          { key: "past",     label: "Past",     count: BOOKINGS.filter(b=>b.phase==="past").length },
-        ]}/>
-        <Card>
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
-              <tr>
-                <th className="text-left font-medium px-4 py-2.5">Booking</th>
-                <th className="text-left font-medium px-4 py-2.5">Space &amp; desk</th>
-                <th className="text-left font-medium px-4 py-2.5">Date</th>
-                <th className="text-right font-medium px-4 py-2.5">Total</th>
-                <th className="text-left font-medium px-4 py-2.5">Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {rows.map(b => (
-                <tr key={b.id} className="hover:bg-gray-50/50 cursor-pointer" onClick={()=>go(`/space/${b.spaceId}`)}>
-                  <td className="px-4 py-3 mono text-[12px] text-gray-700">{b.id}</td>
-                  <td className="px-4 py-3"><div className="font-medium text-gray-900">{b.space}</div><div className="text-xs text-gray-500">{b.desk}</div></td>
-                  <td className="px-4 py-3 text-gray-700">{b.date}</td>
-                  <td className="px-4 py-3 text-gray-900 text-right">${b.total.toFixed(2)}</td>
-                  <td className="px-4 py-3"><Pill kind={b.status}>{b.status}</Pill></td>
-                  <td className="px-4 py-3 text-right">
-                    {b.status === "Pending" || b.status === "Confirmed"
-                      ? <Btn kind="ghost" onClick={(e)=>{e.stopPropagation(); alert("Cancel & refund modal would open.");}}>Cancel</Btn>
-                      : <Btn kind="ghost" onClick={(e)=>{e.stopPropagation(); go(`/space/${b.spaceId}`);}}>View</Btn>}
-                  </td>
-                </tr>
-              ))}
-              {rows.length === 0 && (
-                <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-500 text-sm">No {tab} bookings.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </Card>
+        <PageHead title="My bookings" sub="Your day-pass bookings, grouped by what needs your attention."/>
+
+        {total === 0 ? (
+          <Card className="p-10 text-center">
+            <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 grid place-items-center mx-auto"><Icon.Calendar size={18}/></div>
+            <div className="mt-4 text-xl font-semibold text-gray-900 tracking-tight">No bookings yet</div>
+            <div className="mt-1.5 text-sm text-gray-500">You haven't booked anything yet. Browse spaces to get started.</div>
+            <Btn className="mt-5 mx-auto" onClick={()=>go("/browse")}>Browse spaces</Btn>
+          </Card>
+        ) : (
+          <>
+            <BookingSection
+              id="sec-awaiting"
+              title="Awaiting confirmation"
+              count={awaiting.length}
+              help="Each space reviews its own bookings and confirms within a few hours. You won't be charged until confirmation."
+              bookings={awaiting}
+              variant="awaiting"
+            />
+            <BookingSection
+              id="sec-upcoming"
+              title="Upcoming"
+              count={upcoming.length}
+              bookings={upcoming}
+              variant="upcoming"
+              className="mt-12"
+            />
+            <BookingSection
+              id="sec-archived"
+              title="Past & archived"
+              count={archived.length}
+              bookings={archived}
+              variant="archived"
+              className="mt-12"
+            />
+          </>
+        )}
       </Page>
+    );
+  }
+
+  function BookingSection({ id, title, count, help, bookings, variant, className = "" }) {
+    if (bookings.length === 0) return null;
+    return (
+      <section aria-labelledby={id} className={className}>
+        <div className="flex items-baseline justify-between border-b border-gray-200 pb-2.5 mb-4">
+          <h2 id={id} className="text-xs font-semibold tracking-[0.08em] uppercase text-gray-700">{title}</h2>
+          <span className="text-[11px] text-gray-400 mono">{count}</span>
+        </div>
+        {help && <p className="-mt-1 mb-4 text-[13px] text-gray-500">{help}</p>}
+        <ul className="space-y-3.5 list-none p-0 m-0">
+          {bookings.map(b => <BookingCard key={b.id} b={b} variant={variant}/>)}
+        </ul>
+      </section>
+    );
+  }
+
+  function BookingCard({ b, variant }) {
+    const isArchived = variant === "archived";
+    const visitComplete = isArchived && b.status === "Confirmed";
+    // Day-pass bookings = full space hours; static for the prototype.
+    const time = "9:00 AM – 6:00 PM";
+
+    // Refund eligibility — full refund if the booking is more than 24h away.
+    // "Today" is May 16, 2026 (matches the system clock the prototype runs in).
+    const today = new Date("2026-05-16T12:00:00");
+    const bookingDate = new Date(b.date + " 09:00:00");
+    const hoursUntil = (bookingDate - today) / 36e5;
+    const refundable = hoursUntil >= 24;
+
+    let context = "";
+    if (b.status === "Pending")        context = "Requested recently · usually responds within 24h";
+    else if (b.status === "Confirmed" && !isArchived) context = "Confirmed · check-in at the front desk";
+    else if (visitComplete)            context = "Visit complete";
+    else if (b.status === "Cancelled") context = b.refundIssued ? `Cancelled · ${b.currency || "$"}${(b.total).toFixed(2)} refunded to your card`  : "You cancelled this request";
+    else if (b.status === "Rejected")  context = "Space was fully booked for that date";
+
+    const cardBg = isArchived ? "bg-gray-50/60" : "bg-white";
+
+    const askCancel = () => {
+      if (!refundable && b.status !== "Pending") {
+        notify.warn("Cancellation not eligible", "Bookings within 24 hours can't be cancelled for a refund. Contact the space directly if you can't make it.");
+        return;
+      }
+      const isPending = b.status === "Pending";
+      confirmBus.ask({
+        title: isPending ? "Cancel this request?" : `Cancel and refund $${b.total.toFixed(2)}?`,
+        message: isPending
+          ? "We haven't charged you yet — your card hold will be released. The space owner will be notified."
+          : "Your card will be refunded in full via Stripe. Refunds typically clear in 5–10 business days.",
+        detail: <><strong>{b.space}</strong> · {b.desk} · {b.date}</>,
+        confirmLabel: isPending ? "Cancel request" : "Cancel and refund",
+        cancelLabel: "Keep booking",
+        tone: isPending ? "warn" : "danger",
+        onConfirm: () => {
+          if (isPending) {
+            store.setBookingStatus(b.id, "Cancelled");
+            notify.info("Booking cancelled", "We've let the space know. No charge will be made to your card.");
+          } else {
+            // Refunded cancellation
+            const i = BOOKINGS.findIndex(x => x.id === b.id);
+            if (i >= 0) BOOKINGS[i] = { ...BOOKINGS[i], status: "Cancelled", phase: "past", refundIssued: true };
+            store.emit();
+            notify.success(`Refund of $${b.total.toFixed(2)} issued`, "Stripe will return the funds to your card in 5–10 business days. We've emailed your receipt.");
+          }
+        },
+      });
+    };
+
+    return (
+      <li className={`${cardBg} border border-gray-200 rounded-2xl overflow-hidden transition-colors hover:border-gray-300`}>
+        {/* HEADER — icon · title/sub · status */}
+        <div className="grid items-start gap-4 p-5 sm:p-6"
+             style={{ gridTemplateColumns: "auto minmax(0,1fr) auto" }}>
+          <div className={`w-11 h-11 rounded-lg grid place-items-center flex-none ${isArchived ? "bg-gray-100 text-gray-400" : "bg-gray-100 text-gray-500"}`} aria-hidden="true">
+            <Icon.Briefcase size={20}/>
+          </div>
+          <div className="min-w-0">
+            <p className={`text-[17px] font-semibold tracking-tight leading-snug ${isArchived ? "text-gray-700" : "text-gray-900"}`}>{b.space} · {b.desk.split(" · ")[0]}</p>
+            <p className="mt-0.5 text-[13px] text-gray-500">Hot desk · {SPACES.find(s=>s.id===b.spaceId)?.city || "—"}</p>
+          </div>
+          <div>
+            <Pill kind={b.status}>{b.status}</Pill>
+          </div>
+        </div>
+
+        {/* META — Date | Time */}
+        <div className="grid grid-cols-2 gap-6 px-5 sm:px-6 py-4 border-t border-gray-100">
+          <div>
+            <p className="text-[12px] text-gray-500 mb-1">Date</p>
+            <p className="text-[15px] font-semibold text-gray-900 tracking-tight mono">{b.date}</p>
+          </div>
+          <div>
+            <p className="text-[12px] text-gray-500 mb-1">Time</p>
+            <p className="text-[15px] font-semibold text-gray-900 tracking-tight mono">{time}</p>
+          </div>
+        </div>
+
+        {/* FOOTER — context + actions */}
+        <div className="grid items-center gap-3 px-5 sm:px-6 py-4 border-t border-gray-100"
+             style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}>
+          <p className="text-[13px] text-gray-500">{context}</p>
+          <div className="flex items-center gap-2 justify-self-end">
+            {b.status === "Pending" && (
+              <>
+                <Btn kind="secondary" onClick={()=>go(`/space/${b.spaceId}`)}>View details</Btn>
+                <Btn kind="ghost" onClick={askCancel}>Cancel request</Btn>
+              </>
+            )}
+            {b.status === "Confirmed" && !isArchived && (
+              <>
+                <Btn kind="secondary" onClick={()=>go(`/space/${b.spaceId}`)}>View details</Btn>
+                {refundable ? (
+                  <Btn kind="ghost" onClick={askCancel}>Cancel &amp; refund</Btn>
+                ) : (
+                  <span title="Cancellations within 24 hours are not eligible for refund.">
+                    <Btn kind="ghost" disabled>Cancel · within 24h</Btn>
+                  </span>
+                )}
+              </>
+            )}
+            {(visitComplete || b.status === "Rejected") && (
+              <Btn kind="secondary" onClick={()=>go(`/space/${b.spaceId}`)}>Book again</Btn>
+            )}
+          </div>
+        </div>
+      </li>
     );
   }
 
@@ -905,6 +1515,29 @@
   // 9 · /become-a-host
   function BecomeAHost({ setRole }) {
     const [submitted, setSubmitted] = useState(false);
+    const [form, setForm] = useState({
+      name: "Avery Chen", email: "avery.chen@gmail.com",
+      spaceName: "", city: "", message: "",
+    });
+    const update = patch => setForm(f => ({ ...f, ...patch }));
+    const submit = () => {
+      const id = "app-" + Date.now().toString(36);
+      APPLICATIONS.unshift({
+        id,
+        applicant: form.name || "Anonymous",
+        email: form.email || "—",
+        city: form.city || "—",
+        spaceName: form.spaceName || "Unnamed space",
+        status: "Pending",
+        submitted: "May 16, 2026",
+        message: form.message || "—",
+      });
+      store.emit();
+      setSubmitted(true);
+      notify.success("Application submitted",
+        "We'll email you within 2 business days. Until then, your account stays in Guest mode.",
+        { action: { label: "Review as admin", onClick: () => { setRole("admin"); go("/admin/applications"); } } });
+    };
     return (
       <Page max="max-w-5xl">
         <PageHead title="Earn from your unused desks" sub="List your space on DeskHive. We take 15% per booking — you keep the rest. Approval typically within 2 business days."/>
@@ -923,15 +1556,15 @@
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Your name"><Input defaultValue="Avery Chen"/></Field>
-                  <Field label="Email"><Input type="email" defaultValue="avery.chen@gmail.com"/></Field>
-                  <Field label="Space name" hint="Public · how guests will find you"><Input placeholder="e.g. Westside Workshop"/></Field>
-                  <Field label="City"><Input placeholder="Portland, OR"/></Field>
+                  <Field label="Your name"><Input value={form.name} onChange={e=>update({name: e.target.value})}/></Field>
+                  <Field label="Email"><Input type="email" value={form.email} onChange={e=>update({email: e.target.value})}/></Field>
+                  <Field label="Space name" hint="Public · how guests will find you"><Input value={form.spaceName} onChange={e=>update({spaceName: e.target.value})} placeholder="e.g. Westside Workshop"/></Field>
+                  <Field label="City"><Input value={form.city} onChange={e=>update({city: e.target.value})} placeholder="Portland, OR"/></Field>
                 </div>
-                <div className="mt-3"><Field label="Tell us about your space" hint="A few lines is enough. We'll ask for photos after approval."><Textarea rows="4" placeholder="Square footage, neighborhood, what makes it special…"/></Field></div>
+                <div className="mt-3"><Field label="Tell us about your space" hint="A few lines is enough. We'll ask for photos after approval."><Textarea rows="4" value={form.message} onChange={e=>update({message: e.target.value})} placeholder="Square footage, neighborhood, what makes it special…"/></Field></div>
                 <div className="mt-5 flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
                   <Btn kind="ghost">Save draft</Btn>
-                  <Btn icon={Icon.Send} onClick={()=>setSubmitted(true)}>Submit application</Btn>
+                  <Btn icon={Icon.Send} onClick={submit}>Submit application</Btn>
                 </div>
               </>
             )}
@@ -961,8 +1594,31 @@
 
   // 10 · /admin/applications
   function AdminApplications() {
+    useStore();
     const [tab, setTab] = useState("Pending");
     const rows = APPLICATIONS.filter(a => a.status === tab);
+    const approve = (a) => {
+      store.approveApplication(a.id);
+      notify.success("Application approved", `${a.applicant} can now host on DeskHive. We've emailed them a welcome and a Stripe Connect link.`);
+    };
+    const reject = (a) => {
+      confirmBus.ask({
+        title: `Reject ${a.applicant}'s application?`,
+        message: "They'll receive an email letting them know. You can leave an optional note — it'll be included in the message.",
+        detail: <span><strong>{a.spaceName}</strong> · {a.city} · submitted {a.submitted}</span>,
+        askNote: true,
+        noteLabel: "Note for the applicant (optional)",
+        notePlaceholder: "e.g. We need a second photo before we can list this space.",
+        confirmLabel: "Reject application",
+        tone: "danger",
+        onConfirm: (note) => {
+          store.setAppStatus(a.id, "Rejected");
+          notify.error("Application rejected", note
+            ? `${a.applicant} will see your note in the email.`
+            : `${a.applicant} has been notified by email.`);
+        },
+      });
+    };
     return (
       <Page>
         <PageHead title="Space owner applications" sub="Review and approve. Approving moves the user into the Host role and unlocks Stripe Connect."/>
@@ -997,8 +1653,8 @@
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     {a.status === "Pending" ? (
                       <div className="inline-flex gap-2">
-                        <Btn kind="secondary" onClick={(e)=>{e.stopPropagation(); alert(`Approved ${a.applicant}`);}} icon={Icon.Check}>Approve</Btn>
-                        <Btn kind="ghost" onClick={(e)=>{e.stopPropagation(); alert(`Rejection modal for ${a.applicant}`);}}>Reject</Btn>
+                        <Btn kind="success" onClick={(e)=>{e.stopPropagation(); approve(a);}} icon={Icon.Check}>Approve</Btn>
+                        <Btn kind="ghost"   onClick={(e)=>{e.stopPropagation(); reject(a);}}>Reject</Btn>
                       </div>
                     ) : <Btn kind="ghost" icon={Icon.ChevronRight}>Open</Btn>}
                   </td>
@@ -1014,8 +1670,32 @@
 
   // 11 · /admin/applications/[id]
   function AdminApplicationDetail({ id }) {
+    useStore();
     const a = APPLICATIONS.find(x => x.id === id) || APPLICATIONS[0];
-    const [reject, setReject] = useState(false);
+    const approve = () => {
+      store.approveApplication(a.id);
+      notify.success("Application approved", `${a.applicant} can now host on DeskHive. We've emailed them a welcome and a Stripe Connect link.`);
+      go("/admin/applications");
+    };
+    const reject = () => {
+      confirmBus.ask({
+        title: `Reject ${a.applicant}'s application?`,
+        message: "They'll get an email letting them know. Your note (optional) will be included verbatim.",
+        detail: <span><strong>{a.spaceName}</strong> · {a.city} · submitted {a.submitted}</span>,
+        askNote: true,
+        noteLabel: "Note for the applicant (optional)",
+        notePlaceholder: "e.g. We need a second photo before we can list this space.",
+        confirmLabel: "Reject application",
+        tone: "danger",
+        onConfirm: (note) => {
+          store.setAppStatus(a.id, "Rejected");
+          notify.error("Application rejected", note
+            ? `${a.applicant} will see your note in the email.`
+            : `${a.applicant} has been notified by email.`);
+          go("/admin/applications");
+        },
+      });
+    };
     return (
       <Page max="max-w-4xl">
         <button onClick={()=>go("/admin/applications")} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4">
@@ -1043,24 +1723,11 @@
           </div>
           {a.status === "Pending" && (
             <div className="mt-6 flex justify-end gap-2 pt-5 border-t border-gray-100">
-              <Btn kind="secondary" onClick={()=>setReject(true)}>Reject</Btn>
-              <Btn kind="success" icon={Icon.Check} onClick={()=>{ alert(`Approved ${a.applicant}. They're now a host.`); go("/admin/applications"); }}>Approve</Btn>
+              <Btn kind="secondary" onClick={reject}>Reject</Btn>
+              <Btn kind="success" icon={Icon.Check} onClick={approve}>Approve</Btn>
             </div>
           )}
         </Card>
-        {reject && (
-          <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm grid place-items-center z-50" onClick={()=>setReject(false)}>
-            <Card className="w-full max-w-md p-6" onClick={e=>e.stopPropagation()}>
-              <div className="text-base font-semibold text-gray-900">Reject application</div>
-              <div className="text-sm text-gray-500 mt-1">Optionally, leave a note. They'll get an email either way.</div>
-              <div className="mt-4"><Field label="Note (optional)"><Textarea rows="3" placeholder="What should they know?"/></Field></div>
-              <div className="mt-5 flex justify-end gap-2">
-                <Btn kind="ghost" onClick={()=>setReject(false)}>Cancel</Btn>
-                <Btn kind="danger" onClick={()=>{ setReject(false); alert(`Rejected ${a.applicant}.`); go("/admin/applications"); }}>Send rejection</Btn>
-              </div>
-            </Card>
-          </div>
-        )}
       </Page>
     );
   }
@@ -1073,19 +1740,34 @@
 
   // 12 · /host — Host dashboard
   function HostDashboard() {
+    useStore();
+    const stripeOK = HOST_PROFILE.stripeStatus === "complete";
+    const stripeInProgress = HOST_PROFILE.stripeStatus === "in_progress";
     return (
       <Page>
         <PageHead title="Welcome back, Jordan" sub="Today: 3 desks booked across 2 spaces. 2 pending requests."/>
-        <Card className="p-4 mb-6 bg-amber-50 border-amber-200">
-          <div className="flex items-center gap-3">
-            <span className="w-9 h-9 grid place-items-center rounded-lg bg-amber-100 text-amber-700"><Icon.AlertTriangle size={16}/></span>
-            <div>
-              <div className="font-medium text-amber-900 text-sm">Connect Stripe to receive payouts</div>
-              <div className="text-xs text-amber-800 mt-0.5">You'll keep accepting bookings, but funds are held until your account is set up.</div>
+        {!stripeOK && (
+          <Card className={`p-4 mb-6 ${stripeInProgress ? "bg-indigo-50 border-indigo-200" : "bg-amber-50 border-amber-200"}`}>
+            <div className="flex items-center gap-3">
+              <span className={`w-9 h-9 grid place-items-center rounded-lg ${stripeInProgress ? "bg-indigo-100 text-indigo-700" : "bg-amber-100 text-amber-700"}`}>
+                <Icon.AlertTriangle size={16}/>
+              </span>
+              <div>
+                <div className={`font-medium text-sm ${stripeInProgress ? "text-indigo-900" : "text-amber-900"}`}>
+                  {stripeInProgress ? "Finish your Stripe setup" : "Connect Stripe to receive payouts"}
+                </div>
+                <div className={`text-xs mt-0.5 ${stripeInProgress ? "text-indigo-800" : "text-amber-800"}`}>
+                  {stripeInProgress
+                    ? `You're on step ${HOST_PROFILE.stripeStep} of 4. Funds are held until you finish.`
+                    : "You'll keep accepting bookings, but funds are held until your account is set up."}
+                </div>
+              </div>
+              <Btn className="ml-auto" onClick={()=>go("/host/onboarding")}>
+                {stripeInProgress ? "Continue setup" : "Connect Stripe"} →
+              </Btn>
             </div>
-            <Btn className="ml-auto" onClick={()=>go("/host/onboarding")}>Continue setup →</Btn>
-          </div>
-        </Card>
+          </Card>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <StatCard k="Earnings · 30 days" v="$2,148.50" trend={{ dir:"up", text:"+18% vs. previous"}} icon={Icon.Banknote}/>
           <StatCard k="Bookings · 30 days" v="74" trend={{ dir:"up", text:"+9 vs. previous"}} icon={Icon.Calendar}/>
@@ -1107,8 +1789,8 @@
                     <td className="py-2.5 text-right text-gray-900">${b.net.toFixed(2)}</td>
                     <td className="py-2.5 text-right">
                       <div className="inline-flex gap-1">
-                        <Btn kind="success" icon={Icon.Check} onClick={()=>alert(`Confirmed ${b.id}`)}>Confirm</Btn>
-                        <Btn kind="ghost" onClick={()=>alert(`Rejected ${b.id}`)}>Reject</Btn>
+                        <Btn kind="success" icon={Icon.Check} onClick={()=>confirmBooking(b)}>Confirm</Btn>
+                        <Btn kind="ghost" onClick={()=>rejectBooking(b)}>Reject</Btn>
                       </div>
                     </td>
                   </tr>
@@ -1138,6 +1820,7 @@
 
   // 13 · /host/spaces
   function HostSpaces() {
+    useStore();
     const owned = SPACES.filter(s => s.host === "Jordan Reyes");
     return (
       <Page>
@@ -1180,8 +1863,31 @@
     );
   }
 
+  // ─── Host booking action helpers — used on dashboard + bookings tabs ───
+  function confirmBooking(b) {
+    store.setHostBookingStatus(b.id, "Confirmed");
+    notify.success("Booking confirmed", `${b.guest}'s booking on ${b.date} is confirmed. We've charged their card and emailed the receipt.`);
+  }
+  function rejectBooking(b) {
+    confirmBus.ask({
+      title: `Reject ${b.guest}'s booking?`,
+      message: "Their card will be released (no charge). Once you reject, this can't be undone.",
+      detail: <><strong>{b.space}</strong> · {b.desk} · {b.date} · ${b.gross.toFixed(2)}</>,
+      askNote: true,
+      noteLabel: "Reason (optional, visible to the guest)",
+      notePlaceholder: "e.g. The desk became unavailable due to maintenance.",
+      confirmLabel: "Reject booking",
+      tone: "danger",
+      onConfirm: (note) => {
+        store.setHostBookingStatus(b.id, "Rejected");
+        notify.error("Booking rejected", note ? `${b.guest} has been emailed with your note.` : `${b.guest} has been emailed.`);
+      },
+    });
+  }
+
   // 14 · /host/bookings
   function HostBookings() {
+    useStore();
     const [tab, setTab] = useState("Pending");
     const rows = HOST_BOOKINGS.filter(b => b.status === tab);
     return (
@@ -1220,8 +1926,8 @@
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     {b.status === "Pending" ? (
                       <div className="inline-flex gap-1">
-                        <Btn kind="success" icon={Icon.Check} onClick={()=>alert(`Confirmed ${b.id}`)}>Confirm</Btn>
-                        <Btn kind="ghost" onClick={()=>alert(`Rejected ${b.id}`)}>Reject</Btn>
+                        <Btn kind="success" icon={Icon.Check} onClick={()=>confirmBooking(b)}>Confirm</Btn>
+                        <Btn kind="ghost" onClick={()=>rejectBooking(b)}>Reject</Btn>
                       </div>
                     ) : <Pill kind={b.status}>{b.status}</Pill>}
                   </td>
@@ -1239,6 +1945,53 @@
   function HostSpaceNew() {
     const [step, setStep] = useState(1);
     const steps = ["Basics","Desks","Photos","Publish"];
+    const [form, setForm] = useState({
+      name: "", city: "", address: "", postal: "",
+      about: "A great place to work.",
+      price: 30,
+      desks: [
+        { id: "d1", label: "Desk 01 · Window",      price: 32 },
+        { id: "d2", label: "Desk 02 · Window",      price: 32 },
+        { id: "d3", label: "Desk 03 · Quiet booth", price: 38 },
+      ],
+    });
+    const update = (patch) => setForm(f => ({ ...f, ...patch }));
+    const updateDesk = (i, patch) => setForm(f => ({ ...f, desks: f.desks.map((d,j)=> j===i ? { ...d, ...patch } : d) }));
+    const addDesk = () => setForm(f => ({ ...f, desks: [...f.desks, { id: `d${f.desks.length+1}`, label: `Desk 0${f.desks.length+1}`, price: f.price }] }));
+    const removeDesk = (i) => setForm(f => ({ ...f, desks: f.desks.filter((_,j)=> j!==i) }));
+
+    const publish = () => {
+      // Generate a kebab-case id from the name (or a fallback timestamp).
+      const slug = (form.name || "new-space").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `space-${Date.now()}`;
+      const photo = UNS("1497366216548-37526070297c");
+      const lowestPrice = form.desks.reduce((m,d)=> Math.min(m, Number(d.price)||32), 99) || 32;
+      store.addSpace({
+        id: slug,
+        name: form.name || "Untitled space",
+        city: form.city || "—",
+        neighborhood: form.address || "Downtown",
+        blurb: form.about.slice(0, 60),
+        price: lowestPrice,
+        currency: "$",
+        desks: form.desks.length,
+        spotsLeft: form.desks.length,
+        amenities: ["wifi","coffee"],
+        host: "Jordan Reyes",
+        rating: 5.0,
+        reviews: 0,
+        status: "Active",
+        photo,
+        photos: [photo, photo, photo],
+      });
+      // Seed desks too so the space detail page renders correctly.
+      DESKS_BY_SPACE[slug] = form.desks.map(d => ({
+        id: d.id, label: d.label, price: Number(d.price)||32, status: "available",
+      }));
+      notify.success("Space published", `${form.name || "Your space"} is now live on Browse. Bookings will start flowing in.`,
+        { action: { label: "View on Browse", onClick: () => go("/browse") } });
+      go("/host/spaces");
+    };
+
     return (
       <Page max="max-w-4xl">
         <button onClick={()=>go("/host/spaces")} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4">
@@ -1265,25 +2018,28 @@
           {step === 1 && <>
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Basics</h2>
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Space name"><Input placeholder="e.g. Cedar & Co"/></Field>
-              <Field label="City"><Input placeholder="Portland, OR"/></Field>
-              <Field label="Street address"><Input placeholder="123 NW 12th Ave"/></Field>
-              <Field label="Postal code"><Input placeholder="97209"/></Field>
+              <Field label="Space name"><Input placeholder="e.g. Westside Workshop" value={form.name} onChange={e=>update({name: e.target.value})}/></Field>
+              <Field label="City"><Input placeholder="Portland, OR" value={form.city} onChange={e=>update({city: e.target.value})}/></Field>
+              <Field label="Street address"><Input placeholder="123 NW 12th Ave" value={form.address} onChange={e=>update({address: e.target.value})}/></Field>
+              <Field label="Postal code"><Input placeholder="97209" value={form.postal} onChange={e=>update({postal: e.target.value})}/></Field>
             </div>
-            <div className="mt-3"><Field label="About"><Textarea rows="3" placeholder="What makes this space special?"/></Field></div>
+            <div className="mt-3"><Field label="About"><Textarea rows="3" placeholder="What makes this space special?" value={form.about} onChange={e=>update({about: e.target.value})}/></Field></div>
           </>}
           {step === 2 && <>
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Desks &amp; rates</h2>
             <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
-              {[["Desk 01 · Window","$32"],["Desk 02 · Window","$32"],["Desk 03 · Quiet booth","$38"]].map(([n,p],i)=>(
+              {form.desks.map((d,i) => (
                 <div key={i} className="flex items-center gap-3 px-4 py-3">
-                  <Input defaultValue={n} className="flex-1"/>
-                  <Input defaultValue={p} className="w-24"/>
-                  <button className="text-gray-400 hover:text-red-600"><Icon.Trash size={15}/></button>
+                  <Input value={d.label} onChange={e=>updateDesk(i, { label: e.target.value })} className="flex-1"/>
+                  <div className="relative w-28">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
+                    <Input type="number" value={d.price} onChange={e=>updateDesk(i, { price: e.target.value })} className="pl-6"/>
+                  </div>
+                  <button onClick={()=>removeDesk(i)} className="text-gray-400 hover:text-red-600" aria-label="Remove desk"><Icon.Trash size={15}/></button>
                 </div>
               ))}
             </div>
-            <Btn kind="secondary" icon={Icon.Plus} className="mt-3">Add desk</Btn>
+            <Btn kind="secondary" icon={Icon.Plus} className="mt-3" onClick={addDesk}>Add desk</Btn>
           </>}
           {step === 3 && <>
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Photos</h2>
@@ -1296,9 +2052,9 @@
           {step === 4 && <>
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Review &amp; publish</h2>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <KV k="Name" v="Westside Workshop"/>
-              <KV k="City" v="Portland, OR"/>
-              <KV k="Desks" v="3 (with rates)"/>
+              <KV k="Name" v={form.name || "—"}/>
+              <KV k="City" v={form.city || "—"}/>
+              <KV k="Desks" v={`${form.desks.length} (with rates)`}/>
               <KV k="Photos" v="0 uploaded"/>
             </div>
             <div className="mt-5 p-4 bg-indigo-50 border border-indigo-100 rounded-lg text-sm text-indigo-900">
@@ -1309,7 +2065,7 @@
             <Btn kind="ghost" onClick={()=>setStep(Math.max(1, step-1))}>Back</Btn>
             {step < 4
               ? <Btn icon={Icon.ArrowRight} onClick={()=>setStep(step+1)}>Continue</Btn>
-              : <Btn icon={Icon.Check} onClick={()=>{ alert("Space published."); go("/host/spaces"); }}>Publish space</Btn>}
+              : <Btn icon={Icon.Check} onClick={publish}>Publish space</Btn>}
           </div>
         </Card>
       </Page>
@@ -1318,9 +2074,41 @@
 
   // 16 · /host/spaces/[id] — Edit space (uses same multi-step shell)
   function HostSpaceEdit({ id }) {
+    useStore();
     const s = SPACES.find(x => x.id === id) || SPACES[0];
     const [step, setStep] = useState(1);
     const steps = ["Basics","Desks","Photos","Publish"];
+    const [form, setForm] = useState({
+      name: s.name, city: s.city, price: s.price, desks: s.desks,
+      about: s.blurb || "A converted print-house just off Burnside.",
+    });
+    const update = (patch) => setForm(f => ({ ...f, ...patch }));
+
+    const save = () => {
+      store.updateSpace(s.id, {
+        name: form.name,
+        city: form.city,
+        price: Number(form.price) || s.price,
+        desks: Number(form.desks) || s.desks,
+        blurb: form.about.slice(0, 60),
+      });
+      notify.success("Changes saved", `${form.name}'s details are updated. New bookings will use the latest rate.`);
+    };
+
+    const unlist = () => {
+      confirmBus.ask({
+        title: `Unlist ${s.name}?`,
+        message: "It'll disappear from Browse immediately. Existing bookings are unaffected. You can re-list it any time.",
+        confirmLabel: "Unlist space",
+        tone: "danger",
+        onConfirm: () => {
+          store.updateSpace(s.id, { status: "Draft" });
+          notify.info("Space unlisted", `${s.name} is no longer visible on Browse.`);
+          go("/host/spaces");
+        },
+      });
+    };
+
     return (
       <Page max="max-w-4xl">
         <button onClick={()=>go("/host/spaces")} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-4">
@@ -1340,19 +2128,19 @@
           {step === 1 && <>
             <h2 className="text-sm font-semibold text-gray-900 mb-4">Basics</h2>
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Space name"><Input defaultValue={s.name}/></Field>
-              <Field label="City"><Input defaultValue={s.city}/></Field>
-              <Field label="Day rate"><Input defaultValue={`$${s.price}`}/></Field>
-              <Field label="Total desks"><Input defaultValue={s.desks}/></Field>
+              <Field label="Space name"><Input value={form.name} onChange={e=>update({name:e.target.value})}/></Field>
+              <Field label="City"><Input value={form.city} onChange={e=>update({city:e.target.value})}/></Field>
+              <Field label="Day rate"><Input type="number" value={form.price} onChange={e=>update({price:e.target.value})}/></Field>
+              <Field label="Total desks"><Input type="number" value={form.desks} onChange={e=>update({desks:e.target.value})}/></Field>
             </div>
-            <div className="mt-3"><Field label="About"><Textarea rows="3" defaultValue="A converted print-house just off Burnside…"/></Field></div>
+            <div className="mt-3"><Field label="About"><Textarea rows="3" value={form.about} onChange={e=>update({about:e.target.value})}/></Field></div>
           </>}
           {step === 2 && <div className="text-sm text-gray-500">Desk manager would appear here — same layout as New space step 2.</div>}
           {step === 3 && <div className="text-sm text-gray-500">Photo manager — same layout as New space step 3.</div>}
           {step === 4 && <div className="text-sm text-gray-500">Publish state · republish controls.</div>}
           <div className="mt-6 pt-5 border-t border-gray-100 flex justify-between">
-            <Btn kind="danger" icon={Icon.Trash}>Unlist space</Btn>
-            <Btn icon={Icon.Check}>Save changes</Btn>
+            <Btn kind="danger" icon={Icon.Trash} onClick={unlist}>Unlist space</Btn>
+            <Btn icon={Icon.Check} onClick={save}>Save changes</Btn>
           </div>
         </Card>
       </Page>
@@ -1361,21 +2149,45 @@
 
   // 17 · /host/payouts
   function HostPayouts() {
+    useStore();
     const lifetime = PAYOUTS.reduce((s,p)=>s+p.amount,0);
     const pending  = PAYOUTS.filter(p=>p.status==="Pending").reduce((s,p)=>s+p.amount,0);
+    const stripeOK = HOST_PROFILE.stripeStatus === "complete";
+    const bank = stripeOK
+      ? `${HOST_PROFILE.bankName || "Chase"} ••${HOST_PROFILE.bankLast4 || "3210"}`
+      : "—";
     return (
       <Page>
         <PageHead title="Payouts" sub="Money lands in your bank every Tuesday. Stripe routes funds — we just send the receipt."/>
-        <Card className="p-4 mb-6 bg-emerald-50 border-emerald-100">
-          <div className="flex items-center gap-3">
-            <span className="w-9 h-9 grid place-items-center rounded-lg bg-emerald-100 text-emerald-700"><Icon.Check size={16}/></span>
-            <div>
-              <div className="font-medium text-emerald-900 text-sm">Stripe Connect active</div>
-              <div className="text-xs text-emerald-800 mt-0.5">Routing to Chase ••3210 · USD · next payout May 14</div>
+        {stripeOK ? (
+          <Card className="p-4 mb-6 bg-emerald-50 border-emerald-100">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 grid place-items-center rounded-lg bg-emerald-100 text-emerald-700"><Icon.Check size={16}/></span>
+              <div>
+                <div className="font-medium text-emerald-900 text-sm">Stripe Connect active</div>
+                <div className="text-xs text-emerald-800 mt-0.5">Routing to {bank} · USD · next payout May 19</div>
+              </div>
+              <Btn className="ml-auto" kind="secondary" onClick={()=>go("/host/onboarding")}>Manage</Btn>
             </div>
-            <Btn className="ml-auto" kind="secondary" onClick={()=>go("/host/onboarding")}>Manage</Btn>
-          </div>
-        </Card>
+          </Card>
+        ) : (
+          <Card className="p-4 mb-6 bg-amber-50 border-amber-200">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 grid place-items-center rounded-lg bg-amber-100 text-amber-700"><Icon.AlertTriangle size={16}/></span>
+              <div>
+                <div className="font-medium text-amber-900 text-sm">Stripe Connect not set up</div>
+                <div className="text-xs text-amber-800 mt-0.5">
+                  {HOST_PROFILE.stripeStatus === "in_progress"
+                    ? `You're on step ${HOST_PROFILE.stripeStep} of 4. Earnings stay in pending until setup is complete.`
+                    : "Earnings will stay in pending until you connect a bank account."}
+                </div>
+              </div>
+              <Btn className="ml-auto" onClick={()=>go("/host/onboarding")}>
+                {HOST_PROFILE.stripeStatus === "in_progress" ? "Continue setup" : "Connect Stripe"} →
+              </Btn>
+            </div>
+          </Card>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <StatCard k="Lifetime payouts" v={`$${lifetime.toFixed(2)}`} icon={Icon.Banknote}/>
           <StatCard k="Pending" v={`$${pending.toFixed(2)}`} icon={Icon.Clock}/>
@@ -1413,63 +2225,367 @@
     );
   }
 
-  // 18 · /host/onboarding — Stripe Connect
+  // 18 · /host/onboarding — Stripe Connect Express (functional)
+  // Per PRD §5.8 — Stripe owns the actual onboarding UI. We mock the
+  // "Connect Express" experience: branded chrome, one form per step, and
+  // a real status that updates the dashboard banner and payouts header.
+  // States: not_started → in_progress (steps 2-4) → complete (charges /
+  // payouts enabled, manage-on-stripe link).
   function HostOnboarding() {
-    const [step, setStep] = useState(2);
-    const steps = [
-      { n:1, t:"Account created",       d:"Email verified, role set to Host."},
-      { n:2, t:"Verify identity",       d:"Government ID, DOB, address. Stripe handles the form."},
-      { n:3, t:"Add bank account",      d:"Where payouts land. Verified by micro-deposit."},
-      { n:4, t:"Confirm payout settings", d:"Currency, schedule, statement descriptor."},
-      { n:5, t:"Ready to accept payouts", d:"Funds release on the next payout cycle."},
-    ];
-    return (
-      <Page max="max-w-4xl">
-        <PageHead title="Connect Stripe to receive payouts" sub="One-time setup. Takes about 5 minutes. You'll be redirected to Stripe and back."/>
-        <div className="grid md:grid-cols-3 gap-6">
-          <Card className="md:col-span-2 p-6">
-            <ol className="space-y-3">
-              {steps.map(s => {
-                const done = s.n < step;
-                const active = s.n === step;
-                return (
-                  <li key={s.n} className={`p-4 rounded-lg border ${active ? "border-indigo-200 bg-indigo-50/50" : done ? "border-emerald-100 bg-emerald-50/40" : "border-gray-200 bg-white"}`}>
-                    <div className="flex items-start gap-3">
-                      <span className={`w-7 h-7 rounded-full text-xs font-semibold grid place-items-center ${active ? "bg-indigo-600 text-white" : done ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-500"}`}>
-                        {done ? "✓" : s.n}
-                      </span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm font-semibold text-gray-900">{s.t}</div>
-                          {done && <Pill kind="Approved">Done</Pill>}
-                          {active && <Pill kind="Pending">Current step</Pill>}
-                        </div>
-                        <div className="text-xs text-gray-600 mt-0.5">{s.d}</div>
-                      </div>
+    useStore();
+    const isComplete = HOST_PROFILE.stripeStatus === "complete";
+
+    // ── Form state (per step) ──────────────────────────────────
+    const [legalName, setLegalName] = useState(HOST_PROFILE.legalName || "Jordan Reyes");
+    const [dob, setDob]             = useState("1989-06-12");
+    const [ssn, setSsn]             = useState("•••–••–4422");
+    const [addr, setAddr]           = useState("125 NW 12th Ave, Portland, OR 97209");
+    const [routing, setRouting]     = useState("110000000");
+    const [account, setAccount]     = useState("000123456789");
+    const [bankName, setBankName]   = useState("Chase");
+    const [schedule, setSchedule]   = useState(HOST_PROFILE.payoutSchedule || "weekly");
+    const [descriptor, setDescriptor] = useState(HOST_PROFILE.statementDescriptor || "DESKHIVE * CEDAR");
+
+    const [submitting, setSubmitting] = useState(false);
+    const [redirecting, setRedirecting] = useState(false);
+
+    // Already-complete view → show success card with disconnect / manage links.
+    if (isComplete) {
+      const disconnect = () => confirmBus.ask({
+        title: "Disconnect Stripe?",
+        message: "You'll stop receiving payouts. Any unpaid balance will still settle on the next cycle. You can reconnect anytime.",
+        confirmLabel: "Disconnect",
+        tone: "danger",
+        onConfirm: () => {
+          store.setStripe({ stripeStatus: "not_started", stripeStep: 1, bankLast4: "" });
+          notify.warn("Stripe disconnected", "We can't process new payouts until you reconnect.");
+        },
+      });
+      return (
+        <Page max="max-w-4xl">
+          <PageHead title="Stripe Connect" sub="Your account is set up for payouts. Funds settle every Tuesday."/>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="md:col-span-2 p-6">
+              <div className="flex items-center gap-3 pb-5 border-b border-gray-100">
+                <span className="w-10 h-10 rounded-xl bg-[#635BFF] grid place-items-center text-white font-bold">S</span>
+                <div>
+                  <div className="text-base font-semibold text-gray-900">Stripe Connect · Express</div>
+                  <div className="text-xs text-gray-500">Connected as {HOST_PROFILE.legalName || legalName} · Test mode</div>
+                </div>
+                <Pill kind="Approved" className="ml-auto">Active</Pill>
+              </div>
+              <div className="mt-5 grid sm:grid-cols-2 gap-3">
+                {[
+                  ["Charges enabled",  "Cards are accepted on your space"],
+                  ["Payouts enabled",  `Routing to ${HOST_PROFILE.bankName || "Chase"} ••${HOST_PROFILE.bankLast4 || "3210"}`],
+                  ["Identity verified","Government ID + DOB on file with Stripe"],
+                  ["Tax form on file", "1099-K issued at year-end if eligible"],
+                ].map(([t,d]) => (
+                  <div key={t} className="flex items-start gap-2.5 p-3 rounded-lg bg-emerald-50/40 border border-emerald-100">
+                    <span className="w-5 h-5 grid place-items-center rounded-full bg-emerald-500 text-white flex-none mt-0.5"><Icon.Check size={11}/></span>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{t}</div>
+                      <div className="text-[12px] text-gray-600">{d}</div>
                     </div>
-                  </li>
-                );
-              })}
-            </ol>
-          </Card>
-          <Card className="p-6 h-fit">
-            <div className="text-sm font-semibold text-gray-900 mb-1">Continue with Stripe</div>
-            <div className="text-xs text-gray-500 mb-4">You'll leave DeskHive briefly. Bring a photo ID and your bank routing number.</div>
-            <Btn className="w-full" icon={Icon.ArrowRight} onClick={()=>{ if (step < 5) setStep(step+1); else { alert("Setup complete."); go("/host/payouts"); } }}>
-              {step < 5 ? `Continue · step ${step}` : "Finish & view payouts"}
-            </Btn>
-            <Btn className="w-full mt-2" kind="ghost" onClick={()=>go("/host")}>Skip for now</Btn>
-            <div className="mt-6 text-[11px] text-gray-400 leading-relaxed">DeskHive uses Stripe Connect Express. Your details are stored with Stripe, not us.</div>
-          </Card>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 pt-5 border-t border-gray-100 grid grid-cols-2 gap-4 text-sm">
+                <KV k="Payout schedule" v={<span className="capitalize">{HOST_PROFILE.payoutSchedule || schedule}</span>}/>
+                <KV k="Statement descriptor" v={<code className="mono text-[12px]">{HOST_PROFILE.statementDescriptor || descriptor}</code>}/>
+                <KV k="Currency" v="USD"/>
+                <KV k="Country" v="United States"/>
+              </div>
+            </Card>
+            <Card className="p-6 h-fit">
+              <div className="text-sm font-semibold text-gray-900 mb-1">Manage on Stripe</div>
+              <div className="text-xs text-gray-500 mb-4">Update your bank account, tax info, or payout schedule from your Stripe dashboard.</div>
+              <Btn className="w-full" icon={Icon.ArrowRight}
+                onClick={()=>{ notify.info("Opening Stripe dashboard…", "We've sent you to your Stripe Express dashboard in a new tab."); }}>
+                Open Stripe dashboard
+              </Btn>
+              <Btn kind="secondary" className="w-full mt-2" onClick={()=>go("/host/payouts")}>See payouts</Btn>
+              <div className="my-5 border-t border-gray-100"></div>
+              <Btn kind="ghost" className="w-full text-red-600 hover:bg-red-50" onClick={disconnect}>Disconnect Stripe</Btn>
+              <div className="mt-5 text-[11px] text-gray-400 leading-relaxed">
+                DeskHive uses Stripe Connect Express. Your bank details live with Stripe, not us.
+              </div>
+            </Card>
+          </div>
+        </Page>
+      );
+    }
+
+    // ── Wizard view ────────────────────────────────────────────
+    const step = HOST_PROFILE.stripeStep || 1;
+    const setStep = (n) => store.setStripe({ stripeStep: n, stripeStatus: n > 1 ? "in_progress" : HOST_PROFILE.stripeStatus });
+
+    const steps = [
+      { n:1, t:"Get started",        d:"Quick intro — what Stripe collects and why."},
+      { n:2, t:"Verify your identity", d:"Legal name, date of birth, address. Stripe verifies."},
+      { n:3, t:"Add a bank account", d:"Where payouts land. Routing + account."},
+      { n:4, t:"Payout schedule",    d:"Frequency, currency, statement descriptor."},
+      { n:5, t:"Done",               d:"Ready to accept payouts."},
+    ];
+
+    // "Continue with Stripe" — fakes the redirect to Stripe and back.
+    const startRedirect = () => {
+      setRedirecting(true);
+      setTimeout(() => { setRedirecting(false); setStep(2); }, 900);
+    };
+
+    const next = (extraPatch={}) => {
+      setSubmitting(true);
+      setTimeout(() => {
+        setSubmitting(false);
+        if (step < 4) setStep(step + 1);
+        else {
+          // Finish: write to HOST_PROFILE and toast.
+          store.setStripe({
+            stripeStatus: "complete",
+            stripeStep:   5,
+            legalName,
+            bankName,
+            bankLast4: account.slice(-4) || "6789",
+            payoutSchedule: schedule,
+            statementDescriptor: descriptor,
+            ...extraPatch,
+          });
+          notify.success("Stripe connected", `Payouts will land in ${bankName} ••${account.slice(-4) || "6789"} on the next cycle.`,
+            { action: { label: "See payouts", onClick: () => go("/host/payouts") } });
+        }
+      }, 700);
+    };
+
+    if (redirecting) {
+      return (
+        <div className="min-h-[60vh] grid place-items-center px-6 py-12">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full border-2 border-indigo-200 border-t-[#635BFF] mx-auto animate-spin"></div>
+            <div className="mt-4 text-base font-semibold text-gray-900 tracking-tight">Redirecting to Stripe Connect…</div>
+            <div className="mt-1 text-sm text-gray-500">Stripe will handle ID verification & banking, then bring you back.</div>
+          </div>
         </div>
-      </Page>
+      );
+    }
+
+    return (
+      <div className="bg-[#F6F9FC] min-h-[80vh]">
+        <Page max="max-w-5xl">
+          {/* Stripe-Express chrome */}
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex items-center gap-2 text-[11px] text-gray-500 mono">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-[#635BFF] text-white text-[10px] font-bold">S</span>
+              <span>connect.stripe.com</span>
+              <span className="text-gray-300">·</span>
+              <span>Express · Test mode</span>
+            </div>
+            <button onClick={()=>go("/host")} className="ml-auto inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+              <Icon.ArrowLeft size={14}/> Back to dashboard
+            </button>
+          </div>
+
+          <PageHead title="Connect Stripe to receive payouts" sub="One-time setup. ~5 minutes. Stripe handles your bank details — we never see them."/>
+
+          <div className="grid md:grid-cols-[260px_minmax(0,1fr)] gap-6 items-start">
+            {/* Step rail */}
+            <Card className="p-3">
+              <ol className="space-y-1">
+                {steps.map(s => {
+                  const done = s.n < step;
+                  const active = s.n === step;
+                  return (
+                    <li key={s.n}>
+                      <button
+                        onClick={()=> done && setStep(s.n)}
+                        disabled={!done && !active}
+                        className={`w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-lg transition-colors ${active ? "bg-indigo-50" : done ? "hover:bg-emerald-50/40" : ""}`}>
+                        <span className={`w-6 h-6 rounded-full text-[11px] font-semibold grid place-items-center flex-none ${active ? "bg-[#635BFF] text-white" : done ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-500"}`}>
+                          {done ? "✓" : s.n}
+                        </span>
+                        <div className="min-w-0">
+                          <div className={`text-[13px] font-semibold tracking-tight ${active ? "text-indigo-800" : done ? "text-emerald-800" : "text-gray-800"}`}>{s.t}</div>
+                          <div className="text-[11px] text-gray-500 leading-snug">{s.d}</div>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </Card>
+
+            {/* Step body */}
+            <Card className="p-6">
+              {step === 1 && <>
+                <h2 className="text-lg font-semibold text-gray-900 tracking-tight">Get paid via Stripe</h2>
+                <p className="mt-1.5 text-sm text-gray-600 max-w-[60ch]">
+                  DeskHive uses Stripe Connect Express to handle your payouts. Stripe will collect a few details to verify your account and pay you out — DeskHive never stores your bank info.
+                </p>
+                <ul className="mt-4 space-y-2.5 text-sm text-gray-700">
+                  {[
+                    "Verifies your identity (KYC required by US regulations)",
+                    "Adds your bank account so payouts land directly",
+                    "Issues 1099-K tax forms at year-end if you qualify",
+                    "Lets you update payment details anytime from Stripe",
+                  ].map(t => (
+                    <li key={t} className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 mt-0.5 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 flex-none"><Icon.Check size={11}/></span>
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-6 p-3.5 rounded-lg border border-amber-200 bg-amber-50 text-[13px] text-amber-900 leading-relaxed flex gap-2.5">
+                  <Icon.Info size={16} className="text-amber-700 flex-none mt-0.5"/>
+                  <span>You'll keep accepting bookings while this is in progress, but funds are <strong>held</strong> until your Stripe account is fully verified.</span>
+                </div>
+                <div className="mt-6 pt-5 border-t border-gray-100 flex justify-end gap-2">
+                  <Btn kind="ghost" onClick={()=>go("/host")}>Set up later</Btn>
+                  <Btn icon={Icon.ArrowRight} onClick={startRedirect}>Continue with Stripe</Btn>
+                </div>
+              </>}
+
+              {step === 2 && <>
+                <h2 className="text-lg font-semibold text-gray-900 tracking-tight">Verify your identity</h2>
+                <p className="mt-1.5 text-sm text-gray-600">Stripe needs this to comply with US financial regulations. Your info is encrypted and stored with Stripe.</p>
+
+                <div className="mt-5 grid grid-cols-2 gap-4">
+                  <Field label="Legal first &amp; last name">
+                    <Input value={legalName} onChange={e=>setLegalName(e.target.value)}/>
+                  </Field>
+                  <Field label="Date of birth">
+                    <Input type="date" value={dob} onChange={e=>setDob(e.target.value)}/>
+                  </Field>
+                  <Field label="Last 4 digits of SSN" hint="We'll never store this.">
+                    <Input value={ssn} onChange={e=>setSsn(e.target.value)}/>
+                  </Field>
+                  <Field label="Country">
+                    <Input value="United States" disabled/>
+                  </Field>
+                </div>
+                <div className="mt-3"><Field label="Home address">
+                  <Textarea rows="2" value={addr} onChange={e=>setAddr(e.target.value)}/>
+                </Field></div>
+                <div className="mt-4 p-3.5 rounded-lg border border-gray-200 bg-gray-50 text-[12.5px] text-gray-600 leading-relaxed flex gap-2.5">
+                  <Icon.Info size={14} className="text-gray-500 flex-none mt-0.5"/>
+                  <span>In production Stripe asks you to upload a photo of your government ID here. For this prototype we'll skip that step.</span>
+                </div>
+                <StepFooter
+                  onBack={()=>setStep(1)}
+                  onNext={()=>next()}
+                  busy={submitting}
+                  disabled={!legalName || !dob}
+                  nextLabel="Save and continue"
+                />
+              </>}
+
+              {step === 3 && <>
+                <h2 className="text-lg font-semibold text-gray-900 tracking-tight">Add a bank account</h2>
+                <p className="mt-1.5 text-sm text-gray-600">This is where your payouts will land. You'll see a $0.01 test deposit within 1–2 business days to confirm it works.</p>
+
+                <div className="mt-5 grid grid-cols-2 gap-4">
+                  <Field label="Bank name">
+                    <Input value={bankName} onChange={e=>setBankName(e.target.value)} placeholder="Chase, BofA, Ally…"/>
+                  </Field>
+                  <Field label="Account type">
+                    <select className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+                      <option>Checking</option>
+                      <option>Savings</option>
+                    </select>
+                  </Field>
+                  <Field label="Routing number">
+                    <Input value={routing} onChange={e=>setRouting(e.target.value)} placeholder="9-digit"/>
+                  </Field>
+                  <Field label="Account number">
+                    <Input value={account} onChange={e=>setAccount(e.target.value)} placeholder="••••••6789"/>
+                  </Field>
+                </div>
+                <div className="mt-4 p-3.5 rounded-lg border border-gray-200 bg-gray-50 text-[12.5px] text-gray-600 leading-relaxed flex gap-2.5">
+                  <Icon.Info size={14} className="text-gray-500 flex-none mt-0.5"/>
+                  <span>Test mode tip: <code className="mono px-1 bg-white border border-gray-200 rounded">110000000</code> / <code className="mono px-1 bg-white border border-gray-200 rounded">000123456789</code> always passes verification.</span>
+                </div>
+                <StepFooter
+                  onBack={()=>setStep(2)}
+                  onNext={()=>next()}
+                  busy={submitting}
+                  disabled={!bankName || !routing || !account || account.length < 6}
+                  nextLabel="Save bank account"
+                />
+              </>}
+
+              {step === 4 && <>
+                <h2 className="text-lg font-semibold text-gray-900 tracking-tight">Payout schedule</h2>
+                <p className="mt-1.5 text-sm text-gray-600">When and how Stripe sends money to your bank. You can change these anytime from the Stripe dashboard.</p>
+
+                <div className="mt-5">
+                  <div className="text-[12px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Frequency</div>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {[
+                      ["daily","Daily","Faster cash flow"],
+                      ["weekly","Weekly","Every Tuesday"],
+                      ["monthly","Monthly","1st of the month"],
+                    ].map(([v,t,d]) => {
+                      const active = schedule === v;
+                      return (
+                        <button key={v} onClick={()=>setSchedule(v)}
+                          className={`p-3 rounded-lg border text-left transition-colors ${active ? "border-indigo-300 bg-indigo-50" : "border-gray-200 bg-white hover:border-gray-300"}`}>
+                          <div className={`text-sm font-semibold ${active ? "text-indigo-800" : "text-gray-900"}`}>{t}</div>
+                          <div className="text-[11.5px] text-gray-500 mt-0.5">{d}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-4">
+                  <Field label="Statement descriptor" hint="Shows on guests' card statements. 5–22 chars.">
+                    <Input value={descriptor} onChange={e=>setDescriptor(e.target.value.toUpperCase().slice(0,22))}/>
+                  </Field>
+                  <Field label="Currency">
+                    <Input value="USD" disabled/>
+                  </Field>
+                </div>
+                <StepFooter
+                  onBack={()=>setStep(3)}
+                  onNext={()=>next()}
+                  busy={submitting}
+                  disabled={!descriptor || descriptor.length < 5}
+                  nextLabel="Finish setup"
+                  nextKind="success"
+                />
+              </>}
+            </Card>
+          </div>
+        </Page>
+      </div>
+    );
+  }
+
+  // Stripe-style footer with Back / Next + Stripe-purple primary button.
+  function StepFooter({ onBack, onNext, busy, disabled, nextLabel, nextKind }) {
+    return (
+      <div className="mt-6 pt-5 border-t border-gray-100 flex items-center justify-between">
+        <Btn kind="ghost" onClick={onBack}><Icon.ArrowLeft size={14}/> Back</Btn>
+        <button
+          disabled={busy || disabled}
+          onClick={onNext}
+          className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-[14px] font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed ${nextKind === "success" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-[#635BFF] hover:bg-[#5851E5]"}`}>
+          {busy
+            ? <><span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"></span> Saving…</>
+            : <>{nextLabel} <Icon.ArrowRight size={14}/></>}
+        </button>
+      </div>
     );
   }
 
   // 19 · /admin/users
   function AdminUsers() {
+    useStore();
     const [filter, setFilter] = useState("All");
-    const rows = filter === "All" ? USERS : USERS.filter(u => u.role === filter);
+    const [manage, setManage] = useState(null);   // user being managed
+    const [query, setQuery] = useState("");
+    const rows = USERS
+      .filter(u => filter === "All" || u.role === filter)
+      .filter(u => !query || (u.name + " " + u.email).toLowerCase().includes(query.toLowerCase()));
     return (
       <Page>
         <PageHead title="Users" sub={`${USERS.length} total · ${USERS.filter(u=>u.role==="Host").length} hosts · ${USERS.filter(u=>u.role==="Guest").length} guests`}/>
@@ -1480,7 +2596,7 @@
           <div className="flex-1"></div>
           <div className="relative">
             <Icon.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-            <Input placeholder="Search users…" className="pl-9 w-64"/>
+            <Input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search users…" className="pl-9 w-64"/>
           </div>
         </div>
         <Card>
@@ -1509,13 +2625,148 @@
                   <td className="px-4 py-3"><span className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${ROLE_PILL[u.role]}`}>{u.role}</span></td>
                   <td className="px-4 py-3 text-gray-500">{u.joined}</td>
                   <td className="px-4 py-3 text-right text-gray-700">{u.spaces}</td>
-                  <td className="px-4 py-3 text-right"><Btn kind="ghost" icon={Icon.ChevronRight}>Manage</Btn></td>
+                  <td className="px-4 py-3 text-right">
+                    <Btn kind="ghost" icon={Icon.ChevronRight} onClick={()=>setManage(u)}>Manage</Btn>
+                  </td>
                 </tr>
               ))}
+              {rows.length === 0 && <tr><td colSpan="5" className="px-4 py-8 text-center text-gray-500 text-sm">No users match those filters.</td></tr>}
             </tbody>
           </table>
         </Card>
+        {manage && <UserManageDrawer user={manage} onClose={()=>setManage(null)}/>}
       </Page>
+    );
+  }
+
+  // Right-side drawer for the Manage action on Users.
+  // Lets an admin change role, view spaces/bookings counts, send a password
+  // reset, suspend, or delete. Each action ends with a toast + (for the
+  // destructive ones) a confirm dialog.
+  function UserManageDrawer({ user, onClose }) {
+    useStore();
+    const u = USERS.find(x => x.id === user.id) || user;
+    const userSpaces  = SPACES.filter(s => s.host === u.name);
+    const userBookings = HOST_BOOKINGS.filter(b => b.guest === u.name);
+    const change = (role) => {
+      if (u.role === role) return;
+      store.setUserRole(u.id, role);
+      notify.success("Role updated", `${u.name} is now a ${role}.`);
+    };
+    const reset = () => {
+      notify.info("Password reset link sent", `${u.email} will get an email to set a new password.`);
+    };
+    const suspend = () => {
+      confirmBus.ask({
+        title: `Suspend ${u.name}?`,
+        message: "They'll be signed out and won't be able to book or host until you reinstate them.",
+        confirmLabel: "Suspend account",
+        tone: "warn",
+        onConfirm: () => {
+          notify.warn("Account suspended", `${u.name} can no longer sign in.`);
+          onClose();
+        },
+      });
+    };
+    const remove = () => {
+      confirmBus.ask({
+        title: `Permanently delete ${u.name}'s account?`,
+        message: "This wipes their profile and history. Existing bookings stay, but their personal data is removed. This cannot be undone.",
+        confirmLabel: "Delete account",
+        tone: "danger",
+        onConfirm: () => {
+          store.removeUser(u.id);
+          notify.error("Account deleted", `${u.name}'s account is gone.`);
+          onClose();
+        },
+      });
+    };
+    return (
+      <div className="fixed inset-0 z-[45]" onClick={onClose}>
+        <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px]"></div>
+        <aside
+          onClick={e=>e.stopPropagation()}
+          className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col"
+          style={{ animation: "drIn .22s ease-out" }}>
+          <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div className="text-sm font-semibold text-gray-900">Manage user</div>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Close"><Icon.X size={16}/></button>
+          </div>
+          <div className="flex-1 overflow-auto p-5">
+            <div className="flex items-center gap-4">
+              <img src={u.avatar} alt={u.name} className="w-14 h-14 rounded-full object-cover bg-gray-100"/>
+              <div>
+                <div className="font-semibold text-gray-900">{u.name}</div>
+                <div className="text-xs text-gray-500">{u.email}</div>
+                <div className="mt-1.5"><span className={`text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${ROLE_PILL[u.role]}`}>{u.role}</span></div>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+              <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Joined</div>
+                <div className="mt-1 text-[12px] font-medium text-gray-900 mono">{u.joined}</div>
+              </div>
+              <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Spaces</div>
+                <div className="mt-1 text-base font-semibold text-gray-900">{userSpaces.length}</div>
+              </div>
+              <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Bookings</div>
+                <div className="mt-1 text-base font-semibold text-gray-900">{userBookings.length}</div>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Role</div>
+              <div className="grid grid-cols-3 gap-2">
+                {["Guest","Host","Admin"].map(r => {
+                  const active = u.role === r;
+                  return (
+                    <button key={r} onClick={()=>change(r)}
+                      className={`px-3 py-2 rounded-lg border text-sm font-medium ${active ? "border-indigo-300 bg-indigo-50 text-indigo-700" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"}`}>
+                      {r}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {userSpaces.length > 0 && (
+              <div className="mt-6">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Hosted spaces</div>
+                <ul className="border border-gray-200 rounded-lg divide-y divide-gray-100 overflow-hidden">
+                  {userSpaces.map(s => (
+                    <li key={s.id}>
+                      <button onClick={()=>{ onClose(); go(`/host/spaces/${s.id}`); }}
+                              className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-gray-50 text-left">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img src={s.photo} alt={s.name} className="w-8 h-8 rounded-md object-cover bg-gray-100"/>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">{s.name}</div>
+                            <div className="text-[11px] text-gray-500 truncate">{s.city}</div>
+                          </div>
+                        </div>
+                        <Icon.ChevronRight size={14} className="text-gray-400"/>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="mt-6">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">Account actions</div>
+              <div className="grid grid-cols-1 gap-2">
+                <ActionRow icon={Icon.Mail}      label="Send password reset"     onClick={reset}/>
+                <ActionRow icon={Icon.AlertTriangle} label="Suspend account"     onClick={suspend}/>
+                <ActionRow icon={Icon.Trash}     label="Delete account"          onClick={remove}/>
+              </div>
+            </div>
+          </div>
+        </aside>
+        <style>{`@keyframes drIn { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }`}</style>
+      </div>
     );
   }
 
@@ -1600,7 +2851,7 @@
     }
 
     switch (route) {
-      case "/":              return { audience:"Public", body:<Landing/> };
+      case "/":              return { audience:"Public", body:<Public/> };
       case "/browse":        return { audience:"Public", body:<Browse/> };
       case "/booking/new":   return { audience:"Guest",  body:<BookingFlow/> };
       case "/bookings":      return { audience:"Guest",  body:<MyBookings/> };

@@ -1,0 +1,252 @@
+<!doctype html>
+<!--
+  Phase 2 · Theme A · Story 5.4
+  /owner — Space Owner dashboard
+
+  Layout:
+    HEADER          Logo + mode-pill "Hosting" + nav: Dashboard / My spaces / Bookings / Payouts
+    BANNER          Stripe Connect onboarding incomplete CTA (only when applicable)
+    STATS           3 stat cards (Active spaces · Pending bookings · This month payouts)
+    QUEUE           Pending bookings preview (3 rows) with Confirm/Reject inline
+    QUICK LINKS     Tiles to deeper screens
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard · Hosting · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="phase2.css">
+</head>
+<body data-screen-label="P2·04 Owner · Dashboard">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+        <span class="mode-pill mode-host"><span class="dot"></span>Hosting</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="p2-04-owner-dashboard.html" class="nav-link" aria-current="page">Dashboard</a>
+        <a href="p2-05-owner-spaces.html" class="nav-link">My spaces</a>
+        <a href="p2-06-owner-bookings.html" class="nav-link">Bookings</a>
+        <a href="p2-07-owner-payouts.html" class="nav-link">Payouts</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <details class="menu-pill">
+          <summary>
+            <span class="user-avatar" aria-hidden="true">EN</span>
+            <span class="username text-[13px] font-medium">Elena</span>
+            <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="menu" role="menu">
+            <div class="menu-header">
+              <div class="av">EN</div>
+              <div class="who">
+                <div class="name">Elena Nakamura</div>
+                <div class="email">elena@northgate.io</div>
+              </div>
+            </div>
+            <div class="menu-section-label">Mode</div>
+            <a href="01-landing.html" class="menu-item is-feature" role="menuitem">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 3a15.3 15.3 0 0 1 4 9 15.3 15.3 0 0 1-4 9 15.3 15.3 0 0 1-4-9 15.3 15.3 0 0 1 4-9z"/></svg>
+              Switch to traveling
+              <span class="meta">Guest mode</span>
+            </a>
+            <hr/>
+            <a href="p2-08-owner-settings.html" class="menu-item" role="menuitem">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              Payout settings
+            </a>
+            <a href="#" class="menu-item" role="menuitem">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+              Account settings
+            </a>
+            <hr/>
+            <button class="menu-item is-danger" role="menuitem" type="button">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Log out
+            </button>
+          </div>
+        </details>
+      </nav>
+    </div>
+  </header>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-spaces" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M10 21v-6h4v6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-cash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+  </svg>
+
+  <main class="container-content" style="padding-top: 3rem; padding-bottom: 4rem;">
+
+    <header class="mb-6">
+      <p class="muted" style="font-size: 13px; font-family: var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase;">Tuesday, May 12</p>
+      <h1 class="page-h1 mt-1">Welcome back, Elena.</h1>
+      <p class="mt-1.5 muted-strong" style="font-size: 14px;">
+        You have <strong style="color: var(--color-neutral-900);">3 pending bookings</strong> to review. Once you finish Stripe setup, guests can pay you.
+      </p>
+    </header>
+
+    <!-- ── Stripe Connect not done yet — top banner ── -->
+    <section class="banner mb-6" role="region" aria-labelledby="b-stripe">
+      <div class="banner-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      </div>
+      <div class="banner-body">
+        <h3 id="b-stripe">Complete payout setup to start receiving money</h3>
+        <p>You can confirm bookings now, but funds won't transfer until Stripe Connect is verified. Takes about 4 minutes.</p>
+      </div>
+      <div class="banner-actions">
+        <a href="p2-08-owner-settings.html" class="btn btn-primary btn-sm">Finish Stripe setup</a>
+      </div>
+    </section>
+
+    <!-- ── Stats ── -->
+    <section class="stat-grid mb-10">
+      <a href="p2-05-owner-spaces.html" class="stat-card">
+        <div class="stat-head">
+          <span class="stat-label">Active spaces</span>
+          <span class="stat-icon" aria-hidden="true"><svg><use href="#i-spaces"/></svg></span>
+        </div>
+        <p class="stat-value">2</p>
+        <p class="stat-foot"><span class="stat-trend up">+1</span> since last month</p>
+      </a>
+      <a href="p2-06-owner-bookings.html" class="stat-card is-attention">
+        <div class="stat-head">
+          <span class="stat-label">Pending bookings</span>
+          <span class="stat-icon" aria-hidden="true"><svg><use href="#i-clock"/></svg></span>
+        </div>
+        <p class="stat-value">3</p>
+        <p class="stat-foot">Oldest waiting <strong style="color: #92400E;">4 hours</strong></p>
+      </a>
+      <a href="p2-07-owner-payouts.html" class="stat-card">
+        <div class="stat-head">
+          <span class="stat-label">This month payouts</span>
+          <span class="stat-icon" aria-hidden="true"><svg><use href="#i-cash"/></svg></span>
+        </div>
+        <p class="stat-value">$1,248<span class="unit">.50</span></p>
+        <p class="stat-foot"><span class="stat-trend up">+12 %</span> vs. April</p>
+      </a>
+    </section>
+
+    <!-- ── Pending queue preview ── -->
+    <section style="margin-bottom: 3rem;">
+      <div class="section-h">
+        <h2>Pending bookings to review</h2>
+        <a href="p2-06-owner-bookings.html" class="nav-link" style="color: var(--color-primary); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase;">See all 3 →</a>
+      </div>
+
+      <div class="table-wrap" style="border-radius: var(--radius-lg);">
+        <table class="table compact">
+          <thead>
+            <tr>
+              <th>Booking</th>
+              <th>Space · Desk</th>
+              <th class="num">Date</th>
+              <th class="num">Amount</th>
+              <th class="action">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-attention clickable">
+              <td>
+                <div class="cell-primary">
+                  <span class="av-sm">SM</span>
+                  <div class="cell-stack"><span class="top">Sami Mehri</span><span class="sub">requested 4 h ago · sami@…</span></div>
+                </div>
+              </td>
+              <td>
+                <div class="cell-stack"><span class="top">Northgate Studios</span><span class="sub">Desk 3 · Hot desk</span></div>
+              </td>
+              <td class="num tnum">Thu, May 14</td>
+              <td class="num tnum"><strong>$24.00</strong> <span class="muted">/day</span></td>
+              <td class="action">
+                <div class="action-set">
+                  <button class="btn-xs btn-confirm"><svg><use href="#i-check"/></svg>Confirm</button>
+                  <button class="btn-xs btn-reject"><svg><use href="#i-x"/></svg>Reject</button>
+                </div>
+              </td>
+            </tr>
+            <tr class="row-attention clickable">
+              <td>
+                <div class="cell-primary">
+                  <span class="av-sm">RJ</span>
+                  <div class="cell-stack"><span class="top">Ronan Joyce</span><span class="sub">requested 11 h ago · ronan@…</span></div>
+                </div>
+              </td>
+              <td>
+                <div class="cell-stack"><span class="top">Northgate Studios</span><span class="sub">Desk 1 · Hot desk</span></div>
+              </td>
+              <td class="num tnum">Mon, May 18</td>
+              <td class="num tnum"><strong>$24.00</strong> <span class="muted">/day</span></td>
+              <td class="action">
+                <div class="action-set">
+                  <button class="btn-xs btn-confirm"><svg><use href="#i-check"/></svg>Confirm</button>
+                  <button class="btn-xs btn-reject"><svg><use href="#i-x"/></svg>Reject</button>
+                </div>
+              </td>
+            </tr>
+            <tr class="row-attention clickable">
+              <td>
+                <div class="cell-primary">
+                  <span class="av-sm">HE</span>
+                  <div class="cell-stack"><span class="top">Hana Eriksen</span><span class="sub">requested 1 d ago · hana@…</span></div>
+                </div>
+              </td>
+              <td>
+                <div class="cell-stack"><span class="top">Northgate Studios</span><span class="sub">Desk 5 · Standing</span></div>
+              </td>
+              <td class="num tnum">Wed, May 20</td>
+              <td class="num tnum"><strong>$28.00</strong> <span class="muted">/day</span></td>
+              <td class="action">
+                <div class="action-set">
+                  <button class="btn-xs btn-confirm"><svg><use href="#i-check"/></svg>Confirm</button>
+                  <button class="btn-xs btn-reject"><svg><use href="#i-x"/></svg>Reject</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Quick links ── -->
+    <section>
+      <div class="section-h"><h2>Quick links</h2><span class="meta">4</span></div>
+      <div class="value-grid">
+        <a href="p2-05-owner-spaces.html" class="value-tile" style="text-decoration: none; color: inherit; display: block;">
+          <div class="num">01</div>
+          <h3>My spaces <span style="color: var(--color-neutral-400); font-weight: 400;">→</span></h3>
+          <p>Add desks, update photos, set rates.</p>
+        </a>
+        <a href="p2-06-owner-bookings.html" class="value-tile" style="text-decoration: none; color: inherit; display: block;">
+          <div class="num">02</div>
+          <h3>Bookings <span style="color: var(--color-neutral-400); font-weight: 400;">→</span></h3>
+          <p>Confirm or decline guest requests.</p>
+        </a>
+        <a href="p2-07-owner-payouts.html" class="value-tile" style="text-decoration: none; color: inherit; display: block;">
+          <div class="num">03</div>
+          <h3>Payouts <span style="color: var(--color-neutral-400); font-weight: 400;">→</span></h3>
+          <p>See what Stripe sent to your bank.</p>
+        </a>
+        <a href="p2-08-owner-settings.html" class="value-tile" style="text-decoration: none; color: inherit; display: block;">
+          <div class="num">04</div>
+          <h3>Payout settings <span style="color: var(--color-neutral-400); font-weight: 400;">→</span></h3>
+          <p>Stripe Connect onboarding status.</p>
+        </a>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

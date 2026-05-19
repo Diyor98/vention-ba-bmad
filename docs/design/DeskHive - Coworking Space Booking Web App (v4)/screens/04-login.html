@@ -1,0 +1,84 @@
+<!doctype html>
+<!-- Narrow widths: the auth card already sits inside container-narrow (576px) — single column, full-width button, header collapses to logo + "Sign up" link. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Log in · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.13/dist/index.global.min.js"></script>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .auth-card {
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-2xl);
+      padding: 2.25rem;
+    }
+    @media (max-width: 480px) { .auth-card { padding: 1.5rem; } }
+  </style>
+</head>
+<body data-screen-label="04 Login">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="03-register.html" class="nav-link">Sign up</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container-narrow" style="padding-top: 4rem; padding-bottom: 4rem;">
+
+    <div class="mb-6 text-center">
+      <h1 class="page-h1">Welcome back</h1>
+      <p class="mt-2 muted-strong" style="font-size: 14px;">Log in to manage your bookings.</p>
+    </div>
+
+    <section class="auth-card">
+      <form novalidate id="login-form">
+
+        <div class="mb-4">
+          <label for="login-email" class="field-label">Email</label>
+          <input id="login-email" name="email" type="email" autocomplete="email" class="input" placeholder="you@company.com" required />
+        </div>
+
+        <div class="mb-6">
+          <label for="login-password" class="field-label">Password</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" class="input" placeholder="Your password" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Log in</button>
+
+      </form>
+    </section>
+
+    <p class="mt-6 text-center muted-strong" style="font-size: 14px;">
+      New to DeskHive?
+      <a href="03-register.html" style="color: var(--color-primary); font-weight: 500; text-decoration: none;">Create an account</a>
+    </p>
+
+  </main>
+
+  <script>
+    // Demo-only auth: any non-empty email + password "logs you in" by writing to localStorage.
+    // The real Next.js build replaces this with a session.
+    document.getElementById('login-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const pw = document.getElementById('login-password').value;
+      if (!email || !pw) return;
+      const name = email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Guest';
+      localStorage.setItem('deskhive.user', JSON.stringify({ email, name }));
+      location.href = '05-my-bookings.html';
+    });
+  </script>
+
+</body>
+</html>

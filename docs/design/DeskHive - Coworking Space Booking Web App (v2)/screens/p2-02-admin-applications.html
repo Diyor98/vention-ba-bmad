@@ -1,0 +1,325 @@
+<!doctype html>
+<!--
+  Phase 2 · Theme A · Story 5.2
+  /admin/applications — Super Admin queue of Space Owner applications.
+
+  Reuses admin-subnav from Phase 1, adds a 4th tab "Applications" with the
+  pending-alert pill (already styled in admin.css as .count.alert).
+
+  Filter chips: All / Pending / Approved / Rejected (mirrors /admin/bookings).
+  Table columns: Submitted · Applicant · Business · Country · Status · Action
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Applications · Admin · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="phase2.css">
+</head>
+<body data-screen-label="P2·02 Admin · Applications">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+        <span class="mode-pill"><span class="dot"></span>Admin</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="01-landing.html" class="nav-link">View as guest</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <span class="user-pill">
+          <span class="user-avatar" aria-hidden="true">IK</span>
+          <span class="username text-[13px] font-medium">Ikhtiyor</span>
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm">Log out</button>
+      </nav>
+    </div>
+  </header>
+
+  <div class="admin-subnav">
+    <div class="admin-subnav-inner">
+      <nav class="admin-tabs" aria-label="Admin sections">
+        <a href="06-admin-spaces.html" class="admin-tab">Spaces <span class="count">14</span></a>
+        <a href="08-admin-bookings.html" class="admin-tab">Bookings <span class="count">142</span></a>
+        <a href="p2-02-admin-applications.html" class="admin-tab" aria-current="page">Applications <span class="count alert">5</span></a>
+        <a href="#" class="admin-tab">Guests <span class="count">328</span></a>
+      </nav>
+      <div class="admin-subnav-meta">
+        <span>Synced just now</span>
+        <span class="sep" aria-hidden="true"></span>
+        <span>v0.5.0 · Phase 2</span>
+      </div>
+    </div>
+  </div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+  </svg>
+
+  <main class="container-content admin-page">
+
+    <div class="admin-page-head">
+      <div>
+        <h1>Applications</h1>
+        <p class="sub">Guests applying to host their own coworking space. Approve to grant Space Owner role.</p>
+      </div>
+      <div class="admin-actions">
+        <button type="button" class="btn btn-secondary btn-sm">Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="admin-toolbar">
+      <div class="admin-toolbar-left">
+        <label class="search">
+          <svg aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" placeholder="Search by applicant or business…" />
+          <span class="kbd" aria-hidden="true">⌘K</span>
+        </label>
+        <div class="flex items-center gap-1.5" role="group" aria-label="Status filter">
+          <button type="button" class="chip">All <span class="count">38</span></button>
+          <button type="button" class="chip" aria-pressed="true">Pending <span class="count">5</span></button>
+          <button type="button" class="chip">Approved <span class="count">28</span></button>
+          <button type="button" class="chip">Rejected <span class="count">5</span></button>
+        </div>
+      </div>
+      <div class="admin-toolbar-right">
+        <select class="select" aria-label="Sort">
+          <option>Sort · Oldest first</option>
+          <option>Sort · Newest first</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="sortable">Submitted <span class="sort-arrow">↑</span></th>
+            <th>Applicant</th>
+            <th>Business</th>
+            <th>Country</th>
+            <th>Status</th>
+            <th class="action">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="clickable row-attention" onclick="window.location='p2-03-admin-application-detail.html'">
+            <td class="tnum">May 11, 10:42</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm" aria-hidden="true">JR</span>
+                <div class="cell-stack"><span class="top">Jordan Reyes</span><span class="sub">jordan.reyes@gmail.com</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Cedar &amp; Co. Coworking LLC</span><span class="sub">Austin, TX</span></div>
+            </td>
+            <td>United States</td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+            <td class="action">
+              <div class="action-set">
+                <button type="button" class="btn-xs btn-confirm" onclick="event.stopPropagation();"><svg><use href="#i-check"/></svg>Approve</button>
+                <button type="button" class="btn-xs btn-reject" onclick="event.stopPropagation();"><svg><use href="#i-x"/></svg>Reject</button>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="clickable row-attention">
+            <td class="tnum">May 10, 16:18</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm" aria-hidden="true">PM</span>
+                <div class="cell-stack"><span class="top">Priya Menon</span><span class="sub">priya@harborvine.co</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Harbor &amp; Vine Studios</span><span class="sub">Boston, MA</span></div>
+            </td>
+            <td>United States</td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+            <td class="action">
+              <div class="action-set">
+                <button type="button" class="btn-xs btn-confirm"><svg><use href="#i-check"/></svg>Approve</button>
+                <button type="button" class="btn-xs btn-reject"><svg><use href="#i-x"/></svg>Reject</button>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="clickable row-attention">
+            <td class="tnum">May 09, 09:05</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm" aria-hidden="true">LH</span>
+                <div class="cell-stack"><span class="top">Liam Hartmann</span><span class="sub">liam@atlasrooms.de</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Atlas Workrooms GmbH</span><span class="sub">Berlin, DE</span></div>
+            </td>
+            <td>Germany</td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+            <td class="action">
+              <div class="action-set">
+                <button type="button" class="btn-xs btn-confirm"><svg><use href="#i-check"/></svg>Approve</button>
+                <button type="button" class="btn-xs btn-reject"><svg><use href="#i-x"/></svg>Reject</button>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="clickable row-attention">
+            <td class="tnum">May 08, 13:48</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm" aria-hidden="true">SO</span>
+                <div class="cell-stack"><span class="top">Sofia Oliveira</span><span class="sub">sofia@folkhouse.pt</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Folk House Lda.</span><span class="sub">Lisbon, PT</span></div>
+            </td>
+            <td>Portugal</td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+            <td class="action">
+              <div class="action-set">
+                <button type="button" class="btn-xs btn-confirm"><svg><use href="#i-check"/></svg>Approve</button>
+                <button type="button" class="btn-xs btn-reject"><svg><use href="#i-x"/></svg>Reject</button>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="clickable row-attention">
+            <td class="tnum">May 07, 11:30</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm" aria-hidden="true">AG</span>
+                <div class="cell-stack"><span class="top">Amelia Grant</span><span class="sub">amelia@glasshouse.ca</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Glasshouse Toronto Inc.</span><span class="sub">Toronto, ON</span></div>
+            </td>
+            <td>Canada</td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+            <td class="action">
+              <div class="action-set">
+                <button type="button" class="btn-xs btn-confirm"><svg><use href="#i-check"/></svg>Approve</button>
+                <button type="button" class="btn-xs btn-reject"><svg><use href="#i-x"/></svg>Reject</button>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="clickable">
+            <td class="tnum">May 05, 14:02</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm" aria-hidden="true">RB</span>
+                <div class="cell-stack"><span class="top">Rafael Beltran</span><span class="sub">rafael@missionannex.com</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Mission Annex Cooperative</span><span class="sub">San Francisco, CA</span></div>
+            </td>
+            <td>United States</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Approved</span></td>
+            <td class="action muted" style="font-family: var(--font-mono); font-size: 12px;">approved May 5</td>
+          </tr>
+
+          <tr class="clickable">
+            <td class="tnum">May 04, 08:50</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm" aria-hidden="true">EN</span>
+                <div class="cell-stack"><span class="top">Elena Nakamura</span><span class="sub">elena@northgate.io</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Northgate Studios LLC</span><span class="sub">Seattle, WA</span></div>
+            </td>
+            <td>United States</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Approved</span></td>
+            <td class="action muted" style="font-family: var(--font-mono); font-size: 12px;">approved May 4</td>
+          </tr>
+
+          <tr class="clickable">
+            <td class="tnum">May 02, 17:11</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm" aria-hidden="true">TK</span>
+                <div class="cell-stack"><span class="top">Theo Kowalski</span><span class="sub">theo@kowalski-coffee.com</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Kowalski Coffee &amp; Coworking</span><span class="sub">Kraków, PL</span></div>
+            </td>
+            <td>Poland</td>
+            <td><span class="badge badge-rejected"><span class="dot"></span>Rejected</span></td>
+            <td class="action muted" style="font-family: var(--font-mono); font-size: 12px;">missing tax ID</td>
+          </tr>
+
+          <tr class="clickable">
+            <td class="tnum">Apr 30, 11:00</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm" aria-hidden="true">MS</span>
+                <div class="cell-stack"><span class="top">Marta Sanz</span><span class="sub">marta@elhuerto.es</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">El Huerto Cowork SL</span><span class="sub">Madrid, ES</span></div>
+            </td>
+            <td>Spain</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Approved</span></td>
+            <td class="action muted" style="font-family: var(--font-mono); font-size: 12px;">approved Apr 30</td>
+          </tr>
+
+          <tr class="clickable">
+            <td class="tnum">Apr 28, 09:22</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm" aria-hidden="true">DC</span>
+                <div class="cell-stack"><span class="top">Diane Chen</span><span class="sub">diane@kingwest.co</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">King West Studios Inc.</span><span class="sub">Toronto, ON</span></div>
+            </td>
+            <td>Canada</td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Approved</span></td>
+            <td class="action muted" style="font-family: var(--font-mono); font-size: 12px;">approved Apr 28</td>
+          </tr>
+
+        </tbody>
+      </table>
+
+      <div class="table-footer">
+        <span>Showing <strong>10</strong> of <strong>38</strong> applications</span>
+        <div class="pager">
+          <button class="pager-btn" disabled>‹</button>
+          <button class="pager-btn" aria-current="page">1</button>
+          <button class="pager-btn">2</button>
+          <button class="pager-btn">3</button>
+          <button class="pager-btn">4</button>
+          <button class="pager-btn">›</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="muted mt-3" style="font-size: 12px;">
+      Tip — clicking a row opens the full application detail. Inline Approve / Reject are available on Pending rows only.
+    </p>
+
+  </main>
+
+</body>
+</html>

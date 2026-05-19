@@ -1,0 +1,258 @@
+<!doctype html>
+<!--
+  Phase 2 · Theme A · Story 5.6
+  /owner/bookings — Host's bookings (only their spaces).
+
+  Same visual as /admin/bookings but scoped. Adds an "Earnings" column
+  showing the host's net (price minus 15% platform fee).
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bookings · Hosting · DeskHive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="phase2.css">
+</head>
+<body data-screen-label="P2·06 Owner · Bookings">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="01-landing.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+        <span class="mode-pill mode-host"><span class="dot"></span>Hosting</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="p2-04-owner-dashboard.html" class="nav-link">Dashboard</a>
+        <a href="p2-05-owner-spaces.html" class="nav-link">My spaces</a>
+        <a href="p2-06-owner-bookings.html" class="nav-link" aria-current="page">Bookings</a>
+        <a href="p2-07-owner-payouts.html" class="nav-link">Payouts</a>
+        <span class="mx-2 h-5 w-px" style="background: var(--color-border);"></span>
+        <span class="user-pill">
+          <span class="user-avatar" aria-hidden="true">EN</span>
+          <span class="username text-[13px] font-medium">Elena</span>
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm">Log out</button>
+      </nav>
+    </div>
+  </header>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  </svg>
+
+  <main class="container-content admin-page">
+
+    <div class="admin-page-head">
+      <div>
+        <h1>Bookings</h1>
+        <p class="sub">Requests across your two spaces. Confirm to charge the guest, reject to release the hold.</p>
+      </div>
+      <div class="admin-actions">
+        <button class="btn btn-secondary btn-sm">Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="admin-toolbar">
+      <div class="admin-toolbar-left">
+        <label class="search">
+          <svg aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" placeholder="Search guest, space, or booking ID…" />
+        </label>
+        <div class="flex items-center gap-1.5" role="group" aria-label="Status filter">
+          <button class="chip">All <span class="count">38</span></button>
+          <button class="chip" aria-pressed="true">Pending <span class="count">3</span></button>
+          <button class="chip">Confirmed <span class="count">28</span></button>
+          <button class="chip">Rejected <span class="count">2</span></button>
+          <button class="chip">Cancelled <span class="count">5</span></button>
+        </div>
+      </div>
+      <div class="admin-toolbar-right">
+        <select class="select" aria-label="Space">
+          <option>All spaces</option>
+          <option>Northgate Studios</option>
+          <option>Cedar &amp; Co.</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Booking</th>
+            <th>Guest</th>
+            <th>Space · Desk</th>
+            <th class="num">Date</th>
+            <th class="num">You earn</th>
+            <th>Status</th>
+            <th class="action">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="row-attention clickable">
+            <td class="cell-id">#BK-1184</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm">SM</span>
+                <div class="cell-stack"><span class="top">Sami Mehri</span><span class="sub">5 prior bookings</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Northgate Studios</span><span class="sub">Desk 3 · Hot desk</span></div>
+            </td>
+            <td class="num tnum">Thu, May 14</td>
+            <td class="num tnum"><strong>$20.40</strong> <span class="muted">of $24</span></td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+            <td class="action">
+              <div class="action-set">
+                <button class="btn-xs btn-confirm"><svg><use href="#i-check"/></svg>Confirm</button>
+                <button class="btn-xs btn-reject"><svg><use href="#i-x"/></svg>Reject</button>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="row-attention clickable">
+            <td class="cell-id">#BK-1182</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm">RJ</span>
+                <div class="cell-stack"><span class="top">Ronan Joyce</span><span class="sub">first booking</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Northgate Studios</span><span class="sub">Desk 1 · Hot desk</span></div>
+            </td>
+            <td class="num tnum">Mon, May 18</td>
+            <td class="num tnum"><strong>$20.40</strong> <span class="muted">of $24</span></td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+            <td class="action">
+              <div class="action-set">
+                <button class="btn-xs btn-confirm"><svg><use href="#i-check"/></svg>Confirm</button>
+                <button class="btn-xs btn-reject"><svg><use href="#i-x"/></svg>Reject</button>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="row-attention clickable">
+            <td class="cell-id">#BK-1180</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm">HE</span>
+                <div class="cell-stack"><span class="top">Hana Eriksen</span><span class="sub">2 prior bookings</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Northgate Studios</span><span class="sub">Desk 5 · Standing</span></div>
+            </td>
+            <td class="num tnum">Wed, May 20</td>
+            <td class="num tnum"><strong>$23.80</strong> <span class="muted">of $28</span></td>
+            <td><span class="badge badge-pending"><span class="dot"></span>Pending</span></td>
+            <td class="action">
+              <div class="action-set">
+                <button class="btn-xs btn-confirm"><svg><use href="#i-check"/></svg>Confirm</button>
+                <button class="btn-xs btn-reject"><svg><use href="#i-x"/></svg>Reject</button>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="clickable">
+            <td class="cell-id">#BK-1175</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm">MA</span>
+                <div class="cell-stack"><span class="top">Makhbuba Komilova</span><span class="sub">3 prior bookings</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Northgate Studios</span><span class="sub">Desk 2 · Hot desk</span></div>
+            </td>
+            <td class="num tnum">Tue, May 12</td>
+            <td class="num tnum"><strong>$20.40</strong> <span class="muted">of $24</span></td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Confirmed</span></td>
+            <td class="action muted" style="font-family: var(--font-mono); font-size: 12px;">arrives today</td>
+          </tr>
+
+          <tr class="clickable">
+            <td class="cell-id">#BK-1166</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm">JA</span>
+                <div class="cell-stack"><span class="top">Joaquín Alves</span><span class="sub">first booking</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Northgate Studios</span><span class="sub">Desk 6 · Standing</span></div>
+            </td>
+            <td class="num tnum">Fri, May 09</td>
+            <td class="num tnum"><strong>$23.80</strong> <span class="muted">of $28</span></td>
+            <td><span class="badge badge-confirmed"><span class="dot"></span>Confirmed</span></td>
+            <td class="action muted" style="font-family: var(--font-mono); font-size: 12px;">checked in</td>
+          </tr>
+
+          <tr class="clickable">
+            <td class="cell-id">#BK-1158</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm">EL</span>
+                <div class="cell-stack"><span class="top">Eva Lindberg</span><span class="sub">2 prior bookings</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Northgate Studios</span><span class="sub">Desk 4 · Hot desk</span></div>
+            </td>
+            <td class="num tnum">Wed, May 07</td>
+            <td class="num tnum">— <span class="muted">refunded</span></td>
+            <td><span class="badge badge-cancelled"><span class="dot"></span>Cancelled</span></td>
+            <td class="action muted" style="font-family: var(--font-mono); font-size: 12px;">guest cancelled · 36 h prior</td>
+          </tr>
+
+          <tr class="clickable">
+            <td class="cell-id">#BK-1149</td>
+            <td>
+              <div class="cell-primary">
+                <span class="av-sm">PG</span>
+                <div class="cell-stack"><span class="top">Pablo Garcia</span><span class="sub">first booking</span></div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-stack"><span class="top">Northgate Studios</span><span class="sub">Desk 2 · Hot desk</span></div>
+            </td>
+            <td class="num tnum">Mon, May 05</td>
+            <td class="num tnum">— <span class="muted">declined</span></td>
+            <td><span class="badge badge-rejected"><span class="dot"></span>Rejected</span></td>
+            <td class="action muted" style="font-family: var(--font-mono); font-size: 12px;">you declined · May 4</td>
+          </tr>
+
+        </tbody>
+      </table>
+
+      <div class="table-footer">
+        <span>Showing <strong>7</strong> of <strong>38</strong> bookings</span>
+        <div class="pager">
+          <button class="pager-btn" disabled>‹</button>
+          <button class="pager-btn" aria-current="page">1</button>
+          <button class="pager-btn">2</button>
+          <button class="pager-btn">3</button>
+          <button class="pager-btn">›</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="muted mt-3" style="font-size: 12px;">
+      "You earn" shows your net after the <strong>15&#8239;% DeskHive fee</strong>. Funds release to your Stripe balance 2 business days after the visit.
+    </p>
+
+  </main>
+
+</body>
+</html>

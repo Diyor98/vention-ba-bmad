@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DeskHive · Phase 2 design</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="phase2.css">
+  <style>
+    body { background: var(--color-neutral-50); }
+
+    .hero {
+      max-width: var(--container-content);
+      margin: 0 auto;
+      padding: 4rem var(--layout-gutter-lg) 2rem;
+    }
+    .eyebrow {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--color-primary);
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .eyebrow .dot { width: 6px; height: 6px; border-radius: 9999px; background: var(--color-primary); }
+    .hero h1 {
+      font-size: 2.75rem; line-height: 1.05; letter-spacing: -0.025em;
+      font-weight: 600; color: var(--color-neutral-900); max-width: 32rem;
+    }
+    .hero p.sub {
+      margin-top: 1rem; font-size: 1.0625rem; line-height: 1.55;
+      color: var(--color-neutral-600); max-width: 38rem;
+    }
+    .hero-meta {
+      margin-top: 2rem; display: flex; flex-wrap: wrap;
+      gap: 1.5rem 2.25rem;
+      padding-top: 1.5rem; border-top: 1px solid var(--color-border);
+    }
+    .hero-meta dt {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--color-neutral-500); margin-bottom: 0.25rem;
+    }
+    .hero-meta dd { font-size: 14px; color: var(--color-neutral-900); font-weight: 500; }
+
+    section.block { max-width: var(--container-content); margin: 0 auto; padding: 2.5rem var(--layout-gutter-lg); }
+    .block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+    .block-head h2 { font-size: 1.5rem; letter-spacing: -0.015em; font-weight: 600; color: var(--color-neutral-900); }
+    .block-head .lede { font-size: 14px; color: var(--color-neutral-600); max-width: 36rem; }
+    .block-head .pill {
+      display: inline-flex; align-items: center; gap: 0.375rem;
+      padding: 0.25rem 0.625rem;
+      background: var(--color-brand-50);
+      color: var(--color-brand-700);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--color-brand-100);
+    }
+
+    .theme-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    @media (max-width: 800px) { .theme-strip { grid-template-columns: 1fr; } }
+    .theme {
+      padding: 1.25rem 1.375rem;
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+    }
+    .theme .tag {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--color-neutral-500);
+    }
+    .theme h3 {
+      margin-top: 0.625rem;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      color: var(--color-neutral-900);
+    }
+    .theme p { margin-top: 0.375rem; font-size: 13px; color: var(--color-neutral-600); line-height: 1.55; }
+    .theme.t-a .tag::before, .theme.t-b .tag::before, .theme.t-c .tag::before {
+      content: ""; width: 8px; height: 8px; border-radius: 9999px;
+    }
+    .theme.t-a .tag::before { background: var(--color-brand-600); }
+    .theme.t-b .tag::before { background: #16A34A; }
+    .theme.t-c .tag::before { background: #F59E0B; }
+
+    /* Screen grid */
+    .screen-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
+    @media (max-width: 960px) { .screen-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 600px) { .screen-grid { grid-template-columns: 1fr; } }
+
+    .screen-card {
+      display: block;
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color var(--duration-default) var(--ease-standard),
+                  box-shadow var(--duration-default) var(--ease-standard),
+                  transform var(--duration-default) var(--ease-standard);
+    }
+    .screen-card:hover { border-color: var(--color-neutral-300); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+    .screen-preview {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      background: var(--color-neutral-100);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .screen-preview iframe {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1440px;
+      height: 1080px;
+      transform-origin: top left;
+      transform: scale(0.295);
+      border: 0;
+      pointer-events: none;
+      background: var(--color-neutral-0);
+    }
+    .screen-preview .badge-no {
+      position: absolute; top: 0.75rem; left: 0.75rem;
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em;
+      color: var(--color-neutral-700);
+      background: rgba(255,255,255,0.94);
+      border: 1px solid var(--color-border);
+      padding: 3px 8px; border-radius: var(--radius-full);
+      z-index: 2;
+    }
+    .screen-preview .audience {
+      position: absolute; top: 0.75rem; right: 0.75rem;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: var(--radius-full); z-index: 2;
+    }
+    .au-guest  { background: #DCFCE7; color: #14532D; }
+    .au-host   { background: var(--color-brand-100); color: var(--color-brand-700); }
+    .au-admin  { background: var(--color-neutral-900); color: #fff; }
+    .au-system { background: #FEF3C7; color: #78350F; }
+
+    .screen-meta { padding: 1rem 1.125rem 1.125rem; }
+    .screen-meta .title { font-size: 0.9375rem; font-weight: 600; color: var(--color-neutral-900); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+    .screen-meta .route {
+      margin-top: 0.25rem;
+      font-family: var(--font-mono); font-size: 12px; color: var(--color-neutral-500);
+    }
+    .screen-meta .desc { margin-top: 0.625rem; font-size: 13px; color: var(--color-neutral-600); line-height: 1.5; }
+    .arrow { color: var(--color-neutral-400); }
+    .screen-card:hover .arrow { color: var(--color-primary); }
+
+    /* What's new strip */
+    .what-new {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+    @media (max-width: 900px) { .what-new { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .what-new { grid-template-columns: 1fr; } }
+    .new-tile {
+      padding: 1rem 1.125rem;
+      background: var(--color-neutral-0);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+    }
+    .new-tile .k {
+      font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--color-neutral-400);
+    }
+    .new-tile .v {
+      margin-top: 0.375rem; font-size: 13px; color: var(--color-neutral-900);
+      font-weight: 500; line-height: 1.45;
+    }
+
+    .footnote {
+      max-width: var(--container-content); margin: 0 auto;
+      padding: 1rem var(--layout-gutter-lg) 4rem;
+      font-size: 12px; color: var(--color-neutral-500);
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+    }
+  </style>
+</head>
+<body data-screen-label="P2 Overview">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="p2-00-overview.html" class="logo">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>DeskHive</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="../Index.html" class="nav-link">Phase 1 overview</a>
+        <a href="p2-00-overview.html" class="nav-link" aria-current="page">Phase 2 overview</a>
+        <a href="../components/gallery.html" class="nav-link">Components</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow"><span class="dot"></span>Phase 2 · ready for BA review</div>
+    <h1>DeskHive becomes a marketplace.</h1>
+    <p class="sub">Multi-tenant hosting, Stripe payments &amp; payouts, and transactional email. Same indigo brand and Inter type as Phase 1 — extended with five new nav variants, a Space Owner dashboard, a Stripe Connect onboarding panel, refund flows, and the email wrapper.</p>
+    <dl class="hero-meta">
+      <div><dt>New screens</dt><dd>12 + email wrapper</dd></div>
+      <div><dt>Roles</dt><dd>Guest · Space Owner · Super Admin</dd></div>
+      <div><dt>Themes</dt><dd>A · Multi-tenant · B · Payments · C · Email</dd></div>
+      <div><dt>Tokens</dt><dd>shared.css + phase2.css</dd></div>
+      <div><dt>Status</dt><dd style="color: #15803D;">● Design complete</dd></div>
+    </dl>
+  </section>
+
+  <!-- ── Three themes ── -->
+  <section class="block">
+    <div class="block-head">
+      <div>
+        <h2>Three themes running in parallel</h2>
+        <p class="lede">Theme A unlocks Themes B and C. Within each theme, screens ship as they're designed — the developer can pull stories off the top of the stack.</p>
+      </div>
+    </div>
+    <div class="theme-strip">
+      <div class="theme t-a">
+        <span class="tag">Theme A · Multi-tenant</span>
+        <h3>Space Owners as a first-class role</h3>
+        <p>Application + review + Owner dashboard. Two new logged-in modes (Guest / Hosting), one switch in the user menu.</p>
+      </div>
+      <div class="theme t-b">
+        <span class="tag">Theme B · Payments</span>
+        <h3>Stripe Checkout &amp; Connect</h3>
+        <p>Payment in the booking flow, payouts to hosts, 15% platform fee. Stripe owns the form — we own the entry &amp; return.</p>
+      </div>
+      <div class="theme t-c">
+        <span class="tag">Theme C · Email</span>
+        <h3>13 transactional templates</h3>
+        <p>One shared wrapper, one tone. Plain-text fallback per template. Sent via Resend with SPF + DKIM signing.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── What's new from Phase 1 ── -->
+  <section class="block">
+    <div class="block-head">
+      <div>
+        <h2>What's new since Phase 1</h2>
+        <p class="lede">No new colors, no new type scale. Phase 1 tokens are unchanged. New shared patterns live in <code style="font-family: var(--font-mono); font-size: 12px; background: var(--color-neutral-100); padding: 1px 6px; border-radius: 4px;">phase2.css</code>.</p>
+      </div>
+    </div>
+    <div class="what-new">
+      <div class="new-tile">
+        <div class="k">Pattern · 01</div>
+        <div class="v">User-pill dropdown with role-aware actions</div>
+      </div>
+      <div class="new-tile">
+        <div class="k">Pattern · 02</div>
+        <div class="v">Hosting mode pill — indigo, beside the logo</div>
+      </div>
+      <div class="new-tile">
+        <div class="k">Pattern · 03</div>
+        <div class="v">Stat cards (3-up) — value · trend · icon</div>
+      </div>
+      <div class="new-tile">
+        <div class="k">Pattern · 04</div>
+        <div class="v">Stripe Connect step checklist with state pills</div>
+      </div>
+      <div class="new-tile">
+        <div class="k">Pattern · 05</div>
+        <div class="v">Modal · confirm with itemised refund total</div>
+      </div>
+      <div class="new-tile">
+        <div class="k">Pattern · 06</div>
+        <div class="v">Toast · success / info / error · left-rule color</div>
+      </div>
+      <div class="new-tile">
+        <div class="k">Pattern · 07</div>
+        <div class="v">Banner · attention (amber) · info · success</div>
+      </div>
+      <div class="new-tile">
+        <div class="k">Pattern · 08</div>
+        <div class="v">Email wrapper · 600 px · Resend transactional</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── All screens ── -->
+  <section class="block">
+    <div class="block-head">
+      <div>
+        <h2>All new screens</h2>
+        <p class="lede">Live previews. Tap any tile to open. Status badges reuse Phase 1 colors; new variants are PENDING / APPROVED / REJECTED for applications.</p>
+      </div>
+      <span class="pill"><span style="width: 6px; height: 6px; border-radius: 9999px; background: var(--color-primary);"></span>12 screens</span>
+    </div>
+
+    <h3 style="margin-top: 0.5rem; margin-bottom: 0.75rem; font-size: 12px; font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-500);">Theme A · Multi-tenant · 6 screens</h3>
+    <div class="screen-grid">
+
+      <a class="screen-card" href="p2-01-become-a-host.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 01</span>
+          <span class="audience au-guest">Guest</span>
+          <iframe src="p2-01-become-a-host.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Become a Space Owner <span class="arrow">→</span></div>
+          <div class="route">/become-a-host</div>
+          <div class="desc">Landing + 5-field application form. Sticky CTA bar. Process timeline aside.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="p2-02-admin-applications.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 02</span>
+          <span class="audience au-admin">Admin</span>
+          <iframe src="p2-02-admin-applications.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Applications · list <span class="arrow">→</span></div>
+          <div class="route">/admin/applications</div>
+          <div class="desc">Sub-nav adds Applications tab. Inline Approve / Reject on Pending rows.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="p2-03-admin-application-detail.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 03</span>
+          <span class="audience au-admin">Admin</span>
+          <iframe src="p2-03-admin-application-detail.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Application · detail <span class="arrow">→</span></div>
+          <div class="route">/admin/applications/[id]</div>
+          <div class="desc">Read-only fields, Approve / Reject. Reject opens a modal with an optional note.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="p2-04-owner-dashboard.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 04</span>
+          <span class="audience au-host">Host</span>
+          <iframe src="p2-04-owner-dashboard.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Host dashboard <span class="arrow">→</span></div>
+          <div class="route">/owner</div>
+          <div class="desc">Stats · Stripe onboarding banner · pending bookings · quick links.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="p2-05-owner-spaces.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 05</span>
+          <span class="audience au-host">Host</span>
+          <iframe src="p2-05-owner-spaces.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">My spaces <span class="arrow">→</span></div>
+          <div class="route">/owner/spaces</div>
+          <div class="desc">Phase 1 spaces table, filtered to host's own spaces. Reuses the admin table pattern.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="p2-06-owner-bookings.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 06</span>
+          <span class="audience au-host">Host</span>
+          <iframe src="p2-06-owner-bookings.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Host bookings <span class="arrow">→</span></div>
+          <div class="route">/owner/bookings</div>
+          <div class="desc">Adds "You earn" column showing net after 15% fee. Confirm / Reject inline.</div>
+        </div>
+      </a>
+
+    </div>
+
+    <h3 style="margin-top: 2.5rem; margin-bottom: 0.75rem; font-size: 12px; font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-500);">Theme B · Payments · 4 screens</h3>
+    <div class="screen-grid">
+
+      <a class="screen-card" href="p2-07-owner-payouts.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 07</span>
+          <span class="audience au-host">Host</span>
+          <iframe src="p2-07-owner-payouts.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Payouts <span class="arrow">→</span></div>
+          <div class="route">/owner/payouts</div>
+          <div class="desc">Lifetime, pending, held totals + payout history with Stripe reference IDs.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="p2-08-owner-settings.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 08</span>
+          <span class="audience au-host">Host</span>
+          <iframe src="p2-08-owner-settings.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Payout settings <span class="arrow">→</span></div>
+          <div class="route">/owner/settings</div>
+          <div class="desc">Stripe Connect onboarding — three states (not started · in progress · done).</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="p2-09-space-detail-payment.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 09</span>
+          <span class="audience au-guest">Guest</span>
+          <iframe src="p2-09-space-detail-payment.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Space detail · payment <span class="arrow">→</span></div>
+          <div class="route">/spaces/[id]</div>
+          <div class="desc">Payment summary card (with fee), "Pay &amp; request" CTA, post-checkout toast.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="p2-10-my-bookings-cancel.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 10</span>
+          <span class="audience au-guest">Guest</span>
+          <iframe src="p2-10-my-bookings-cancel.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Cancel &amp; refund <span class="arrow">→</span></div>
+          <div class="route">/my-bookings</div>
+          <div class="desc">24-hour refund window. Disabled button + tooltip outside the window. Modal with breakdown.</div>
+        </div>
+      </a>
+
+    </div>
+
+    <h3 style="margin-top: 2.5rem; margin-bottom: 0.75rem; font-size: 12px; font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-500);">Theme C · Email · 1 wrapper + sample</h3>
+    <div class="screen-grid">
+
+      <a class="screen-card" href="p2-11-email-template.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 11</span>
+          <span class="audience au-system">System</span>
+          <iframe src="p2-11-email-template.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Email · Booking confirmed <span class="arrow">→</span></div>
+          <div class="route">resend://booking.confirmed</div>
+          <div class="desc">Shared wrapper, one filled example, plain-text fallback. All 13 templates listed.</div>
+        </div>
+      </a>
+
+      <a class="screen-card" href="p2-12-header-variants.html">
+        <div class="screen-preview">
+          <span class="badge-no">P2 · 12</span>
+          <span class="audience au-system">System</span>
+          <iframe src="p2-12-header-variants.html" scrolling="no" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+        </div>
+        <div class="screen-meta">
+          <div class="title">Header variants + dropdown <span class="arrow">→</span></div>
+          <div class="route">/* component sign-off */</div>
+          <div class="desc">All five user states + the user-pill menu open at each role. Visual sign-off for Story 7-1.</div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ── Out of scope reminder ── -->
+  <section class="block">
+    <div class="block-head">
+      <div>
+        <h2>Out of scope for Phase 2</h2>
+        <p class="lede">Per the brief — these are deferred to Phase 3+ and intentionally not designed here.</p>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; font-size: 13px; color: var(--color-neutral-600);">
+      <ul style="margin: 0; padding-left: 1rem;">
+        <li>Reviews &amp; ratings</li>
+        <li>Multi-day bookings</li>
+        <li>Photo galleries</li>
+        <li>Amenity icons</li>
+      </ul>
+      <ul style="margin: 0; padding-left: 1rem;">
+        <li>Native mobile app</li>
+        <li>Corporate / team accounts</li>
+        <li>Multi-currency</li>
+        <li>Two-factor auth</li>
+      </ul>
+      <ul style="margin: 0; padding-left: 1rem;">
+        <li>Meeting room bookings</li>
+        <li>Multi-language</li>
+        <li>Profile photos</li>
+        <li>Analytics dashboards</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="footnote">
+    <span>DeskHive · Phase 2 visual design · for handoff to engineering.</span>
+    <span style="font-family: var(--font-mono);">v0.5 · 12 May 2026</span>
+  </div>
+
+</body>
+</html>
