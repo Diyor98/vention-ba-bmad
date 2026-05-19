@@ -26,24 +26,32 @@ export default async function HomePage({
   return (
     <main
       className="container-content"
-      style={{ paddingTop: '2.5rem', paddingBottom: '4rem' }}
+      style={{ paddingTop: '3rem', paddingBottom: '4rem' }}
     >
-      <header className="mb-8">
-        <h1 className="page-h1">Browse spaces</h1>
-        <p
-          className="mt-1.5 muted-strong"
-          style={{ fontSize: '14px' }}
+      <header className="mb-10">
+        <h1
+          className="page-display"
+          style={{ maxWidth: '36rem' }}
+          data-testid="landing-h1"
         >
-          Find a desk, book a day, get to work.
+          Find a desk. Book a day. Get to work.
+        </h1>
+        <p
+          className="mt-3 muted-strong"
+          style={{ fontSize: '1rem', maxWidth: '36rem', lineHeight: 1.55 }}
+        >
+          DeskHive helps remote workers find and book coworking desks
+          across cities — pick a date, pick a desk, you&apos;re set.
         </p>
       </header>
 
       <form
         action="/"
         method="GET"
-        className="mb-8 flex items-end gap-3"
+        className="mb-10"
+        style={{ display: 'flex', alignItems: 'flex-end', gap: '0.75rem', maxWidth: '36rem' }}
       >
-        <div className="flex-1">
+        <div style={{ flex: 1 }}>
           <label htmlFor="city" className="field-label">
             Filter by city
           </label>
@@ -52,18 +60,19 @@ export default async function HomePage({
             name="city"
             type="text"
             defaultValue={cityFilter ?? ''}
-            placeholder="e.g. Berlin"
+            placeholder="e.g. Tashkent"
             className="input"
+            style={{ height: '2.75rem', fontSize: '15px' }}
           />
         </div>
-        <button type="submit" className="btn btn-primary">
+        <button type="submit" className="btn btn-primary" style={{ height: '2.75rem' }}>
           Search
         </button>
         {cityFilter && (
           <Link
             href="/"
             className="btn-ghost"
-            style={{ textDecoration: 'none' }}
+            style={{ textDecoration: 'none', height: '2.75rem' }}
           >
             Clear filter
           </Link>
