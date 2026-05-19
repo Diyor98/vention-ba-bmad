@@ -1,8 +1,10 @@
 import Link from 'next/link';
+import { AlertTriangle, Banknote, Calendar, Clock } from 'lucide-react';
 import { requireSession } from '@/lib/auth/guards';
 import { getConnectAccountByUserId } from '@/db/queries/stripe-connect';
 import { listPayouts } from '@/lib/payments/payouts';
 import { PayoutStatusBadge } from '@/components/payout-status-badge';
+import { StatCard } from '@/components/stat-card';
 import { formatCents } from '@/lib/format';
 import { logger } from '@/lib/logger';
 
@@ -68,11 +70,19 @@ export default async function OwnerPayoutsPage() {
     return (
       <main className="container-content admin-page">
         <PayoutsHeader />
-        <EmptyStateCard
-          heading="Payouts paused"
-          body="Payouts are paused. Re-onboard to receive funds."
-          ctaLabel="Re-onboard"
-        />
+        {/* DESIGN-INT-5 — amber banner for the paused state. */}
+        <div className="banner" data-testid="payouts-paused-banner" style={{ marginBottom: '1.5rem' }}>
+          <span className="banner-icon" aria-hidden="true">
+            <AlertTriangle />
+          </span>
+          <div className="banner-body">
+            <h3>Payouts are paused</h3>
+            <p>Charges or payouts aren&apos;t enabled on your Stripe account. Re-onboard to receive funds.</p>
+          </div>
+          <div className="banner-actions">
+            <Link href="/owner/settings" className="btn btn-primary">Re-onboard</Link>
+          </div>
+        </div>
       </main>
     );
   }
@@ -125,10 +135,58 @@ export default async function OwnerPayoutsPage() {
     );
   }
 
+  // DESIGN-INT-5 — Aggregate stat-card numbers from the Stripe payouts
+  // list. All derivations use payout.amount + payout.status + arrival_date.
+  // No new Stripe API call, no new DB query.
+  const paidSum = payouts
+    .filter((p) => p.status === 'paid')
+    .reduce((sum, p) => sum + p.amount, 0);
+  const pendingSum = payouts
+    .filter((p) => p.status === 'pending' || p.status === 'in_transit')
+    .reduce((sum, p) => sum + p.amount, 0);
+  const nextPayout = payouts
+    .filter(
+      (p) =>
+        (p.status === 'pending' || p.status === 'in_transit') &&
+        p.arrival_date * 1000 >= Date.now(),
+    )
+    .sort((a, b) => a.arrival_date - b.arrival_date)[0];
+  const nextPayoutDateLabel = nextPayout
+    ? new Date(nextPayout.arrival_date * 1000).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      })
+    : '—';
+
   // State #4 — happy path: render the table.
   return (
     <main className="container-content admin-page">
       <PayoutsHeader />
+      <div
+        className="stat-grid"
+        data-testid="payouts-stat-grid"
+        style={{ marginBottom: '1.5rem' }}
+      >
+        <StatCard
+          label="Lifetime paid out"
+          value={formatCents(paidSum)}
+          Icon={Banknote}
+          testid="stat-lifetime"
+        />
+        <StatCard
+          label="Pending payout"
+          value={formatCents(pendingSum)}
+          Icon={Clock}
+          attention={pendingSum > 0}
+          testid="stat-pending"
+        />
+        <StatCard
+          label="Next payout date"
+          value={nextPayoutDateLabel}
+          Icon={Calendar}
+          testid="stat-next"
+        />
+      </div>
       <table className="data-table">
         <thead>
           <tr>
