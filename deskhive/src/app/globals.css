@@ -332,6 +332,9 @@ textarea.input {
 .badge-confirmed { background: var(--color-status-confirmed-bg); color: var(--color-status-confirmed-fg); border-color: var(--color-status-confirmed-border); }
 .badge-rejected  { background: var(--color-status-rejected-bg);  color: var(--color-status-rejected-fg);  border-color: var(--color-status-rejected-border); }
 .badge-cancelled { background: var(--color-status-cancelled-bg); color: var(--color-status-cancelled-fg); border-color: var(--color-status-cancelled-border); }
+/* DESIGN-FIX-3: blue badge for transient in-flight states (Stripe `in_transit`).
+   Uses the brand indigo palette already in @theme — no new design tokens. */
+.badge-info      { background: var(--color-brand-50);            color: var(--color-brand-700);            border-color: var(--color-brand-200); }
 
 .badge-lg { height: 2rem; padding: 0 0.875rem; font-size: var(--text-body); gap: 0.625rem; }
 .badge-lg .dot { width: 8px; height: 8px; }
