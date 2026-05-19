@@ -35,7 +35,7 @@ Resume from this section. Each row is one commit + push.
 | DESIGN-INT-16 | System health — visual scaffold | missing | small | NEW route `src/app/system/health/page.tsx`. Placeholder services list. No real status data. |
 | DESIGN-INT-17 | Header variants | matched | small | Verify per-role pills (DESIGN-2's `.mode-pill` + `.mode-pill.mode-host`). Cross-check `src/components/header.tsx` against the prototype's `Shell` top-bar. |
 | DESIGN-INT-18 | Booking flow chrome | partial | small | Restyle the redirecting interstitial + the return-URL page (`src/app/spaces/[id]/booking/return/page.tsx`) to match the prototype's "Stripe S icon + checkout.stripe.com · Test mode" header. Real Stripe Checkout stays as-is (don't touch the redirect). |
-| DESIGN-INT-19 | Extract shared components | — | small | Pull out `<StatCard>` + `<Tabs>` into `src/components/`. Add `.btn-success` (green) + `.btn-danger` (red) to globals.css if not already there. DESIGN-INT-4 / 6 will use these. |
+| ~~DESIGN-INT-19~~ | ~~Extract shared components~~ | **done** session 2 | small | Shipped: `<StatCard>` + `<Tabs>` in `src/components/`; `.btn-success` + `.btn-danger` in globals.css; +13 unit tests. |
 | DESIGN-INT-20 | Final verification | — | medium | Full `pnpm test --run` + `pnpm test:e2e`. Verify no regressions in auth / Stripe / booking / refund / payout / email. DESIGN-FIX commit if anything surfaces. |
 
 ## Judgment calls captured

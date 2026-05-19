@@ -221,6 +221,24 @@ body {
 
 .btn-sm { height: 2.25rem; padding: 0 0.875rem; font-size: var(--text-body); }
 
+/* DESIGN-INT-19 — success + danger button variants for inline-table
+   confirm/reject + destructive flows. Reuses status palette tokens. */
+.btn-success {
+  background: #15803D;
+  color: #FFFFFF;
+  border-color: #166534;
+}
+.btn-success:hover  { background: #166534; border-color: #14532D; }
+.btn-success:active { background: #14532D; }
+
+.btn-danger {
+  background: var(--color-neutral-0);
+  color: #B91C1C;
+  border-color: var(--color-status-rejected-border);
+}
+.btn-danger:hover  { background: var(--color-status-rejected-bg); border-color: var(--color-status-rejected-fg); }
+.btn-danger:active { background: var(--color-status-rejected-border); }
+
 /* Ghost button — quiet, used for "Cancel"/"View details" alongside primary actions. */
 .btn-ghost {
   display: inline-flex; align-items: center; justify-content: center;
