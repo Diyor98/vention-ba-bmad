@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { StatusBadge } from '@/components/status-badge';
+import { Tabs, type TabDef } from '@/components/tabs';
 import type { Application, ApplicationStatus } from '@/db/schema';
 
 export type AdminApplicationRow = {
@@ -117,31 +118,21 @@ export function ApplicationsTable({ rows }: { rows: AdminApplicationRow[] }) {
     return sortDirection === 'asc' ? '↑' : '↓';
   }
 
+  // DESIGN-INT-14 — swap chip filter for shared <Tabs>; matches the
+  // prototype's AdminApplications shape (and is consistent with the host
+  // bookings table after DESIGN-INT-6).
+  const tabDefs: ReadonlyArray<TabDef<FilterValue>> = FILTER_OPTIONS.map(
+    (opt) => ({ key: opt.value, label: opt.label, count: counts[opt.value] }),
+  );
+
   return (
     <>
-      <div className="admin-toolbar">
-        <div
-          className="admin-toolbar-left"
-          role="group"
-          aria-label="Status filter"
-        >
-          {FILTER_OPTIONS.map((opt) => {
-            const active = opt.value === selectedFilter;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                className="chip"
-                aria-pressed={active}
-                onClick={() => setSelectedFilter(opt.value)}
-              >
-                {opt.label}{' '}
-                <span className="count tnum">{counts[opt.value]}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <Tabs
+        tabs={tabDefs}
+        value={selectedFilter}
+        onChange={setSelectedFilter}
+        ariaLabel="Application status filter"
+      />
 
       <div className="table-wrap">
         <table className="table compact">
