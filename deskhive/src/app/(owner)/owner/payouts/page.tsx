@@ -144,11 +144,16 @@ export default async function OwnerPayoutsPage() {
   const pendingSum = payouts
     .filter((p) => p.status === 'pending' || p.status === 'in_transit')
     .reduce((sum, p) => sum + p.amount, 0);
+  // This is a Server Component — render-time impurity from Date.now() is
+  // fine (each request gets a fresh "now"). The react-hooks/purity rule
+  // is overly conservative here; disable for this line only.
+  // eslint-disable-next-line react-hooks/purity
+  const nowMs = Date.now();
   const nextPayout = payouts
     .filter(
       (p) =>
         (p.status === 'pending' || p.status === 'in_transit') &&
-        p.arrival_date * 1000 >= Date.now(),
+        p.arrival_date * 1000 >= nowMs,
     )
     .sort((a, b) => a.arrival_date - b.arrival_date)[0];
   const nextPayoutDateLabel = nextPayout
