@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { StatusBadge } from '@/components/status-badge';
+import { Tabs, type TabDef } from '@/components/tabs';
 import { formatCents } from '@/lib/format';
 import { ConfirmBookingButton } from '@/app/admin/bookings/confirm-booking-button';
 import { RejectBookingButton } from '@/app/admin/bookings/reject-booking-button';
@@ -99,31 +100,26 @@ export function OwnerBookingsTable({
     return sorted;
   }, [rows, selectedFilter, sortDirection]);
 
+  // DESIGN-INT-6 — swap the chip-style filter row for the shared Tabs
+  // component matching the prototype's HostBookings shape. Counts surface
+  // alongside each label; in-memory state drives the change (no router
+  // push on tab click — admin parity).
+  const tabDefs: ReadonlyArray<TabDef<OwnerFilterValue>> = FILTER_OPTIONS.map(
+    (opt) => ({
+      key: opt.value,
+      label: opt.label,
+      count: counts[opt.value],
+    }),
+  );
+
   return (
     <>
-      <div className="admin-toolbar">
-        <div
-          className="admin-toolbar-left"
-          role="group"
-          aria-label="Status filter"
-        >
-          {FILTER_OPTIONS.map((opt) => {
-            const active = opt.value === selectedFilter;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                className="chip"
-                aria-pressed={active}
-                onClick={() => setSelectedFilter(opt.value)}
-              >
-                {opt.label}{' '}
-                <span className="count tnum">{counts[opt.value]}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <Tabs
+        tabs={tabDefs}
+        value={selectedFilter}
+        onChange={setSelectedFilter}
+        ariaLabel="Booking status filter"
+      />
 
       <div className="table-wrap">
         <table className="table compact">
