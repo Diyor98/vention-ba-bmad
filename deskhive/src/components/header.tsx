@@ -13,10 +13,14 @@ import { UserPill } from './user-pill';
 //      NB: "How it works" omitted — destination is Phase 2 marketing landing.
 //
 //   2. Guest (role === 'GUEST'):
-//      logo + "Browse spaces" + "My bookings" + "Account" + <UserPill> (Log out)
+//      logo + "Browse spaces" + "My bookings" + "Become a host" + "Account" + <UserPill> (Sign out)
 //
 //   3. SPACE_OWNER in Guest mode:
-//      logo + "Browse spaces" + "My bookings" + "Account" + <UserPill> (Switch to hosting + Log out)
+//      logo + "Browse spaces" + "My bookings" + "Account" + <UserPill> (Switch to hosting + Sign out)
+//      "Become a host" deliberately hidden — user is already a host
+//      (signal: usersTable.role === 'SPACE_OWNER', set by Story 7-2's
+//      approveApplicationAction transaction). The Switch-to-hosting
+//      affordance in the dropdown covers this audience.
 //
 //   4. SPACE_OWNER in Host mode:
 //      logo + "Dashboard" + "My spaces" + "Bookings" + "Payouts" + "Settings" + <UserPill> (Switch to traveling + Log out)
@@ -141,12 +145,14 @@ export async function Header() {
               />
             </>
           ) : (
-            // Variants 2 + 3 — Guest user, or SPACE_OWNER in Guest mode.
-            // DESIGN-INT-GAPS-PASS-2 Round 2 Correction 1 — Account
-            // link added to match prototype line 445 (guest ROUTES has
-            // Browse / My bookings / Become a host / Account). Become
-            // a host stays in the UserPill dropdown; nav surfaces just
-            // the top-level destinations.
+            // Variants 2 + 3 — Guest user, or SPACE_OWNER in Guest
+            // mode. DESIGN-INT-GAPS-PASS-2 Round 3 Gap C splits the
+            // "Become a host" link out: shown to pure GUEST only,
+            // hidden for SPACE_OWNER (they're already a host —
+            // signal is usersTable.role, set by Story 7-2's
+            // approveApplicationAction transaction). The
+            // Switch-to-hosting affordance in the UserPill dropdown
+            // covers the SPACE_OWNER-in-Guest-mode audience.
             <>
               <Link href="/browse" className="nav-link">
                 Browse spaces
@@ -154,6 +160,15 @@ export async function Header() {
               <Link href="/my-bookings" className="nav-link">
                 My bookings
               </Link>
+              {role !== 'SPACE_OWNER' && (
+                <Link
+                  href="/become-a-host"
+                  className="nav-link"
+                  data-testid="nav-become-host"
+                >
+                  Become a host
+                </Link>
+              )}
               <Link href="/account" className="nav-link">
                 Account
               </Link>
