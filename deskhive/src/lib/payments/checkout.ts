@@ -170,6 +170,16 @@ export async function createEmbeddedCheckoutSession(args: {
         // is identical (client_secret returned for in-page mounting).
         ui_mode: 'embedded_page',
         mode: 'payment',
+        // DESIGN-INT-CHECKOUT-EMBED Phase 2.5b — restrict embedded
+        // Checkout to card-only. Without this, Stripe renders every
+        // payment method enabled on the platform account (Link,
+        // Amazon Pay, Cash App Pay, US Bank ACH, etc.); the prototype
+        // explicitly shows a clean "Pay with card" form (Email + Card
+        // information + Cardholder name + Pay button) and BA review
+        // confirmed that's the target. Hosted-mode legacy Session
+        // (createCheckoutSession above) is deliberately left without
+        // this restriction — Phase-1/9-3 behavior preserved.
+        payment_method_types: ['card'],
         line_items: [
           {
             quantity: 1,
