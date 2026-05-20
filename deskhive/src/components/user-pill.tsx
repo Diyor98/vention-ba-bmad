@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
+  Banknote,
   Briefcase,
   Calendar,
+  LayoutDashboard,
   LogOut,
   Settings,
   Sparkles,
@@ -196,14 +198,44 @@ function SpaceOwnerInGuestMenuItems() {
 }
 
 // ── SPACE_OWNER in Host mode ─────────────────────────────────────
-// (Gap B will be a follow-up commit; placeholder for now keeps host
-// mode behavior unchanged from pre-Round-3 — minimal icon-row
-// equivalent of the existing Switch-to-traveling + Log out shape.
-// Gap B commit will replace this body.)
+// Prototype DeskHive_Prototype.html lines 592-596 spec the host
+// menu as Host dashboard / Payouts / Account / Sign out. The
+// prototype omits switch-to-traveling because it has a separate
+// role-switcher pill in the header; Round 3 explicitly forbids
+// adding that pill (hard constraint), so Switch-to-traveling stays
+// in the dropdown as a 5th item — without it, a SPACE_OWNER stuck
+// in Host mode would have no path back to traveling.
 
 function HostMenuItems() {
   return (
     <>
+      <Link
+        href="/owner"
+        role="menuitem"
+        className="user-menu-link"
+        data-testid="user-menu-host-dashboard"
+      >
+        <LayoutDashboard size={15} aria-hidden="true" />
+        Host dashboard
+      </Link>
+      <Link
+        href="/owner/payouts"
+        role="menuitem"
+        className="user-menu-link"
+        data-testid="user-menu-payouts"
+      >
+        <Banknote size={15} aria-hidden="true" />
+        Payouts
+      </Link>
+      <Link
+        href="/account"
+        role="menuitem"
+        className="user-menu-link"
+        data-testid="user-menu-account"
+      >
+        <Settings size={15} aria-hidden="true" />
+        Account
+      </Link>
       <SwitchModeForm
         targetMode="guest"
         label="Switch to traveling"
