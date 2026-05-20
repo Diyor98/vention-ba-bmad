@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Lock } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Lock } from 'lucide-react';
 import { loadStripe, type Stripe } from '@stripe/stripe-js';
 import {
   EmbeddedCheckout,
@@ -40,11 +40,15 @@ import { formatCents } from '@/lib/format';
  */
 
 // `loadStripe` returns a singleton-like Promise — call once at module
-// scope. The factory is no-op if the publishable key is missing; the
-// component renders an error state in that case.
-function stripePromise(): Promise<Stripe | null> {
+// scope. If the publishable key is missing, the component renders an
+// explicit error card so the BA / dev sees the misconfig immediately
+// (Phase 2.5 fix — previously rendered a silently-empty <EmbeddedCheckoutProvider>).
+function getPublishableKey(): string | null {
   const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-  if (!key) return Promise.resolve(null);
+  return key && key.trim().length > 0 ? key : null;
+}
+
+function stripePromiseForKey(key: string): Promise<Stripe | null> {
   return loadStripe(key);
 }
 
@@ -59,7 +63,21 @@ export type BookingCheckoutEmbedProps = {
   platformFeeCents: number;
 };
 
-export function BookingCheckoutEmbed({
+export function BookingCheckoutEmbed(props: BookingCheckoutEmbedProps) {
+  // Publishable key is required — without it, loadStripe(undefined) returns
+  // Promise.resolve(null) and EmbeddedCheckoutProvider silently refuses to
+  // mount the iframe. Surface that explicitly so misconfig is debuggable.
+  const publishableKey = getPublishableKey();
+  if (!publishableKey) {
+    return <EmbedErrorCard reason="missing-publishable-key" />;
+  }
+  if (!props.clientSecret) {
+    return <EmbedErrorCard reason="empty-client-secret" />;
+  }
+  return <ReadyEmbed {...props} publishableKey={publishableKey} />;
+}
+
+function ReadyEmbed({
   clientSecret,
   spaceId,
   spaceName,
@@ -68,14 +86,13 @@ export function BookingCheckoutEmbed({
   bookingDate,
   amountCents,
   platformFeeCents,
-}: BookingCheckoutEmbedProps) {
-  // `stripePromise()` is hoisted via useMemo so the singleton is created
-  // once per mount, not on every render.
-  const stripePromiseRef = useMemo(() => stripePromise(), []);
-
-  if (!clientSecret) {
-    return <EmbedErrorCard reason="empty-client-secret" />;
-  }
+  publishableKey,
+}: BookingCheckoutEmbedProps & { publishableKey: string }) {
+  // Single-mount promise — created once per (publishableKey) per mount.
+  const stripePromiseRef = useMemo(
+    () => stripePromiseForKey(publishableKey),
+    [publishableKey],
+  );
 
   // The summary panel's totals.
   const totalCents = amountCents;
@@ -273,10 +290,18 @@ export function BookingCheckoutEmbed({
 }
 
 function EmbedErrorCard({ reason }: { reason: string }) {
+  // Reason-specific copy so misconfig vs expired-session is obvious.
+  const isMissingKey = reason === 'missing-publishable-key';
+  const headline = isMissingKey
+    ? 'Stripe publishable key not configured'
+    : 'Booking unavailable';
+  const body = isMissingKey
+    ? 'The browser-exposed publishable key NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is missing from .env.local. Add it (same value as STRIPE_PUBLISHABLE_KEY, just renamed with the NEXT_PUBLIC_ prefix) and restart the dev server.'
+    : 'We couldn’t initialize the payment form. This can happen if the booking session expired (older than 24 hours) or if you opened this page without first clicking Book on a space.';
   return (
     <main
       className="container-content"
-      style={{ paddingTop: '3rem', paddingBottom: '4rem', maxWidth: '36rem' }}
+      style={{ paddingTop: '3rem', paddingBottom: '4rem', maxWidth: '40rem' }}
       data-testid="booking-checkout-embed-error"
       role="alert"
     >
@@ -284,12 +309,34 @@ function EmbedErrorCard({ reason }: { reason: string }) {
         className="form-card"
         style={{ padding: '1.5rem' }}
       >
-        <h2 className="h2 mb-2">Booking unavailable</h2>
-        <p className="muted mb-4">
-          We couldn&apos;t initialize the payment form. This can happen
-          if the booking session expired (older than 24 hours) or if
-          Stripe&apos;s publishable key is misconfigured.
-        </p>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.625rem',
+            marginBottom: '0.75rem',
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              flex: 'none',
+              width: 24,
+              height: 24,
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--color-status-pending-bg)',
+              color: 'var(--color-status-pending-fg)',
+              display: 'grid',
+              placeItems: 'center',
+            }}
+          >
+            <AlertTriangle size={14} />
+          </span>
+          <h2 className="h2" style={{ fontSize: 18, lineHeight: 1.3 }}>
+            {headline}
+          </h2>
+        </div>
+        <p className="muted mb-4">{body}</p>
         <p
           className="muted"
           style={{

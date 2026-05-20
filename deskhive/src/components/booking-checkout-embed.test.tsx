@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
-// DESIGN-INT-CHECKOUT-EMBED Phase 2 — Component smoke tests.
+// DESIGN-INT-CHECKOUT-EMBED Phase 2 + 2.5 — Component smoke tests.
 //
 // `<EmbeddedCheckoutProvider>` and `<EmbeddedCheckout>` from
 // @stripe/react-stripe-js try to mount a real iframe at runtime. In
@@ -25,6 +25,21 @@ vi.mock('@stripe/react-stripe-js', () => ({
 }));
 
 import { BookingCheckoutEmbed } from './booking-checkout-embed';
+
+// Phase 2.5: the component now early-returns an error card if the
+// publishable key is missing. Set a placeholder for the happy-path
+// tests + restore between cases for the missing-key test.
+const ORIGINAL_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+beforeEach(() => {
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = 'pk_test_stub';
+});
+afterEach(() => {
+  if (ORIGINAL_PUBLISHABLE_KEY === undefined) {
+    delete process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  } else {
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = ORIGINAL_PUBLISHABLE_KEY;
+  }
+});
 
 const SUMMARY_PROPS = {
   spaceId: 'abc',
@@ -82,5 +97,21 @@ describe('<BookingCheckoutEmbed> (DESIGN-INT-CHECKOUT-EMBED Phase 2)', () => {
     expect(screen.getByTestId('booking-checkout-embed-error')).toBeTruthy();
     expect(screen.queryByTestId('embedded-checkout-stub')).toBeNull();
     expect(screen.getByText('Booking unavailable')).toBeTruthy();
+    expect(screen.getByText(/reason:.*empty-client-secret/)).toBeTruthy();
+  });
+
+  // Phase 2.5 — explicit missing-publishable-key error card.
+  it('renders a missing-publishable-key error card when NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is unset', () => {
+    delete process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    render(
+      <BookingCheckoutEmbed
+        clientSecret="cs_test_secret_xyz"
+        {...SUMMARY_PROPS}
+      />,
+    );
+    expect(screen.getByTestId('booking-checkout-embed-error')).toBeTruthy();
+    expect(screen.queryByTestId('embedded-checkout-stub')).toBeNull();
+    expect(screen.getByText('Stripe publishable key not configured')).toBeTruthy();
+    expect(screen.getByText(/missing-publishable-key/)).toBeTruthy();
   });
 });

@@ -1,14 +1,14 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import {
   createBookingWithPaymentAction,
   createBookingWithPaymentEmbeddedAction,
   type CreateBookingWithPaymentActionState,
   type CreateBookingWithPaymentEmbeddedActionState,
 } from '@/actions/booking-with-payment';
-import { BookingCheckoutEmbed } from '@/components/booking-checkout-embed';
 import { toastError, TOAST_COPY } from '@/lib/toast';
 
 /**
@@ -156,53 +156,86 @@ function BookDeskButtonEmbedded({
     createBookingWithPaymentEmbeddedAction,
     embedInitialState,
   );
-  // Once we have a clientSecret, freeze it locally so re-renders don't
-  // double-mount the iframe. The Server Action's state can be replayed
-  // by Strict Mode in dev — useState guards against that.
-  const [embedded, setEmbedded] =
-    useState<null | { clientSecret: string; sessionId: string; bookingId: string }>(
-      null,
-    );
+  const router = useRouter();
   const lastHandledState =
     useRef<CreateBookingWithPaymentEmbeddedActionState | null>(null);
 
+  // DESIGN-INT-CHECKOUT-EMBED Phase 2.5 — on success, stash
+  // { clientSecret + summary } in sessionStorage keyed by a fresh UUID
+  // and navigate to /booking/new?ck=<uuid>. The dedicated route reads
+  // the stash + mounts <BookingCheckoutEmbed>. sessionStorage keeps the
+  // clientSecret out of URL / referer / history; the UUID `ck` is just
+  // an opaque pointer. Tab-scoped storage clears on tab close.
   useEffect(() => {
     if (state.status === 'idle') return;
     if (lastHandledState.current === state) return;
     lastHandledState.current = state;
 
     if (state.status === 'success') {
-      // Legitimate state-from-effect: the action's useActionState
-      // result IS the trigger. Mirrors the existing toastError call in
-      // legacy and follows React 19 Strict Mode's identity-guard ref
-      // pattern (lastHandledState).
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setEmbedded({
+      if (
+        !spaceName ||
+        !spaceImageUrl ||
+        !deskLabel ||
+        !bookingDate ||
+        typeof amountCents !== 'number' ||
+        typeof platformFeeCents !== 'number'
+      ) {
+        // Defensive: the embed needs the summary props. If the parent
+        // page didn't pass them, surface a clear error rather than
+        // navigating to a /booking/new that can't render.
+        toastError(
+          TOAST_COPY.BOOKING_FAILED_TITLE,
+          TOAST_COPY.BOOKING_FAILED_PAYMENT_INIT,
+        );
+        return;
+      }
+      const ck =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const stash = {
         clientSecret: state.clientSecret,
         sessionId: state.sessionId,
         bookingId: state.bookingId,
-      });
+        spaceId,
+        spaceName,
+        spaceImageUrl,
+        deskLabel,
+        bookingDate,
+        amountCents,
+        platformFeeCents,
+      };
+      try {
+        window.sessionStorage.setItem(
+          `deskhive:checkout:${ck}`,
+          JSON.stringify(stash),
+        );
+      } catch {
+        // Quota exceeded / private browsing block — fall back to a
+        // toast; user can retry. No legacy redirect (the embed flag
+        // is on; the legacy session URL isn't available here).
+        toastError(
+          TOAST_COPY.BOOKING_FAILED_TITLE,
+          TOAST_COPY.BOOKING_FAILED_PAYMENT_INIT,
+        );
+        return;
+      }
+      router.push(`/booking/new?ck=${ck}`);
       return;
     }
 
     toastError(TOAST_COPY.BOOKING_FAILED_TITLE, legacyErrorDescription(state));
-  }, [state]);
-
-  if (embedded && spaceName && spaceImageUrl && deskLabel && bookingDate &&
-      typeof amountCents === 'number' && typeof platformFeeCents === 'number') {
-    return (
-      <BookingCheckoutEmbed
-        clientSecret={embedded.clientSecret}
-        spaceId={spaceId}
-        spaceName={spaceName}
-        spaceImageUrl={spaceImageUrl}
-        deskLabel={deskLabel}
-        bookingDate={bookingDate}
-        amountCents={amountCents}
-        platformFeeCents={platformFeeCents}
-      />
-    );
-  }
+  }, [
+    state,
+    router,
+    spaceId,
+    spaceName,
+    spaceImageUrl,
+    deskLabel,
+    bookingDate,
+    amountCents,
+    platformFeeCents,
+  ]);
 
   return (
     <form action={formAction}>
