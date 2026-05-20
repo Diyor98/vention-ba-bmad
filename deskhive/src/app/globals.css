@@ -461,11 +461,22 @@ textarea.input {
   font-size: 1rem;
   text-decoration: none;
 }
+/* DESIGN-INT-GAPS-PASS-2 Gap 1 — match prototype DeskHive_Prototype.html
+   lines 491-493: w-6 h-6 rounded-md bg-indigo-600 + inner w-2 h-2
+   bg-white rounded-[2px] dot. Replaces the pre-prototype purple
+   hexagon. `--color-primary` resolves to #4F46E5 (indigo-600). */
 .logo-mark {
-  width: 22px; height: 22px;
+  width: 24px; height: 24px;
   background: var(--color-primary);
-  clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%);
-  display: inline-block;
+  border-radius: 6px;
+  display: inline-grid;
+  place-items: center;
+}
+.logo-dot {
+  width: 8px; height: 8px;
+  background: #ffffff;
+  border-radius: 2px;
+  display: block;
 }
 
 /* User chrome (Guest / Super Admin) */

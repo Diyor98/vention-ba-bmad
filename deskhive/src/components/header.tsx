@@ -53,7 +53,9 @@ export async function Header() {
     <header className="site-header">
       <div className="site-header-inner">
         <Link href="/" className="logo">
-          <span className="logo-mark" aria-hidden="true" />
+          <span className="logo-mark" aria-hidden="true">
+            <span className="logo-dot" />
+          </span>
           <span>DeskHive</span>
         </Link>
 
