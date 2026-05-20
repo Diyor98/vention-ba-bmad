@@ -190,6 +190,49 @@ Phase 3 commit will be a single atomic change to `<BookDeskButton>` + the new `/
 9. Verify receipt email arrives at `marketadteam@gmail.com` (post-DESIGN-INT-11 polish; per-recipient routing handles whoever is the verified address).
 10. Toggle the flag to `false`, restart, repeat — verify the legacy hosted redirect still works.
 
+## Gotcha — `NEXT_PUBLIC_*` env vars + dev-vs-prod evaluation timing
+
+Future-you / future-BA debugging tip — captured 2026-05-20 from the Phase 2 CHECKPOINT BA-walk:
+
+The `EMBED_ENABLED` constant in `src/app/spaces/[id]/book-desk-button.tsx` is declared at module top-level:
+
+```ts
+const EMBED_ENABLED =
+  process.env.NEXT_PUBLIC_CHECKOUT_EMBED_ENABLED === 'true';
+```
+
+Same source, different behavior in dev vs prod:
+
+| Mode | What `process.env.NEXT_PUBLIC_*` is at compile time | What `EMBED_ENABLED` is at runtime | DCE on `<BookDeskButtonEmbedded>`? |
+|---|---|---|---|
+| `pnpm dev` (Turbopack) | Reference into a polyfilled `process.env` object (`next/dist/build/polyfills/process.js`) — **read at runtime** | Whatever `.env.local` contains at server-startup time | **No** — both branches kept |
+| `pnpm build` (production) | Inlined as a literal string (`'true'` / `'false'` / `undefined`) — **statically known at compile time** | `false` (or `true`) per the build's env at build time | **Yes** — inactive branch + its transitive imports dead-eliminated |
+
+**Implication for Phase 2 testing** — the dev server reads `.env.local` at startup and BOTH branches stay in the bundle (verified 2026-05-20 — `grep -c "BookDeskButtonEmbedded" .next/dev/static/chunks/src_*.js` = 8). So:
+
+- If `.env.local` is missing the line, `EMBED_ENABLED = false` at runtime → legacy redirect runs. No DCE involved.
+- If `.env.local` line is present but spelled wrong, same outcome.
+- BA's first-line check is always `grep "NEXT_PUBLIC_CHECKOUT_EMBED_ENABLED" deskhive/.env.local` to confirm the line exists exactly as the wrapper code expects.
+
+**Implication for prod (Phase 3+ shipped builds)** — `next build` will DCE the inactive branch + drop unused imports for it. That's actually fine post-Phase-3 (we WANT the legacy gone). It matters only for the temporary Phase-2-style flag-gated state. If a future story re-introduces flag-gated dual-paths intended to survive prod builds, the pattern below is the workaround:
+
+```tsx
+// page.tsx — Server Component (executes at request time, not build time)
+const embedEnabled = process.env.CHECKOUT_EMBED_ENABLED === 'true';
+//                                ^ NO NEXT_PUBLIC_ prefix — server-only env
+<BookDeskButton embedEnabled={embedEnabled} ...rest />
+
+// book-desk-button.tsx — Client Component
+'use client';
+export function BookDeskButton({ embedEnabled, ...props }) {
+  return embedEnabled
+    ? <BookDeskButtonEmbedded {...props} />
+    : <BookDeskButtonLegacy {...props} />;
+}
+```
+
+The boolean reaches the client as a *prop*, not a build-time constant. Both branches stay in the bundle because the bundler can't prove which path will run. Trade-off: one extra prop pass per render + slightly more JS shipped (both branches' code).
+
 ## Stop-conditions
 
 - Phase 1 (this plan) → commit → push → proceed to Phase 2.
