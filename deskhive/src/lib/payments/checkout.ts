@@ -180,6 +180,20 @@ export async function createEmbeddedCheckoutSession(args: {
         // (createCheckoutSession above) is deliberately left without
         // this restriction — Phase-1/9-3 behavior preserved.
         payment_method_types: ['card'],
+        // DESIGN-INT-CHECKOUT-EMBED Phase 2.5c — suppress the Link
+        // wallet entirely. Link is classified as a wallet (not a
+        // payment_method_type), so `payment_method_types: ['card']`
+        // alone does NOT remove it; Stripe still renders the "Pay
+        // with Link" express button above the card form AND Link's
+        // bank-account funding rail beneath. `wallet_options.link.
+        // display: 'never'` is the documented opt-out, giving the
+        // clean card-only "Email + Card information + Cardholder
+        // name + Pay" form the prototype calls for. Legacy hosted
+        // Session (createCheckoutSession above) is intentionally left
+        // unchanged — Phase-1/9-3 behavior preserved.
+        wallet_options: {
+          link: { display: 'never' },
+        },
         line_items: [
           {
             quantity: 1,
