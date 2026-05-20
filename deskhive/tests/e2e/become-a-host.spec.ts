@@ -43,13 +43,18 @@ test.describe('/become-a-host — authenticated state branching', () => {
   }) => {
     const page = await authenticatedPage('guest');
     await page.goto('/become-a-host');
+    // DESIGN-INT-GAPS-PASS-2 Gap 3: H1 now reads
+    // "Earn from your unused desks" per prototype line 1543.
     await expect(
-      page.getByRole('heading', { name: /become a space owner/i, level: 1 }),
+      page.getByRole('heading', {
+        name: /earn from your unused desks/i,
+        level: 1,
+      }),
     ).toBeVisible();
-    // The application form's "Business name" field is the canonical State A
-    // marker — present only on the form, not in State B's read-only summary
-    // (State B uses <dt>/<dd>, not <label>+<input>).
-    await expect(page.getByLabel(/business name/i)).toBeVisible();
+    // The "Space name" field (formerly "Business name") is the
+    // canonical State A marker — present only on the form, not in
+    // State B's read-only summary.
+    await expect(page.getByLabel(/^space name$/i)).toBeVisible();
   });
 
   // State B: Guest with PENDING application sees the "under review"

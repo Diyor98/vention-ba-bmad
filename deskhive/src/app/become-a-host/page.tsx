@@ -89,122 +89,136 @@ export default async function BecomeAHostPage() {
     return <PendingState application={pending} />;
   }
 
+  // DESIGN-INT-GAPS-PASS-2 Gap 3 — two-column application form
+  // matching prototype DeskHive_Prototype.html lines 1542-1591.
+  // Replaces the pre-pass-2 marketing landing (value tiles + process
+  // steps + form below). Pre-pass-2 ValueTile/ProcessStep helpers
+  // removed (no other caller).
   return (
-    <main className="container-content" style={{ paddingBottom: '4rem' }}>
-      {/* DESIGN-INT-12 — eyebrow + display H1 + sub via .host-hero */}
-      <section className="host-hero mb-8">
-        <span className="eyebrow">
-          <span className="dot" aria-hidden="true" /> DeskHive · host
-        </span>
-        <h1>Earn from unused desks in your coworking space.</h1>
-        <p className="sub">
-          List a space, accept bookings, get paid via Stripe. No
-          subscription, no minimum commitment — leave whenever.
+    <main
+      className="container-content"
+      style={{ paddingTop: '2.5rem', paddingBottom: '4rem', maxWidth: '64rem' }}
+    >
+      <header className="mb-8">
+        <h1 className="page-h1" data-testid="become-host-h1">
+          Earn from your unused desks
+        </h1>
+        <p
+          className="mt-2 muted-strong"
+          style={{ fontSize: '15px', maxWidth: '40rem', lineHeight: 1.55 }}
+        >
+          List your space on DeskHive. We take 15% per booking — you
+          keep the rest. Approval typically within 2 business days.
         </p>
-      </section>
+      </header>
 
-      <section aria-labelledby="sec-value-props" className="mb-10">
-        <h2 id="sec-value-props" className="h2 mb-4">
-          Why host on DeskHive
-        </h2>
-        <div className="value-grid">
-          <ValueTile
-            n="01"
-            title="No long-term contracts"
-            body="List a space, accept bookings, leave whenever."
-          />
-          <ValueTile
-            n="02"
-            title="15% platform fee"
-            body="You keep 85% of every booking. Transparent pricing."
-          />
-          <ValueTile
-            n="03"
-            title="Get paid via Stripe"
-            body="Direct deposit. Payouts processed automatically after each completed booking."
-          />
-          <ValueTile
-            n="04"
-            title="You control bookings"
-            body="Review every request before it’s confirmed. Reject what doesn’t fit."
-          />
-        </div>
-      </section>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section
+          className="card md:col-span-2"
+          style={{ padding: '1.5rem' }}
+          aria-labelledby="sec-application"
+          data-testid="application-card"
+        >
+          <h2
+            id="sec-application"
+            style={{
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--color-neutral-900)',
+              marginBottom: '1rem',
+            }}
+          >
+            Application
+          </h2>
+          <ApplicationForm displayName={displayName} email={email} />
+        </section>
 
-      <section aria-labelledby="sec-whats-next" className="mb-10">
-        <h2 id="sec-whats-next" className="h2 mb-4">
-          What&apos;s next
-        </h2>
-        <div className="process">
-          <ProcessStep
-            n={1}
-            title="Submit your application"
-            body="Tell us about your space, location, and how many desks you can host."
-            when="~5 minutes"
-          />
-          <ProcessStep
-            n={2}
-            title="We review"
-            body="Our team verifies your details and checks the space against our standards."
-            when="1–2 business days"
-          />
-          <ProcessStep
-            n={3}
-            title="We email you the decision"
-            body="If approved, you’ll be onboarded onto Stripe Connect to start receiving payouts."
-            when="Same day as review"
-          />
-        </div>
-      </section>
-
-      <section aria-labelledby="sec-form" className="mb-10">
-        <h2 id="sec-form" className="h2 mb-4">
-          Your application
-        </h2>
-        <ApplicationForm displayName={displayName} email={email} />
-      </section>
+        <aside
+          className="card"
+          style={{ padding: '1.5rem' }}
+          aria-labelledby="sec-whats-next"
+          data-testid="whats-next-card"
+        >
+          <h2
+            id="sec-whats-next"
+            style={{
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--color-neutral-900)',
+              marginBottom: '1rem',
+            }}
+          >
+            What happens next
+          </h2>
+          <NextStepsList />
+        </aside>
+      </div>
     </main>
   );
 }
 
-function ValueTile({
-  n,
-  title,
-  body,
-}: {
-  n: string;
-  title: string;
-  body: string;
-}) {
+function NextStepsList() {
+  // Prototype lines 1574-1588 — vertical step list with a 1px left
+  // border, dots inline-left at each step; first dot indigo-600,
+  // rest neutral-300. Step copy taken verbatim from the prototype.
+  const steps: Array<{ title: string; sub: string }> = [
+    { title: 'You apply', sub: 'Today · 2 minutes' },
+    { title: 'We review', sub: 'Within 2 business days' },
+    { title: 'Connect Stripe', sub: 'One-time, ~5 min' },
+    { title: 'List your first space', sub: 'Photos & rates' },
+    { title: 'First booking', sub: 'Money lands in your bank' },
+  ];
   return (
-    <article className="value-tile">
-      <div className="num">{n}</div>
-      <h3>{title}</h3>
-      <p>{body}</p>
-    </article>
-  );
-}
-
-function ProcessStep({
-  n,
-  title,
-  body,
-  when,
-}: {
-  n: number;
-  title: string;
-  body: string;
-  when: string;
-}) {
-  return (
-    <div className="process-step">
-      <span className="step-no" aria-hidden="true">
-        {n}
-      </span>
-      <h4>{title}</h4>
-      <p>{body}</p>
-      <div className="when">{when}</div>
-    </div>
+    <ol
+      style={{
+        position: 'relative',
+        borderLeft: '1px solid var(--color-neutral-200)',
+        marginLeft: '0.5rem',
+        paddingLeft: '0',
+        listStyle: 'none',
+      }}
+    >
+      {steps.map((s, i) => (
+        <li
+          key={s.title}
+          style={{
+            position: 'relative',
+            marginLeft: '1rem',
+            paddingBottom: i === steps.length - 1 ? 0 : '1rem',
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              left: '-1.3125rem',
+              top: '0.3rem',
+              width: '10px',
+              height: '10px',
+              borderRadius: '999px',
+              background:
+                i === 0
+                  ? 'var(--color-primary)'
+                  : 'var(--color-neutral-300)',
+            }}
+          />
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: 'var(--color-neutral-900)',
+            }}
+          >
+            {s.title}
+          </div>
+          <div
+            style={{ fontSize: 12, color: 'var(--color-neutral-500)' }}
+          >
+            {s.sub}
+          </div>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -233,16 +247,20 @@ function PendingState({ application }: { application: Application }) {
           What you submitted
         </h2>
         <dl style={{ display: 'grid', gap: '0.875rem' }}>
-          <SummaryRow label="Business name" value={application.businessName} />
+          {/* DESIGN-INT-GAPS-PASS-2 Gap 3 — labels match the new form
+              copy ("Space name" / "City" / "Tell us about your space")
+              so the read-back is consistent with what the user typed.
+              Tax ID hidden — captured during Stripe Connect onboarding,
+              not surfaced to the applicant. */}
+          <SummaryRow label="Space name" value={application.businessName} />
           <SummaryRow
-            label="Business address"
+            label="City"
             value={application.businessAddress}
             multiline
           />
-          <SummaryRow label="Tax ID" value={application.taxId} />
           {application.motivation && (
             <SummaryRow
-              label="Motivation"
+              label="Tell us about your space"
               value={application.motivation}
               multiline
             />

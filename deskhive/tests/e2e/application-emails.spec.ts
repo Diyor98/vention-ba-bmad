@@ -78,10 +78,14 @@ test.describe.serial('application emails — authenticated flows (Story 8-2)', (
     await page.goto('/become-a-host');
 
     // State A: fresh Guest sees the form. Fill it in and submit.
-    await page.getByLabel(/business name/i).fill('BA Verification Cafe');
-    await page.getByLabel(/business address/i).fill('123 Test Lane, Tashkent');
-    await page.getByLabel(/tax id/i).fill('TAX-E2E-001');
-    // Motivation is optional; leave empty to exercise the null-motivation path.
+    // DESIGN-INT-GAPS-PASS-2 Gap 3 — form fields renamed to match
+    // the prototype: businessName → "Space name", businessAddress →
+    // "City". taxId moved to a hidden input (collected during Stripe
+    // Connect onboarding), so there's no taxId field to fill.
+    await page.getByLabel(/^space name$/i).fill('BA Verification Cafe');
+    await page.getByLabel(/^city$/i).fill('Tashkent');
+    // "Tell us about your space" (motivation) is optional; leave empty
+    // to exercise the null-motivation path.
 
     const submit = page.getByRole('button', {
       name: /submit application|submit/i,
