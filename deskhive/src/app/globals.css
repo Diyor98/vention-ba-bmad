@@ -1502,6 +1502,49 @@ textarea.input {
 .user-menu-item {
   margin: 0;
 }
+
+/* DESIGN-INT-GAPS-PASS-2 Round 3 — two-line user header block at the
+   top of the dropdown. Replaces the old single-line ".user-menu-meta"
+   for the new icon-row menus while keeping that class intact for any
+   legacy callers. Name on top (neutral-900/medium), email below
+   (neutral-500/12px). */
+.user-menu-header {
+  padding: 0.5rem 0.625rem 0.625rem;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 0.25rem;
+}
+.user-menu-header-name {
+  font-size: 13px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-neutral-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-menu-header-email {
+  font-size: 12px;
+  color: var(--color-neutral-500);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* DESIGN-INT-GAPS-PASS-2 Round 3 — icon-row spacing for the menu
+   items. Prototype line 604 uses `gap-2.5` (10px) between the icon
+   and label, and renders the icon in `text-gray-400`. Apply the gap
+   to all menu rows, then style any direct-child <svg> at the
+   prototype's neutral-400 tone. */
+.user-menu-button,
+.user-menu-link {
+  gap: 0.625rem;
+}
+.user-menu-button > svg,
+.user-menu-link > svg {
+  color: var(--color-neutral-400);
+  flex: none;
+}
+
 .user-menu-button {
   display: flex;
   align-items: center;

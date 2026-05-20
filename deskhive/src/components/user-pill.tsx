@@ -3,6 +3,13 @@
 import Link from 'next/link';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
+import {
+  Briefcase,
+  Calendar,
+  LogOut,
+  Settings,
+  Sparkles,
+} from 'lucide-react';
 import { logoutAction } from '@/actions/auth';
 import {
   switchModeAction,
@@ -13,20 +20,49 @@ import type { Mode } from '@/lib/mode';
 const initialSwitchState: SwitchModeActionState = { status: 'idle' };
 
 /**
- * Story 7-1: user-pill dropdown affordance.
+ * Story 7-1 + DESIGN-INT-GAPS-PASS-2 Round 3 — user-pill dropdown.
  *
- * Renders the small `<details>` dropdown that hosts:
- *   - "Switch to hosting" / "Switch to traveling" (SPACE_OWNER only)
- *   - "Log out" (all authenticated roles)
+ * Prototype DeskHive_Prototype.html lines 583-606 spec a per-role
+ * icon-row menu rooted at a two-line user header (name + email).
+ * This file is the React port of that menu, refactored from the
+ * pre-pass-2 minimal "Signed in as / Log out" shell.
  *
- * Dev-agent decision documented in Completion Notes: dropdown applies to
- * ALL authenticated roles, not just SPACE_OWNER. Keeps the affordance
- * home consistent across roles — Log out moves from the inline pattern
- * (Phase 1) into the dropdown. The BA's optional path per Decision §6.
+ * Per-role menu shape (Round 3):
  *
- * The component is keyed off `role` + `mode` props — both come from the
- * Server Component parent (Header), which reads them server-side via
- * `effectiveMode(session)`.
+ *   GUEST (role === 'GUEST'):
+ *     Header / My bookings / Become a host / Account / Sign out
+ *
+ *   SPACE_OWNER in Guest mode (role === 'SPACE_OWNER' && mode === 'guest'):
+ *     Header / My bookings / Switch to hosting / Account / Sign out
+ *
+ *   SPACE_OWNER in Host mode (role === 'SPACE_OWNER' && mode === 'host'):
+ *     Header / Host dashboard / Payouts / Account / Switch to traveling / Sign out
+ *
+ *     NB: the prototype host menu (line 592-596) omits Switch-to-traveling
+ *     because the prototype has a separate role-switcher pill in the
+ *     header. Round 3 explicitly forbids adding that role-switcher pill,
+ *     so Switch-to-traveling stays in the host dropdown as a 5th item
+ *     between Account and Sign out — without it, a SPACE_OWNER stuck in
+ *     Host mode would have no path back to traveling.
+ *
+ *   SUPER_ADMIN (role === 'SUPER_ADMIN'):
+ *     Header / Account / Sign out  (pre-pass-2 admin menu is minimal
+ *     by design — Round 3 scope didn't touch admin).
+ *
+ * Icon choices vs prototype:
+ *   - Become a host: Sparkles (prototype `Icon.Sparkle` — lucide-react
+ *     ships the plural `Sparkles`).
+ *   - Switch to hosting: Briefcase (prototype doesn't specify; Round 3
+ *     Gap A suggests "Briefcase or similar").
+ *   - Switch to traveling: Briefcase too (consistent affordance,
+ *     orientation reversed via label).
+ *   - Payouts: Banknote (prototype `Icon.Banknote`).
+ *   - Account: Settings (prototype `Icon.Settings`).
+ *   - Host dashboard: LayoutDashboard (prototype `Icon.LayoutDashboard`).
+ *   - My bookings: Calendar (prototype `Icon.Calendar`).
+ *   - Sign out: LogOut (prototype `Icon.LogOut`).
+ *
+ * Size 15 for the icons matches the prototype's `<Ic size={15}/>`.
  */
 export function UserPill({
   displayName,
@@ -41,12 +77,6 @@ export function UserPill({
   role: string;
   mode: Mode;
 }) {
-  const isSpaceOwner = role === 'SPACE_OWNER';
-  const isGuest = role === 'GUEST';
-  const targetMode: Mode = mode === 'host' ? 'guest' : 'host';
-  const switchLabel =
-    mode === 'host' ? 'Switch to traveling' : 'Switch to hosting';
-
   return (
     <details className="user-menu">
       <summary
@@ -60,47 +90,183 @@ export function UserPill({
       </summary>
 
       <div className="user-menu-panel" role="menu">
-        <p className="user-menu-meta">
-          Signed in as <span className="user-menu-email">{email}</span>
-        </p>
+        <UserMenuHeader displayName={displayName} email={email} />
 
-        {/* Story 7-3: Guest-only entry to /become-a-host. Destination page
-            handles state branching (already-applied / already-owner / etc.). */}
-        {isGuest && (
-          <Link
-            href="/become-a-host"
-            role="menuitem"
-            className="user-menu-link"
-          >
-            Become a Space Owner
-          </Link>
+        {role === 'SUPER_ADMIN' ? (
+          <AdminMenuItems />
+        ) : role === 'SPACE_OWNER' && mode === 'host' ? (
+          <HostMenuItems />
+        ) : role === 'SPACE_OWNER' && mode === 'guest' ? (
+          <SpaceOwnerInGuestMenuItems />
+        ) : (
+          <GuestMenuItems />
         )}
-
-        {isSpaceOwner && <SwitchModeForm targetMode={targetMode} label={switchLabel} />}
-
-        <LogoutForm />
       </div>
     </details>
   );
 }
 
+// ── Shared header block ──────────────────────────────────────────
+
+function UserMenuHeader({
+  displayName,
+  email,
+}: {
+  displayName: string;
+  email: string;
+}) {
+  return (
+    <div className="user-menu-header" data-testid="user-menu-header">
+      <div className="user-menu-header-name">{displayName}</div>
+      <div className="user-menu-header-email">{email}</div>
+    </div>
+  );
+}
+
+// ── GUEST (pure) ─────────────────────────────────────────────────
+
+function GuestMenuItems() {
+  return (
+    <>
+      <Link
+        href="/my-bookings"
+        role="menuitem"
+        className="user-menu-link"
+        data-testid="user-menu-bookings"
+      >
+        <Calendar size={15} aria-hidden="true" />
+        My bookings
+      </Link>
+      <Link
+        href="/become-a-host"
+        role="menuitem"
+        className="user-menu-link"
+        data-testid="user-menu-become-host"
+      >
+        <Sparkles size={15} aria-hidden="true" />
+        Become a host
+      </Link>
+      <Link
+        href="/account"
+        role="menuitem"
+        className="user-menu-link"
+        data-testid="user-menu-account"
+      >
+        <Settings size={15} aria-hidden="true" />
+        Account
+      </Link>
+      <LogoutForm />
+    </>
+  );
+}
+
+// ── SPACE_OWNER in Guest mode ────────────────────────────────────
+// Replaces "Become a host" with "Switch to hosting" per Round 3 Gap A.
+
+function SpaceOwnerInGuestMenuItems() {
+  return (
+    <>
+      <Link
+        href="/my-bookings"
+        role="menuitem"
+        className="user-menu-link"
+        data-testid="user-menu-bookings"
+      >
+        <Calendar size={15} aria-hidden="true" />
+        My bookings
+      </Link>
+      <SwitchModeForm
+        targetMode="host"
+        label="Switch to hosting"
+        Icon={Briefcase}
+        testid="user-menu-switch-hosting"
+      />
+      <Link
+        href="/account"
+        role="menuitem"
+        className="user-menu-link"
+        data-testid="user-menu-account"
+      >
+        <Settings size={15} aria-hidden="true" />
+        Account
+      </Link>
+      <LogoutForm />
+    </>
+  );
+}
+
+// ── SPACE_OWNER in Host mode ─────────────────────────────────────
+// (Gap B will be a follow-up commit; placeholder for now keeps host
+// mode behavior unchanged from pre-Round-3 — minimal icon-row
+// equivalent of the existing Switch-to-traveling + Log out shape.
+// Gap B commit will replace this body.)
+
+function HostMenuItems() {
+  return (
+    <>
+      <SwitchModeForm
+        targetMode="guest"
+        label="Switch to traveling"
+        Icon={Briefcase}
+        testid="user-menu-switch-traveling"
+      />
+      <LogoutForm />
+    </>
+  );
+}
+
+// ── SUPER_ADMIN ──────────────────────────────────────────────────
+// Pre-Round-3 minimal — Round 3 scope did not call for admin
+// dropdown changes, so this stays at the smaller surface.
+
+function AdminMenuItems() {
+  return (
+    <>
+      <Link
+        href="/account"
+        role="menuitem"
+        className="user-menu-link"
+        data-testid="user-menu-account"
+      >
+        <Settings size={15} aria-hidden="true" />
+        Account
+      </Link>
+      <LogoutForm />
+    </>
+  );
+}
+
+// ── Form-submit menu items ───────────────────────────────────────
+
 function SwitchModeForm({
   targetMode,
   label,
+  Icon,
+  testid,
 }: {
   targetMode: Mode;
   label: string;
+  Icon: typeof Briefcase;
+  testid: string;
 }) {
   const [, formAction] = useActionState(switchModeAction, initialSwitchState);
   return (
     <form action={formAction} className="user-menu-item">
       <input type="hidden" name="targetMode" value={targetMode} />
-      <SwitchModeSubmit label={label} />
+      <SwitchModeSubmit label={label} Icon={Icon} testid={testid} />
     </form>
   );
 }
 
-function SwitchModeSubmit({ label }: { label: string }) {
+function SwitchModeSubmit({
+  label,
+  Icon,
+  testid,
+}: {
+  label: string;
+  Icon: typeof Briefcase;
+  testid: string;
+}) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -109,7 +275,9 @@ function SwitchModeSubmit({ label }: { label: string }) {
       className="user-menu-button"
       disabled={pending}
       aria-disabled={pending || undefined}
+      data-testid={testid}
     >
+      <Icon size={15} aria-hidden="true" />
       {pending ? 'Switching…' : label}
     </button>
   );
@@ -132,8 +300,11 @@ function LogoutSubmit() {
       className="user-menu-button"
       disabled={pending}
       aria-disabled={pending || undefined}
+      data-testid="user-menu-signout"
     >
-      {pending ? 'Signing out…' : 'Log out'}
+      <LogOut size={15} aria-hidden="true" />
+      {pending ? 'Signing out…' : 'Sign out'}
     </button>
   );
 }
+
