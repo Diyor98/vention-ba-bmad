@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Calendar, Check, Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { listPublishedSpaces } from '@/db/queries/spaces';
 import { getMinActiveDailyPriceCentsBySpaceIds } from '@/db/queries/desks';
 import { DataView, type DataViewStatus } from '@/components/data-view';
@@ -8,15 +8,25 @@ import { formatCents } from '@/lib/format';
 import { logger } from '@/lib/logger';
 import type { Space } from '@/db/schema';
 
-// DESIGN-INT-GAPS-PASS-2 Gap 2 — /browse is the full searchable grid,
-// extracted from the old /page.tsx so / can host the marketing hero.
-// Prototype split (DeskHive_Prototype.html line 705-813): Landing
-// renders hero+featured at /, the same component renders grid-only at
-// /browse via `showHero={false} featuredOnly={false}`. The h1, city
-// filter form, and grid markup mirror the pre-split landing — including
-// the legacy `landing-h1` / `how-it-works` / `card-*` data-testids
-// (preserved per the gap's "Preserve all existing data-testid
-// attributes" constraint, even though the page name changed).
+/**
+ * DESIGN-INT-GAPS-PASS-2 Gap 2 + Round-2 Correction 2 — /browse is
+ * the searchable grid view per prototype lines 783-806.
+ *
+ * Round-2 fix: the Round-1 implementation kept the pre-Gap-2 landing
+ * page markup verbatim (large "Find a desk..." h1, "How it works"
+ * 3-tile row, left-aligned filter form). BA review found that page
+ * read like a second landing page and got confused with /. This
+ * rewrite matches the prototype's actual /browse shape:
+ *   - h1 "Browse spaces" + "{N} spaces ready to book today." sub
+ *   - Right-aligned search input (no big H1, no how-it-works,
+ *     no labeled filter form)
+ *   - Grid + empty state below
+ *
+ * Server-side filtering is preserved (form action="/browse"
+ * method="GET" — Enter or the icon-button submits). The Round-1
+ * `data-testid="landing-h1"` is renamed to `browse-h1` because the
+ * old name was misleading; no test referenced it.
+ */
 export default async function BrowsePage({
   searchParams,
 }: {
@@ -43,121 +53,137 @@ export default async function BrowsePage({
     status = 'error';
   }
 
+  const count = spaces.length;
+  const countCopy = cityFilter
+    ? `${count} ${count === 1 ? 'space' : 'spaces'} match "${cityFilter}".`
+    : `${count} ${count === 1 ? 'space' : 'spaces'} ready to book today.`;
+
   return (
     <main
       className="container-content"
-      style={{ paddingTop: '3rem', paddingBottom: '4rem' }}
+      style={{ paddingTop: '2rem', paddingBottom: '4rem' }}
     >
-      <header className="mb-10">
-        <h1
-          className="page-display"
-          style={{ maxWidth: '36rem' }}
-          data-testid="landing-h1"
-        >
-          Find a desk. Book a day. Get to work.
-        </h1>
-        <p
-          className="mt-3 muted-strong"
-          style={{ fontSize: '1rem', maxWidth: '36rem', lineHeight: 1.55 }}
-        >
-          DeskHive helps remote workers find and book coworking desks
-          across cities — pick a date, pick a desk, you&apos;re set.
-        </p>
-      </header>
-
-      <section
-        className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10"
-        data-testid="how-it-works"
+      <header
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          marginBottom: '1.25rem',
+          flexWrap: 'wrap',
+        }}
       >
-        {[
-          {
-            Icon: Search,
-            title: 'Search a city',
-            body: 'Find spaces near where you’ll be — by city, neighborhood, or vibe.',
-          },
-          {
-            Icon: Calendar,
-            title: 'Pick a day',
-            body: 'See real-time availability for the desk you want.',
-          },
-          {
-            Icon: Check,
-            title: 'Pay & show up',
-            body: 'Card on file. We’ll email the details once your host confirms.',
-          },
-        ].map((step) => (
-          <article
-            key={step.title}
-            className="card"
-            style={{ padding: '1.25rem' }}
+        <div>
+          <h1
+            className="font-semibold"
+            data-testid="browse-h1"
+            style={{
+              fontSize: '1.5rem',
+              letterSpacing: '-0.01em',
+              color: 'var(--color-neutral-900)',
+            }}
           >
-            <span
-              aria-hidden="true"
-              style={{
-                width: '2.5rem',
-                height: '2.5rem',
-                borderRadius: 'var(--radius-lg)',
-                background: 'var(--color-brand-50)',
-                color: 'var(--color-brand-700)',
-                display: 'grid',
-                placeItems: 'center',
-                marginBottom: '0.75rem',
-              }}
-            >
-              <step.Icon size={18} />
-            </span>
-            <div
-              className="font-semibold"
-              style={{ color: 'var(--color-neutral-900)' }}
-            >
-              {step.title}
-            </div>
-            <div
-              className="mt-1.5 muted-strong"
-              style={{ fontSize: '13px', lineHeight: 1.55 }}
-            >
-              {step.body}
-            </div>
-          </article>
-        ))}
-      </section>
+            Browse spaces
+          </h1>
+          <p
+            className="muted"
+            style={{ fontSize: 14, marginTop: '0.25rem' }}
+          >
+            {countCopy}
+          </p>
+        </div>
 
-      <form
-        action="/browse"
-        method="GET"
-        className="mb-10"
-        style={{ display: 'flex', alignItems: 'flex-end', gap: '0.75rem', maxWidth: '36rem' }}
-      >
-        <div style={{ flex: 1 }}>
-          <label htmlFor="city" className="field-label">
-            Filter by city
+        {/* Right-aligned search per prototype lines 789-792. Form
+            wraps the input so Enter submits (icon-button is the
+            keyboard-and-mouse fallback). Tiny Clear-filter chip
+            appears only when a filter is active. */}
+        <form
+          action="/browse"
+          method="GET"
+          role="search"
+          style={{
+            position: 'relative',
+            width: '18rem',
+            maxWidth: '100%',
+          }}
+        >
+          <label htmlFor="browse-search" className="sr-only">
+            Search by city or neighborhood
           </label>
+          <Search
+            aria-hidden="true"
+            size={14}
+            style={{
+              position: 'absolute',
+              left: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--color-neutral-400)',
+              pointerEvents: 'none',
+            }}
+          />
           <input
-            id="city"
+            id="browse-search"
             name="city"
             type="text"
             defaultValue={cityFilter ?? ''}
-            placeholder="e.g. Tashkent"
+            placeholder="City, neighborhood…"
             className="input"
-            style={{ height: '2.75rem', fontSize: '15px' }}
+            data-testid="browse-search"
+            style={{
+              paddingLeft: '2.25rem',
+              height: '2.5rem',
+              fontSize: 14,
+            }}
           />
-        </div>
-        <button type="submit" className="btn btn-primary" style={{ height: '2.75rem' }}>
-          Search
-        </button>
-        {cityFilter && (
-          <Link
-            href="/browse"
-            className="btn-ghost"
-            style={{ textDecoration: 'none', height: '2.75rem' }}
+          {/* Keep an off-screen submit so screen-reader / no-JS
+              users get an explicit affordance; Enter on the input
+              already submits in all browsers. */}
+          <button
+            type="submit"
+            className="sr-only"
+            aria-label="Search spaces"
           >
-            Clear filter
-          </Link>
-        )}
-      </form>
+            Search
+          </button>
+          {cityFilter && (
+            <Link
+              href="/browse"
+              data-testid="browse-clear-filter"
+              aria-label="Clear filter"
+              style={{
+                position: 'absolute',
+                right: '0.5rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '1.5rem',
+                height: '1.5rem',
+                borderRadius: '999px',
+                display: 'inline-grid',
+                placeItems: 'center',
+                color: 'var(--color-neutral-500)',
+                textDecoration: 'none',
+                background: 'var(--color-neutral-100)',
+              }}
+            >
+              <X size={12} aria-hidden="true" />
+            </Link>
+          )}
+        </form>
+      </header>
 
-      <DataView status={status} emptyMessage="No spaces available yet.">
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <DataView
+        status={status}
+        emptyMessage={
+          cityFilter
+            ? `No spaces match "${cityFilter}". Try a different city.`
+            : 'No spaces available yet.'
+        }
+      >
+        <ul
+          className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+          data-testid="browse-grid"
+        >
           {spaces.map((s) => {
             const minPriceCents = minPriceBySpaceId.get(s.id);
             const preview = pickAmenityPreview(s.amenities);

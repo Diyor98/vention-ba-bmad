@@ -1,19 +1,21 @@
 import { test, expect } from '@playwright/test';
 
-// DESIGN-INT-GAPS-PASS-2 Gap 2: the searchable grid moved from `/` to
-// `/browse` so `/` could host the marketing hero per prototype lines
-// 705-813. Hero now owns the `landing-h1` testid; the grid keeps its
-// h1 copy ("Find a desk...") + city filter form on /browse.
+// DESIGN-INT-GAPS-PASS-2 Round 2 Correction 2: /browse simplified to
+// match the prototype's grid-only layout (lines 783-806). h1 is now
+// "Browse spaces"; the city filter form became a right-aligned search
+// input (no separate label/button — submits on Enter, with an
+// sr-only submit button as a screen-reader / no-JS fallback).
 test.describe('public browse spaces', () => {
-  test('/browse renders the grid heading and city filter form', async ({ page }) => {
+  test('/browse renders the grid heading and a search input', async ({ page }) => {
     await page.goto('/browse');
 
     await expect(
-      page.getByRole('heading', { name: /find a desk\. book a day\. get to work\./i, level: 1 }),
+      page.getByRole('heading', { name: /^browse spaces$/i, level: 1 }),
     ).toBeVisible();
 
-    await expect(page.getByLabel('Filter by city')).toBeVisible();
-    await expect(page.getByRole('button', { name: /search/i })).toBeVisible();
+    await expect(
+      page.getByLabel('Search by city or neighborhood'),
+    ).toBeVisible();
   });
 
   test('GET /api/spaces returns 200 with an array', async ({ request }) => {
@@ -23,10 +25,11 @@ test.describe('public browse spaces', () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test('city filter form submits to /browse?city=...', async ({ page }) => {
+  test('search input submits to /browse?city=...', async ({ page }) => {
     await page.goto('/browse');
-    await page.getByLabel('Filter by city').fill('NowhereCity');
-    await page.getByRole('button', { name: /search/i }).click();
+    const search = page.getByLabel('Search by city or neighborhood');
+    await search.fill('NowhereCity');
+    await search.press('Enter');
     await expect(page).toHaveURL(/\/browse\?city=NowhereCity$/);
   });
 });
