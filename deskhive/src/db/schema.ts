@@ -3,6 +3,7 @@ import {
   uuid,
   text,
   integer,
+  smallint,
   boolean,
   timestamp,
   date,
@@ -302,6 +303,47 @@ export const webhookEventsTable = pgTable('webhook_events', {
 });
 
 // ─────────────────────────────────────────────────────────────
+// reviews — DESIGN-INT-GAPS-PASS-2 Round 4 Gap E
+// Per-space ratings. Phase 2 prototype lines 853-859 surface a
+// "★ {rating}" badge on every SpaceCard; backing column is a
+// smallint 1-5 rating (whole stars) optionally accompanied by
+// free-text comment. avg(rating) is computed at read-time — no
+// materialized view, no cache.
+//
+// `(space_id, reviewer_id)` is UNIQUE so the demo-seed script
+// can use ON CONFLICT DO NOTHING for idempotency. The CHECK
+// constraint enforces the 1-5 range at the DB layer so neither
+// app nor seed can write garbage. No booking_id link — Phase 2
+// keeps the model minimal (a future story can tie review →
+// booking when post-stay reviews ship).
+// ─────────────────────────────────────────────────────────────
+export const reviewsTable = pgTable(
+  'reviews',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    spaceId: uuid('space_id')
+      .notNull()
+      .references(() => spacesTable.id),
+    reviewerId: uuid('reviewer_id')
+      .notNull()
+      .references(() => usersTable.id),
+    rating: smallint('rating').notNull(),
+    comment: text('comment'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    check('reviews_rating_range_check', sql`${t.rating} BETWEEN 1 AND 5`),
+    uniqueIndex('reviews_space_reviewer_unique').on(
+      t.spaceId,
+      t.reviewerId,
+    ),
+    index('reviews_space_id_idx').on(t.spaceId),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────────
 // Better Auth tables — required by @better-auth/drizzle-adapter
 // ─────────────────────────────────────────────────────────────
 export const accountTable = pgTable('account', {
@@ -362,6 +404,9 @@ export type StripeConnectAccount = typeof stripeConnectAccountsTable.$inferSelec
 export type NewStripeConnectAccount = typeof stripeConnectAccountsTable.$inferInsert;
 export type WebhookEvent = typeof webhookEventsTable.$inferSelect;
 export type NewWebhookEvent = typeof webhookEventsTable.$inferInsert;
+// DESIGN-INT-GAPS-PASS-2 Round 4 Gap E — per-space reviews/ratings.
+export type Review = typeof reviewsTable.$inferSelect;
+export type NewReview = typeof reviewsTable.$inferInsert;
 
 // Role: Phase 2 introduces SPACE_OWNER (Story 7-1).
 //

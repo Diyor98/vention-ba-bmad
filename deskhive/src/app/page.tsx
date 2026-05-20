@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { ArrowRight, Calendar, Check, Search } from 'lucide-react';
+import { ArrowRight, Calendar, Check, Search, Star } from 'lucide-react';
 import { listPublishedSpaces } from '@/db/queries/spaces';
 import {
   getActiveDeskCountBySpaceIds,
   getMinActiveDailyPriceCentsBySpaceIds,
 } from '@/db/queries/desks';
+import { getAverageRatingBySpaceIds } from '@/db/queries/reviews';
 import { DataView, type DataViewStatus } from '@/components/data-view';
 import { pickAmenityPreview } from '@/components/amenities';
 import { formatCents } from '@/lib/format';
@@ -25,6 +26,7 @@ export default async function HomePage() {
   let status: DataViewStatus = 'loaded';
   let minPriceBySpaceId = new Map<string, number>();
   let deskCountBySpaceId = new Map<string, number>();
+  let ratingBySpaceId = new Map<string, { avg: number; count: number }>();
   try {
     spaces = await listPublishedSpaces();
     if (spaces.length === 0) {
@@ -32,12 +34,15 @@ export default async function HomePage() {
     } else {
       const ids = spaces.map((s) => s.id);
       // Featured rail + hero card both render price; hero card also
-      // shows desk count. One query per metric across every published
-      // space (cheap on first page-load + cache-friendly).
-      [minPriceBySpaceId, deskCountBySpaceId] = await Promise.all([
-        getMinActiveDailyPriceCentsBySpaceIds(ids),
-        getActiveDeskCountBySpaceIds(ids),
-      ]);
+      // shows desk count; featured rail also shows ★ rating. One
+      // query per metric across every published space (cheap on
+      // first page-load + cache-friendly).
+      [minPriceBySpaceId, deskCountBySpaceId, ratingBySpaceId] =
+        await Promise.all([
+          getMinActiveDailyPriceCentsBySpaceIds(ids),
+          getActiveDeskCountBySpaceIds(ids),
+          getAverageRatingBySpaceIds(ids),
+        ]);
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -350,6 +355,7 @@ export default async function HomePage() {
           >
             {featured.map((s) => {
               const minPriceCents = minPriceBySpaceId.get(s.id);
+              const rating = ratingBySpaceId.get(s.id);
               const preview = pickAmenityPreview(s.amenities);
               return (
                 <li key={s.id}>
@@ -362,16 +368,54 @@ export default async function HomePage() {
                         className="aspect-video w-full object-cover"
                       />
                       <div className="p-4">
-                        <h3
-                          className="font-semibold"
+                        <div
                           style={{
-                            color: 'var(--color-neutral-900)',
-                            fontSize: '15px',
-                            lineHeight: 1.35,
+                            display: 'flex',
+                            alignItems: 'baseline',
+                            justifyContent: 'space-between',
+                            gap: '0.625rem',
                           }}
                         >
-                          {s.name}
-                        </h3>
+                          <h3
+                            className="font-semibold"
+                            style={{
+                              color: 'var(--color-neutral-900)',
+                              fontSize: '15px',
+                              lineHeight: 1.35,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {s.name}
+                          </h3>
+                          {rating && rating.count > 0 && (
+                            <span
+                              data-testid={`space-card-rating-${s.id}`}
+                              aria-label={`Rating ${rating.avg.toFixed(1)} out of 5`}
+                              className="tnum"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: 'var(--color-neutral-900)',
+                                flex: 'none',
+                              }}
+                            >
+                              <Star
+                                size={13}
+                                aria-hidden="true"
+                                style={{
+                                  color: '#F59E0B',
+                                  fill: '#F59E0B',
+                                }}
+                              />
+                              {rating.avg.toFixed(1)}
+                            </span>
+                          )}
+                        </div>
                         <p
                           className="mt-1 muted"
                           style={{ fontSize: '13px' }}
