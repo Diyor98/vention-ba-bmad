@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import { Search, Star, X } from 'lucide-react';
 import { listPublishedSpaces } from '@/db/queries/spaces';
-import { getMinActiveDailyPriceCentsBySpaceIds } from '@/db/queries/desks';
+import {
+  getActiveDeskCountBySpaceIds,
+  getMinActiveDailyPriceCentsBySpaceIds,
+} from '@/db/queries/desks';
+import { getActiveBookingCountByDateAndSpaceIds } from '@/db/queries/bookings';
 import { getAverageRatingBySpaceIds } from '@/db/queries/reviews';
 import { DataView, type DataViewStatus } from '@/components/data-view';
 import { pickAmenityPreview } from '@/components/amenities';
@@ -36,19 +40,33 @@ export default async function BrowsePage({
   const { city } = await searchParams;
   const cityFilter = city?.trim() ? city.trim() : undefined;
 
+  // DESIGN-INT-GAPS-PASS-2 Round 4 Gap F — server "today" used to
+  // count active bookings for the spots-left math. ISO YYYY-MM-DD
+  // against the `bookings.booking_date` `date` column.
+  const today = new Date().toISOString().slice(0, 10);
+
   let spaces: Space[] = [];
   let status: DataViewStatus = 'loaded';
   let minPriceBySpaceId = new Map<string, number>();
   let ratingBySpaceId = new Map<string, { avg: number; count: number }>();
+  let deskCountBySpaceId = new Map<string, number>();
+  let bookedTodayBySpaceId = new Map<string, number>();
   try {
     spaces = await listPublishedSpaces({ city: cityFilter });
     if (spaces.length === 0) {
       status = 'empty';
     } else {
       const ids = spaces.map((s) => s.id);
-      [minPriceBySpaceId, ratingBySpaceId] = await Promise.all([
+      [
+        minPriceBySpaceId,
+        ratingBySpaceId,
+        deskCountBySpaceId,
+        bookedTodayBySpaceId,
+      ] = await Promise.all([
         getMinActiveDailyPriceCentsBySpaceIds(ids),
         getAverageRatingBySpaceIds(ids),
+        getActiveDeskCountBySpaceIds(ids),
+        getActiveBookingCountByDateAndSpaceIds(ids, today),
       ]);
     }
   } catch (err) {
@@ -192,6 +210,9 @@ export default async function BrowsePage({
             const minPriceCents = minPriceBySpaceId.get(s.id);
             const rating = ratingBySpaceId.get(s.id);
             const preview = pickAmenityPreview(s.amenities);
+            const totalDesks = deskCountBySpaceId.get(s.id) ?? 0;
+            const bookedToday = bookedTodayBySpaceId.get(s.id) ?? 0;
+            const spotsLeft = Math.max(0, totalDesks - bookedToday);
             return (
               <li key={s.id}>
                 <Link href={`/spaces/${s.id}`} className="card-link">
@@ -289,20 +310,40 @@ export default async function BrowsePage({
                           ))}
                         </ul>
                       )}
-                      {minPriceCents != null && (
-                        <p
-                          className="tnum"
-                          data-testid={`card-price-${s.id}`}
+                      {(minPriceCents != null || totalDesks > 0) && (
+                        <div
                           style={{
                             marginTop: '0.625rem',
-                            fontSize: '13px',
-                            color: 'var(--color-neutral-700)',
-                            fontWeight: 500,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '0.5rem',
+                            flexWrap: 'wrap',
                           }}
                         >
-                          from <strong style={{ color: 'var(--color-neutral-900)', fontWeight: 600 }}>{formatCents(minPriceCents)}</strong>
-                          <span style={{ color: 'var(--color-neutral-500)', fontWeight: 400 }}> / day</span>
-                        </p>
+                          {minPriceCents != null ? (
+                            <p
+                              className="tnum"
+                              data-testid={`card-price-${s.id}`}
+                              style={{
+                                fontSize: '13px',
+                                color: 'var(--color-neutral-700)',
+                                fontWeight: 500,
+                                margin: 0,
+                              }}
+                            >
+                              from <strong style={{ color: 'var(--color-neutral-900)', fontWeight: 600 }}>{formatCents(minPriceCents)}</strong>
+                              <span style={{ color: 'var(--color-neutral-500)', fontWeight: 400 }}> / day</span>
+                            </p>
+                          ) : (
+                            <span aria-hidden="true" />
+                          )}
+                          <SpotsLeftBadge
+                            spaceId={s.id}
+                            totalDesks={totalDesks}
+                            spotsLeft={spotsLeft}
+                          />
+                        </div>
                       )}
                     </div>
                   </article>
@@ -313,5 +354,62 @@ export default async function BrowsePage({
         </ul>
       </DataView>
     </main>
+  );
+}
+
+// DESIGN-INT-GAPS-PASS-2 Round 4 Gap F — dot + label badge. Renders
+// nothing when totalDesks === 0 (the space has no desks at all, so
+// "Fully booked today" would be misleading). Otherwise: green dot +
+// "{N} spots left" / "1 spot left", or muted dot + "Fully booked
+// today" at zero.
+function SpotsLeftBadge({
+  spaceId,
+  totalDesks,
+  spotsLeft,
+}: {
+  spaceId: string;
+  totalDesks: number;
+  spotsLeft: number;
+}) {
+  if (totalDesks <= 0) return null;
+  const isFullyBooked = spotsLeft <= 0;
+  const dotColor = isFullyBooked
+    ? 'var(--color-neutral-400)'
+    : '#10B981';
+  const textColor = isFullyBooked
+    ? 'var(--color-neutral-500)'
+    : '#047857';
+  const label = isFullyBooked
+    ? 'Fully booked today'
+    : `${spotsLeft} ${spotsLeft === 1 ? 'spot' : 'spots'} left`;
+  return (
+    <span
+      data-testid={
+        isFullyBooked
+          ? `space-card-fully-booked-${spaceId}`
+          : `space-card-spots-left-${spaceId}`
+      }
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.375rem',
+        fontSize: 12,
+        fontWeight: 500,
+        color: textColor,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: '999px',
+          background: dotColor,
+          display: 'inline-block',
+        }}
+      />
+      {label}
+    </span>
   );
 }

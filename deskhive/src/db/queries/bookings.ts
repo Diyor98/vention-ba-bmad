@@ -1,4 +1,4 @@
-import { and, eq, inArray, desc } from 'drizzle-orm';
+import { and, count, eq, inArray, desc } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '@/db/client';
 import {
@@ -31,6 +31,45 @@ export async function listActiveBookingsForSpaceOnDate(
         inArray(bookingsTable.status, ACTIVE_STATUSES),
       ),
     );
+}
+
+/**
+ * DESIGN-INT-GAPS-PASS-2 Round 4 Gap F — count of desks that are
+ * "actively held" today, grouped by space. Reuses ACTIVE_STATUSES
+ * (PENDING + CONFIRMED) — the same set that powers the per-desk
+ * availability invariant + partial unique index, so the spots-left
+ * math and the booking-create gate agree on which bookings count.
+ *
+ * Returns Map<spaceId, count>. Spaces with zero active bookings on
+ * the date are absent from the map (caller treats absent as 0).
+ *
+ * `isoDate` is the YYYY-MM-DD string against which `booking_date`
+ * is filtered. Caller computes "today" server-side and passes it
+ * here so the same date can be reused for related reads
+ * (e.g. future "available now" filters).
+ */
+export async function getActiveBookingCountByDateAndSpaceIds(
+  spaceIds: string[],
+  isoDate: string,
+): Promise<Map<string, number>> {
+  if (spaceIds.length === 0) return new Map();
+  const rows = await db
+    .select({
+      spaceId: bookingsTable.spaceId,
+      n: count(),
+    })
+    .from(bookingsTable)
+    .where(
+      and(
+        inArray(bookingsTable.spaceId, spaceIds),
+        eq(bookingsTable.bookingDate, isoDate),
+        inArray(bookingsTable.status, ACTIVE_STATUSES),
+      ),
+    )
+    .groupBy(bookingsTable.spaceId);
+  const out = new Map<string, number>();
+  for (const r of rows) out.set(r.spaceId, Number(r.n));
+  return out;
 }
 
 // Story 9-3: signature extended with three optional fields populated by

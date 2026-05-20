@@ -5,6 +5,7 @@ import {
   getActiveDeskCountBySpaceIds,
   getMinActiveDailyPriceCentsBySpaceIds,
 } from '@/db/queries/desks';
+import { getActiveBookingCountByDateAndSpaceIds } from '@/db/queries/bookings';
 import { getAverageRatingBySpaceIds } from '@/db/queries/reviews';
 import { DataView, type DataViewStatus } from '@/components/data-view';
 import { pickAmenityPreview } from '@/components/amenities';
@@ -22,27 +23,37 @@ import type { Space } from '@/db/schema';
 // The full searchable grid moved to /browse/page.tsx.
 
 export default async function HomePage() {
+  // DESIGN-INT-GAPS-PASS-2 Round 4 Gap F — server "today" for the
+  // featured-rail spots-left math (mirrors /browse).
+  const today = new Date().toISOString().slice(0, 10);
+
   let spaces: Space[] = [];
   let status: DataViewStatus = 'loaded';
   let minPriceBySpaceId = new Map<string, number>();
   let deskCountBySpaceId = new Map<string, number>();
   let ratingBySpaceId = new Map<string, { avg: number; count: number }>();
+  let bookedTodayBySpaceId = new Map<string, number>();
   try {
     spaces = await listPublishedSpaces();
     if (spaces.length === 0) {
       status = 'empty';
     } else {
       const ids = spaces.map((s) => s.id);
-      // Featured rail + hero card both render price; hero card also
-      // shows desk count; featured rail also shows ★ rating. One
-      // query per metric across every published space (cheap on
-      // first page-load + cache-friendly).
-      [minPriceBySpaceId, deskCountBySpaceId, ratingBySpaceId] =
-        await Promise.all([
-          getMinActiveDailyPriceCentsBySpaceIds(ids),
-          getActiveDeskCountBySpaceIds(ids),
-          getAverageRatingBySpaceIds(ids),
-        ]);
+      // Featured rail + hero card both render price; hero card +
+      // featured rail also show desk count; featured rail also shows
+      // ★ rating + spots-left badge. One query per metric across
+      // every published space (cheap + cache-friendly).
+      [
+        minPriceBySpaceId,
+        deskCountBySpaceId,
+        ratingBySpaceId,
+        bookedTodayBySpaceId,
+      ] = await Promise.all([
+        getMinActiveDailyPriceCentsBySpaceIds(ids),
+        getActiveDeskCountBySpaceIds(ids),
+        getAverageRatingBySpaceIds(ids),
+        getActiveBookingCountByDateAndSpaceIds(ids, today),
+      ]);
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -357,6 +368,9 @@ export default async function HomePage() {
               const minPriceCents = minPriceBySpaceId.get(s.id);
               const rating = ratingBySpaceId.get(s.id);
               const preview = pickAmenityPreview(s.amenities);
+              const totalDesks = deskCountBySpaceId.get(s.id) ?? 0;
+              const bookedToday = bookedTodayBySpaceId.get(s.id) ?? 0;
+              const spotsLeft = Math.max(0, totalDesks - bookedToday);
               return (
                 <li key={s.id}>
                   <Link href={`/spaces/${s.id}`} className="card-link">
@@ -454,36 +468,56 @@ export default async function HomePage() {
                             ))}
                           </ul>
                         )}
-                        {minPriceCents != null && (
-                          <p
-                            className="tnum"
-                            data-testid={`featured-price-${s.id}`}
+                        {(minPriceCents != null || totalDesks > 0) && (
+                          <div
                             style={{
                               marginTop: '0.625rem',
-                              fontSize: '13px',
-                              color: 'var(--color-neutral-700)',
-                              fontWeight: 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '0.5rem',
+                              flexWrap: 'wrap',
                             }}
                           >
-                            from{' '}
-                            <strong
-                              style={{
-                                color: 'var(--color-neutral-900)',
-                                fontWeight: 600,
-                              }}
-                            >
-                              {formatCents(minPriceCents)}
-                            </strong>
-                            <span
-                              style={{
-                                color: 'var(--color-neutral-500)',
-                                fontWeight: 400,
-                              }}
-                            >
-                              {' '}
-                              / day
-                            </span>
-                          </p>
+                            {minPriceCents != null ? (
+                              <p
+                                className="tnum"
+                                data-testid={`featured-price-${s.id}`}
+                                style={{
+                                  fontSize: '13px',
+                                  color: 'var(--color-neutral-700)',
+                                  fontWeight: 500,
+                                  margin: 0,
+                                }}
+                              >
+                                from{' '}
+                                <strong
+                                  style={{
+                                    color: 'var(--color-neutral-900)',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {formatCents(minPriceCents)}
+                                </strong>
+                                <span
+                                  style={{
+                                    color: 'var(--color-neutral-500)',
+                                    fontWeight: 400,
+                                  }}
+                                >
+                                  {' '}
+                                  / day
+                                </span>
+                              </p>
+                            ) : (
+                              <span aria-hidden="true" />
+                            )}
+                            <SpotsLeftBadge
+                              spaceId={s.id}
+                              totalDesks={totalDesks}
+                              spotsLeft={spotsLeft}
+                            />
+                          </div>
                         )}
                       </div>
                     </article>
@@ -514,5 +548,62 @@ export default async function HomePage() {
         )}
       </section>
     </main>
+  );
+}
+
+// DESIGN-INT-GAPS-PASS-2 Round 4 Gap F — dot + label badge mirroring
+// the /browse implementation. Kept inline (rather than a shared
+// component) since the featured rail + browse grid are the only two
+// call sites and the existing pattern in this repo prefers inline
+// card markup over shared SpaceCard primitives.
+function SpotsLeftBadge({
+  spaceId,
+  totalDesks,
+  spotsLeft,
+}: {
+  spaceId: string;
+  totalDesks: number;
+  spotsLeft: number;
+}) {
+  if (totalDesks <= 0) return null;
+  const isFullyBooked = spotsLeft <= 0;
+  const dotColor = isFullyBooked
+    ? 'var(--color-neutral-400)'
+    : '#10B981';
+  const textColor = isFullyBooked
+    ? 'var(--color-neutral-500)'
+    : '#047857';
+  const label = isFullyBooked
+    ? 'Fully booked today'
+    : `${spotsLeft} ${spotsLeft === 1 ? 'spot' : 'spots'} left`;
+  return (
+    <span
+      data-testid={
+        isFullyBooked
+          ? `space-card-fully-booked-${spaceId}`
+          : `space-card-spots-left-${spaceId}`
+      }
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.375rem',
+        fontSize: 12,
+        fontWeight: 500,
+        color: textColor,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: '999px',
+          background: dotColor,
+          display: 'inline-block',
+        }}
+      />
+      {label}
+    </span>
   );
 }
