@@ -1,33 +1,65 @@
 'use client';
 
-import { useActionState, useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
   createBookingWithPaymentAction,
+  createBookingWithPaymentEmbeddedAction,
   type CreateBookingWithPaymentActionState,
+  type CreateBookingWithPaymentEmbeddedActionState,
 } from '@/actions/booking-with-payment';
+import { BookingCheckoutEmbed } from '@/components/booking-checkout-embed';
 import { toastError, TOAST_COPY } from '@/lib/toast';
 
-const initialState: CreateBookingWithPaymentActionState = { status: 'idle' };
-
 /**
- * Story 9-3: Client Component for the "Book this desk" CTA on
- * /spaces/[id]. Replaces the Phase 1 inline-booking + toast-on-success
- * pattern with a Stripe Checkout redirect.
+ * Story 9-3 + DESIGN-INT-CHECKOUT-EMBED Phase 2: flag-aware Book button.
  *
- * On `state.status === 'success'`: action returns a Stripe Checkout URL
- * → `window.location.assign(url)` (BA Decision §7 — Server Actions
- * can't return external redirects across the form boundary cleanly).
+ * Default (NEXT_PUBLIC_CHECKOUT_EMBED_ENABLED !== 'true'):
+ *   Legacy hosted-Checkout redirect — action returns redirectUrl, the
+ *   client does window.location.assign(url). Byte-for-byte the Story
+ *   9-3 behavior; the legacy `<BookDeskButtonLegacy>` sub-component
+ *   holds it.
  *
- * On `state.status === 'error'`: code-to-toast-copy mapping (BA
- * Decision §10). The success toast does NOT fire here — it fires on
- * `/my-bookings?just_booked=1` after the return-from-Checkout handler
- * redirects (AC-8).
+ * Embedded path (NEXT_PUBLIC_CHECKOUT_EMBED_ENABLED === 'true'):
+ *   New `createBookingWithPaymentEmbeddedAction` returns a
+ *   `clientSecret` + summary data; `<BookDeskButtonEmbedded>` swaps
+ *   inline to render `<BookingCheckoutEmbed>`, taking over the page
+ *   visually. URL stays at /spaces/[id] until Stripe's return_url
+ *   navigates to /my-bookings?just_booked=1 after payment.
  *
- * The useRef state-identity guard handles React 19 Strict Mode's
- * effect double-invocation in dev AND re-render stability.
+ * The flag is a `NEXT_PUBLIC_*` env var, so it's inlined at build time.
+ * Toggling requires editing .env.local + restarting the dev server.
+ * Phase 3 will flip the default + remove the legacy path; Phase 4
+ * removes the flag entirely.
  */
-export function BookDeskButton({
+
+const EMBED_ENABLED =
+  process.env.NEXT_PUBLIC_CHECKOUT_EMBED_ENABLED === 'true';
+
+export function BookDeskButton(props: {
+  spaceId: string;
+  deskId: string;
+  bookingDate: string | undefined;
+  enabled: boolean;
+  spaceName?: string;
+  spaceImageUrl?: string;
+  deskLabel?: string;
+  amountCents?: number;
+  platformFeeCents?: number;
+}) {
+  if (EMBED_ENABLED) {
+    return <BookDeskButtonEmbedded {...props} />;
+  }
+  return <BookDeskButtonLegacy {...props} />;
+}
+
+// ── Legacy hosted-Checkout path (Story 9-3 byte-for-byte) ─────────────
+
+const legacyInitialState: CreateBookingWithPaymentActionState = {
+  status: 'idle',
+};
+
+function BookDeskButtonLegacy({
   spaceId,
   deskId,
   bookingDate,
@@ -40,7 +72,7 @@ export function BookDeskButton({
 }) {
   const [state, formAction] = useActionState(
     createBookingWithPaymentAction,
-    initialState,
+    legacyInitialState,
   );
 
   const lastHandledState = useRef<CreateBookingWithPaymentActionState | null>(
@@ -52,15 +84,11 @@ export function BookDeskButton({
     lastHandledState.current = state;
 
     if (state.status === 'success') {
-      // External URL — Next's redirect() can't cross the Server Action
-      // boundary cleanly. The action returned the URL via state, the
-      // client navigates here.
       window.location.assign(state.redirectUrl);
       return;
     }
 
-    // state.status === 'error' — map code to a specific toast description.
-    toastError(TOAST_COPY.BOOKING_FAILED_TITLE, errorDescription(state));
+    toastError(TOAST_COPY.BOOKING_FAILED_TITLE, legacyErrorDescription(state));
   }, [state]);
 
   return (
@@ -73,14 +101,7 @@ export function BookDeskButton({
   );
 }
 
-// Maps each error code to its specific toast description per BA Decision §10
-// + carry-forward from Story 6-3. INTERNAL_ERROR maps to
-// BOOKING_FAILED_PAYMENT_INIT when the underlying failure was the Stripe
-// Checkout creation step (the action logs the Stripe error); the client
-// shows the user-facing PAYMENT_INIT copy regardless. Generic-internal
-// failures (DB errors before Stripe) also collapse into the same copy
-// since the user-actionable next step is identical: try again.
-function errorDescription(
+function legacyErrorDescription(
   state: CreateBookingWithPaymentActionState,
 ): string {
   if (state.status !== 'error') return TOAST_COPY.BOOKING_FAILED_GENERIC;
@@ -102,6 +123,95 @@ function errorDescription(
     default:
       return TOAST_COPY.BOOKING_FAILED_PAYMENT_INIT;
   }
+}
+
+// ── Embedded Checkout path (DESIGN-INT-CHECKOUT-EMBED Phase 2) ────────
+
+const embedInitialState: CreateBookingWithPaymentEmbeddedActionState = {
+  status: 'idle',
+};
+
+function BookDeskButtonEmbedded({
+  spaceId,
+  deskId,
+  bookingDate,
+  enabled,
+  spaceName,
+  spaceImageUrl,
+  deskLabel,
+  amountCents,
+  platformFeeCents,
+}: {
+  spaceId: string;
+  deskId: string;
+  bookingDate: string | undefined;
+  enabled: boolean;
+  spaceName?: string;
+  spaceImageUrl?: string;
+  deskLabel?: string;
+  amountCents?: number;
+  platformFeeCents?: number;
+}) {
+  const [state, formAction] = useActionState(
+    createBookingWithPaymentEmbeddedAction,
+    embedInitialState,
+  );
+  // Once we have a clientSecret, freeze it locally so re-renders don't
+  // double-mount the iframe. The Server Action's state can be replayed
+  // by Strict Mode in dev — useState guards against that.
+  const [embedded, setEmbedded] =
+    useState<null | { clientSecret: string; sessionId: string; bookingId: string }>(
+      null,
+    );
+  const lastHandledState =
+    useRef<CreateBookingWithPaymentEmbeddedActionState | null>(null);
+
+  useEffect(() => {
+    if (state.status === 'idle') return;
+    if (lastHandledState.current === state) return;
+    lastHandledState.current = state;
+
+    if (state.status === 'success') {
+      // Legitimate state-from-effect: the action's useActionState
+      // result IS the trigger. Mirrors the existing toastError call in
+      // legacy and follows React 19 Strict Mode's identity-guard ref
+      // pattern (lastHandledState).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setEmbedded({
+        clientSecret: state.clientSecret,
+        sessionId: state.sessionId,
+        bookingId: state.bookingId,
+      });
+      return;
+    }
+
+    toastError(TOAST_COPY.BOOKING_FAILED_TITLE, legacyErrorDescription(state));
+  }, [state]);
+
+  if (embedded && spaceName && spaceImageUrl && deskLabel && bookingDate &&
+      typeof amountCents === 'number' && typeof platformFeeCents === 'number') {
+    return (
+      <BookingCheckoutEmbed
+        clientSecret={embedded.clientSecret}
+        spaceId={spaceId}
+        spaceName={spaceName}
+        spaceImageUrl={spaceImageUrl}
+        deskLabel={deskLabel}
+        bookingDate={bookingDate}
+        amountCents={amountCents}
+        platformFeeCents={platformFeeCents}
+      />
+    );
+  }
+
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="spaceId" value={spaceId} />
+      <input type="hidden" name="deskId" value={deskId} />
+      <input type="hidden" name="bookingDate" value={bookingDate ?? ''} />
+      <SubmitButton disabled={!enabled} />
+    </form>
+  );
 }
 
 function SubmitButton({ disabled }: { disabled: boolean }) {

@@ -6,6 +6,7 @@ import { listActiveBookingsForSpaceOnDate } from '@/db/queries/bookings';
 import { getUserById } from '@/db/queries/users';
 import { computeDeskAvailability } from '@/lib/availability';
 import { parseDateParam, formatCents } from '@/lib/format';
+import { calculatePlatformFee } from '@/lib/money';
 import { AmenitiesDisplay } from '@/components/amenities';
 import { DataView, type DataViewStatus } from '@/components/data-view';
 import { logger } from '@/lib/logger';
@@ -298,6 +299,11 @@ export default async function SpaceDetailPage({
                       deskId={d.id}
                       bookingDate={datePicked ? dateResult.iso : undefined}
                       enabled={enable}
+                      spaceName={space.name}
+                      spaceImageUrl={space.primaryImageUrl}
+                      deskLabel={d.label}
+                      amountCents={d.dailyPriceCents}
+                      platformFeeCents={calculatePlatformFee(d.dailyPriceCents)}
                     />
                   </div>
                 </li>

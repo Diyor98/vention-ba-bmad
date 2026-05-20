@@ -27,6 +27,8 @@
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.9",
+    "@stripe/react-stripe-js": "^6.4.0",
+    "@stripe/stripe-js": "^9.6.0",
     "argon2": "^0.41.1",
     "better-auth": "^1.6.9",
     "dotenv": "^16.6.1",

@@ -125,6 +125,101 @@ export async function createCheckoutSession(args: {
   }
 }
 
+/**
+ * DESIGN-INT-CHECKOUT-EMBED Phase 2: Embedded Checkout sibling of
+ * `createCheckoutSession`. Same metadata + line_items + payment_intent_data
+ * shape — identical destination-charge marketplace contract, identical
+ * `payment_intent_data.metadata.bookingId` round-trip, identical
+ * `application_fee_amount` math. Only Stripe-side difference:
+ *
+ *   • `ui_mode: 'embedded'` (vs default 'hosted')
+ *   • `return_url` replaces `success_url` + `cancel_url`
+ *   • Stripe returns `client_secret` for the client to mount
+ *     <EmbeddedCheckoutProvider> with; no `url` is set (would be null
+ *     for embedded — different code path than the hosted-mode SDK).
+ *
+ * Webhook contract unchanged — `checkout.session.completed` emits the
+ * same payload shape for both modes. `handleCheckoutSessionCompleted`
+ * does not need to change.
+ *
+ * Return-URL handler (src/app/spaces/[id]/booking/return/page.tsx) also
+ * unchanged — Stripe substitutes `{CHECKOUT_SESSION_ID}` in the embedded
+ * `return_url` the same way it does in hosted's `success_url`.
+ *
+ * Caller passes a `returnUrl` template (with `{CHECKOUT_SESSION_ID}`
+ * placeholder); we forward verbatim. The wrapper does NOT construct
+ * the URL — keeps the wrapper Stripe-only.
+ */
+export async function createEmbeddedCheckoutSession(args: {
+  spaceName: string;
+  amountCents: number;
+  platformFeeCents: number;
+  ownerStripeAccountId: string;
+  bookingId: string;
+  guestEmail: string;
+  returnUrl: string;
+  idempotencyKey: string;
+}): Promise<
+  StripeServiceResult<{ sessionId: string; clientSecret: string }>
+> {
+  try {
+    const session = await stripe.checkout.sessions.create(
+      {
+        // Stripe SDK 22 / API '2026-04-22.dahlia' renamed
+        // ui_mode 'embedded' → 'embedded_page'. The wire-level behavior
+        // is identical (client_secret returned for in-page mounting).
+        ui_mode: 'embedded_page',
+        mode: 'payment',
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: 'usd',
+              unit_amount: args.amountCents,
+              product_data: {
+                name: `Desk booking — ${args.spaceName}`,
+              },
+            },
+          },
+        ],
+        payment_intent_data: {
+          // Identical to hosted Session — manual capture + destination
+          // charge + application_fee_amount + metadata.bookingId.
+          capture_method: 'manual',
+          transfer_data: { destination: args.ownerStripeAccountId },
+          application_fee_amount: args.platformFeeCents,
+          metadata: { bookingId: args.bookingId },
+        },
+        client_reference_id: args.bookingId,
+        customer_email: args.guestEmail,
+        // Embedded uses `return_url` (single endpoint) instead of
+        // `success_url` + `cancel_url`. Stripe replaces
+        // {CHECKOUT_SESSION_ID} with the actual cs_* id on redirect.
+        return_url: args.returnUrl,
+      },
+      {
+        idempotencyKey: args.idempotencyKey,
+      },
+    );
+
+    // For ui_mode:'embedded', Stripe returns `client_secret` (NOT `url`).
+    // Belt-and-suspenders null-check matches the hosted-mode pattern.
+    if (!session.client_secret) {
+      return {
+        ok: false,
+        error: 'Stripe Embedded Checkout returned no client_secret',
+      };
+    }
+
+    return {
+      ok: true,
+      data: { sessionId: session.id, clientSecret: session.client_secret },
+    };
+  } catch (err) {
+    return mapStripeError(err, 'createEmbeddedCheckoutSession');
+  }
+}
+
 export async function retrieveCheckoutSession(
   sessionId: string,
 ): Promise<
