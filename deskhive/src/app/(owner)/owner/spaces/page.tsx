@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SquarePen } from 'lucide-react';
 import { requireSession } from '@/lib/auth/guards';
 import { listSpacesForOwner } from '@/db/queries/spaces';
 import {
@@ -117,10 +118,21 @@ export default async function OwnerSpacesPage() {
                       </span>
                     </td>
                     <td className="action">
+                      {/* DESIGN-INT-GAPS-PASS-2 R3 Gap D — Lucide
+                          SquarePen matches prototype Icon.Edit's SVG
+                          path verbatim (DeskHive_Prototype.html
+                          line 62). Size 14 matches the existing
+                          .btn-sm scale. */}
                       <Link
                         href={`/owner/spaces/${s.id}`}
                         className="btn btn-secondary btn-sm"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.375rem',
+                        }}
                       >
+                        <SquarePen size={14} aria-hidden="true" />
                         Edit
                       </Link>
                     </td>
