@@ -1,16 +1,17 @@
 import { test, expect } from '@playwright/test';
 
+// DESIGN-INT-GAPS-PASS-2 Gap 2: the searchable grid moved from `/` to
+// `/browse` so `/` could host the marketing hero per prototype lines
+// 705-813. Hero now owns the `landing-h1` testid; the grid keeps its
+// h1 copy ("Find a desk...") + city filter form on /browse.
 test.describe('public browse spaces', () => {
-  test('home page renders the Spaces heading and city filter form', async ({ page }) => {
-    await page.goto('/');
+  test('/browse renders the grid heading and city filter form', async ({ page }) => {
+    await page.goto('/browse');
 
-    // Heading text changed in Story 5-1 reskin from "Spaces" to "Browse spaces"
-    // (matches the public site nav label). Same h1, same page.
     await expect(
-      page.getByRole('heading', { name: /^browse spaces$/i, level: 1 }),
+      page.getByRole('heading', { name: /find a desk\. book a day\. get to work\./i, level: 1 }),
     ).toBeVisible();
 
-    // City filter form
     await expect(page.getByLabel('Filter by city')).toBeVisible();
     await expect(page.getByRole('button', { name: /search/i })).toBeVisible();
   });
@@ -22,10 +23,10 @@ test.describe('public browse spaces', () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test('city filter form submits to /?city=...', async ({ page }) => {
-    await page.goto('/');
+  test('city filter form submits to /browse?city=...', async ({ page }) => {
+    await page.goto('/browse');
     await page.getByLabel('Filter by city').fill('NowhereCity');
     await page.getByRole('button', { name: /search/i }).click();
-    await expect(page).toHaveURL(/\/\?city=NowhereCity$/);
+    await expect(page).toHaveURL(/\/browse\?city=NowhereCity$/);
   });
 });

@@ -63,7 +63,7 @@ export async function Header() {
           {!user ? (
             // Variant 1 — Public
             <>
-              <Link href="/" className="nav-link">
+              <Link href="/browse" className="nav-link">
                 Browse spaces
               </Link>
               <span className="nav-divider" aria-hidden="true" />
@@ -125,7 +125,7 @@ export async function Header() {
                 <span className="dot" />
                 Admin
               </span>
-              <Link href="/" className="nav-link">
+              <Link href="/browse" className="nav-link">
                 Browse spaces
               </Link>
               <Link href="/admin/spaces" className="nav-link">
@@ -143,7 +143,7 @@ export async function Header() {
           ) : (
             // Variants 2 + 3 — Guest user, or SPACE_OWNER in Guest mode
             <>
-              <Link href="/" className="nav-link">
+              <Link href="/browse" className="nav-link">
                 Browse spaces
               </Link>
               <Link href="/my-bookings" className="nav-link">
