@@ -48,3 +48,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local-only deploy notes (kept on disk, not tracked)
+/DEPLOY.md
+/STRIPE_SETUP.md
